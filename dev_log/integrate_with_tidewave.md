@@ -109,7 +109,17 @@ kimi mcp add --transport http tidewave http://localhost:4000/tidewave/mcp
 
 This creates the MCP configuration at `~/.kimi/mcp.json`.
 
-### Step 3: Verify the Connection
+### Step 3: Restart Kimi CLI
+
+**Important:** If Kimi CLI is currently running, you need to **exit and restart it** to load the new MCP configuration.
+
+```bash
+# Exit current Kimi session (if running)
+# Then start a new session:
+kimi
+```
+
+### Step 4: Verify the Connection
 
 Test that Kimi can connect to Tidewave:
 
@@ -132,9 +142,16 @@ Testing connection to 'tidewave'...
     - search_package_docs
 ```
 
-### Step 4: Use Kimi with Tidewave
+### Step 5: Use Kimi with Tidewave
 
-Now when you run Kimi in your project directory, it has access to Tidewave's runtime tools:
+Now when you run Kimi in your project directory, it has access to Tidewave's runtime tools.
+
+**To verify MCP is loaded in your session:**
+
+When you start Kimi, you should see the MCP tools loaded in the startup message, or you can check by asking Kimi to list available tools.
+
+You can verify by asking Kimi something like:
+> "List the MCP tools you have access to"
 
 ```bash
 kimi
@@ -180,7 +197,7 @@ Expected response:
 | ------------------------ | ------------------------------------------------------------------------------- |
 | `Connection refused`     | Ensure Phoenix server is running with `mix phx.server`                          |
 | `404 Not Found`          | Check that `plug Tidewave` is in your endpoint and you're in `:dev` environment |
-| `MCP tools not showing`  | Run `kimi mcp test tidewave` to verify connection                               |
+| `MCP tools not showing`  | **Restart Kimi CLI** - MCP servers load at startup, not dynamically              |
 | `kimi command not found` | Install Kimi CLI first (see Prerequisites)                                      |
 
 ### View MCP configuration
@@ -191,6 +208,20 @@ kimi mcp list
 
 # View config file
 cat ~/.kimi/mcp.json
+```
+
+### MCP tools not available in current session
+
+**Problem:** You added the MCP server but Kimi doesn't seem to have access to the tools in your current session.
+
+**Solution:** Exit Kimi and start a new session. MCP servers are loaded when Kimi starts, not dynamically during a session:
+
+```bash
+# Exit current session
+exit
+
+# Start new session (MCP will be loaded)
+kimi
 ```
 
 ### Reset MCP configuration

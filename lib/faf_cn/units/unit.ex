@@ -15,6 +15,7 @@ defmodule FafCn.Units.Unit do
     field :build_time, :integer
     field :categories, {:array, :string}
     field :data, :map
+    field :icon_path, :string
 
     timestamps(type: :utc_datetime)
   end
@@ -31,7 +32,8 @@ defmodule FafCn.Units.Unit do
       :build_cost_energy,
       :build_time,
       :categories,
-      :data
+      :data,
+      :icon_path
     ])
     |> validate_required([:unit_id, :faction, :build_cost_mass, :build_cost_energy, :build_time])
     |> unique_constraint(:unit_id)
