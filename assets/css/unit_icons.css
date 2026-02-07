@@ -51,6 +51,13 @@
   height: 64px;
   background-size: 64px 64px;
 }
+
+/* Fallback icons for units not in the sprite sheet (newer/mod units) */
+.unit-icon-DALK003 { background-image: url('/images/units/a9005d59.units.png'); background-position: 0 -64px; width: 64px; height: 64px; background-size: 1472px 1472px; display: inline-block; }
+.unit-icon-DELK002 { background-image: url('/images/units/a9005d59.units.png'); background-position: -128px -64px; width: 64px; height: 64px; background-size: 1472px 1472px; display: inline-block; }
+.unit-icon-DRLK001 { background-image: url('/images/units/a9005d59.units.png'); background-position: -128px -128px; width: 64px; height: 64px; background-size: 1472px 1472px; display: inline-block; }
+.unit-icon-DSLK004 { background-image: url('/images/units/a9005d59.units.png'); background-position: -192px 0; width: 64px; height: 64px; background-size: 1472px 1472px; display: inline-block; }
+
 .unit-icon-DAA0206 { background-image: url('/images/units/a9005d59.units.png'); background-position: 0 0; width: 64px; height: 64px; background-size: 1472px 1472px; display: inline-block; }
 .unit-icon-DAL0310 { background-image: url('/images/units/a9005d59.units.png'); background-position: -64px 0; width: 64px; height: 64px; background-size: 1472px 1472px; display: inline-block; }
 .unit-icon-DEA0202 { background-image: url('/images/units/a9005d59.units.png'); background-position: -64px -64px; width: 64px; height: 64px; background-size: 1472px 1472px; display: inline-block; }
