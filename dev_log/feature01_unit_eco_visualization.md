@@ -262,7 +262,23 @@ Your plan:
 - `lib/faf_cn_web/live/eco_guides_live.ex` - Updated sorting logic for groups and comparisons
 - `lib/faf_cn_web/live/eco_guides_live.html.heex` - Added mass cost display in header 
 
-## Task 11: Adjust base comparsion section for Eco Comparion 
+## Task 11: Adjust base comparison section for Eco Comparison
 
-- Display the full name for base unit. 
-- Display mass, energy and build time absolute value for base unit
+- [x] Display the full name for base unit in Eco Comparison section
+- [x] Display mass, energy and build time absolute values for base unit
+
+**Status**: ✅ Completed
+
+**Implementation Details**:
+- Base unit display in Eco Comparison (right column) now shows:
+  - Unit icon with faction background
+  - Full unit name (description) as title
+  - Unit ID below
+  - 3-column grid with absolute eco values:
+    - Mass: e.g., "52"
+    - Energy: e.g., "260"  
+    - BT (Build Time): e.g., "260"
+- Displayed in a subtle gray card (bg-gray-100) to distinguish from comparison cards
+
+**Files Changed**:
+- `lib/faf_cn_web/live/eco_guides_live.html.heex` - Updated base unit display in Eco Comparison section
