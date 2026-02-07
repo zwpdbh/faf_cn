@@ -117,3 +117,48 @@ Your plan:
 - `lib/faf_cn_web/live/eco_guides_live.html.heex` - Use unit icon CSS classes
 - Removed: `priv/repo/migrations/*_add_unit_icon_path.exs` (not needed with CSS approach)
 - Removed: `priv/static/images/units/strategic/` folder (unused)
+
+## Task05 -- improvement icons background
+
+- [x] Fix the background color when displaying units
+- [x] Download background image `d2cdefc2.background.jpg` from spooky-db
+- [x] Add faction-specific CSS background classes:
+  - [x] UEF: `rgba(45, 120, 178, 0.2)` (blue)
+  - [x] CYBRAN: `rgba(223, 45, 14, 0.2)` (red)
+  - [x] AEON: `rgba(10, 157, 47, 0.2)` (green)
+  - [x] SERAPHIM: `rgba(241, 194, 64, 0.2)` (yellow/gold)
+- [x] Apply background image + faction color overlay using `background-blend-mode: overlay`
+- [x] Update unit icon containers to use faction background classes
+
+**Status**: ✅ Completed
+
+**Implementation Details**:
+- Background image is applied via CSS with `background-image: url('/images/units/background.jpg')`
+- Each faction has a transparent color overlay that blends with the background image
+- The `background-blend-mode: overlay` creates the same effect as spooky-db
+- Added `unit_faction_bg_class/1` helper function in `eco_guides_live.ex`
+- Updated both base unit display and unit grid to use faction backgrounds
+- CSS classes: `.unit-bg-uef`, `.unit-bg-cybran`, `.unit-bg-aeon`, `.unit-bg-seraphim`
+
+**Files Changed**:
+- `priv/static/images/units/background.jpg` - Background texture image
+- `assets/css/unit_icons.css` - Added faction background classes
+- `lib/faf_cn_web/live/eco_guides_live.ex` - Added `unit_faction_bg_class/1` helper
+- `lib/faf_cn_web/live/eco_guides_live.html.heex` - Applied faction backgrounds to unit icons
+
+## Task06: Improve unit selection grid background
+
+- [x] Change the "Select Units to Compare" section background from white to the unit background image
+- [x] Update section title styling with white text and drop shadow for visibility
+- [x] Update "Clear" button to have a solid red background for visibility on the image
+
+**Status**: ✅ Completed
+
+**Implementation Details**:
+- Changed the container background from `bg-white` to use the same background image as unit icons
+- Added `background-size: cover` and `background-position: center` for proper image display
+- Section title now uses white text with drop shadow for readability
+- Clear button changed to solid red (`bg-red-600`) with white text and shadow for visibility
+
+**Files Changed**:
+- `lib/faf_cn_web/live/eco_guides_live.html.heex` - Updated unit selection grid container styling 

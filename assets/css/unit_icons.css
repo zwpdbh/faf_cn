@@ -1,4 +1,56 @@
 /* Auto-generated unit icon styles */
+
+/* Faction background colors (matching spooky-db) */
+.unit-bg-uef {
+  background-color: rgba(45, 120, 178, 0.2);
+  background-image: url('/images/units/background.jpg');
+  background-blend-mode: overlay;
+}
+
+.unit-bg-cybran {
+  background-color: rgba(223, 45, 14, 0.2);
+  background-image: url('/images/units/background.jpg');
+  background-blend-mode: overlay;
+}
+
+.unit-bg-aeon {
+  background-color: rgba(10, 157, 47, 0.2);
+  background-image: url('/images/units/background.jpg');
+  background-blend-mode: overlay;
+}
+
+.unit-bg-seraphim {
+  background-color: rgba(241, 194, 64, 0.2);
+  background-image: url('/images/units/background.jpg');
+  background-blend-mode: overlay;
+}
+
+/* Base unit icon class */
+.unit-icon {
+  background-repeat: no-repeat;
+  background-position: center;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Make unit icons responsive */
+.unit-icon-sm {
+  width: 48px;
+  height: 48px;
+  background-size: 48px 48px;
+}
+
+.unit-icon-md {
+  width: 56px;
+  height: 56px;
+  background-size: 56px 56px;
+}
+
+.unit-icon-lg {
+  width: 64px;
+  height: 64px;
+  background-size: 64px 64px;
+}
 .unit-icon-DAA0206 { background-image: url('/images/units/a9005d59.units.png'); background-position: 0 0; width: 64px; height: 64px; background-size: 1472px 1472px; display: inline-block; }
 .unit-icon-DAL0310 { background-image: url('/images/units/a9005d59.units.png'); background-position: -64px 0; width: 64px; height: 64px; background-size: 1472px 1472px; display: inline-block; }
 .unit-icon-DEA0202 { background-image: url('/images/units/a9005d59.units.png'); background-position: -64px -64px; width: 64px; height: 64px; background-size: 1472px 1472px; display: inline-block; }

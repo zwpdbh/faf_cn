@@ -148,6 +148,19 @@ defmodule FafCnWeb.EcoGuidesLive do
     end
   end
 
+  @doc """
+  Gets the faction background class for unit icons (matching spooky-db style).
+  """
+  def unit_faction_bg_class(faction) do
+    case faction do
+      "UEF" -> "unit-bg-uef"
+      "CYBRAN" -> "unit-bg-cybran"
+      "AEON" -> "unit-bg-aeon"
+      "SERAPHIM" -> "unit-bg-seraphim"
+      _ -> "unit-bg-uef"
+    end
+  end
+
   defp get_tech_level(unit) do
     categories = unit.categories || []
 

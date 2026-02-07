@@ -85,7 +85,10 @@
           <%= if @base_unit do %>
             <div class="flex items-center space-x-4">
               <%!-- Engineer Icon --%>
-              <div class="w-16 h-16 rounded-lg flex items-center justify-center shadow-inner bg-gray-100">
+              <div class={[
+                "w-16 h-16 rounded-lg flex items-center justify-center shadow-inner",
+                unit_faction_bg_class(@base_unit.faction)
+              ]}>
                 <div class={"unit-icon-#{@base_unit.unit_id} w-14 h-14"}></div>
               </div>
               <div class="flex-1">
@@ -109,15 +112,18 @@
         </div>
 
         <%!-- Unit Selection Grid --%>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div
+          class="rounded-lg shadow-sm border border-gray-200 p-4"
+          style="background-image: url('/images/units/background.jpg'); background-size: cover; background-position: center;"
+        >
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-gray-900">
+            <h2 class="text-lg font-semibold text-white drop-shadow-md">
               Select Units to Compare
             </h2>
             <%= if length(@selected_units) > 0 do %>
               <button
                 phx-click="clear_selections"
-                class="text-sm text-red-600 hover:text-red-800 transition-colors"
+                class="text-sm bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded transition-colors shadow-md"
               >
                 Clear ({length(@selected_units)})
               </button>
@@ -141,12 +147,13 @@
                 phx-value-unit_id={unit.unit_id}
                 class={[
                   "group relative aspect-square rounded-lg p-1 transition-all duration-150 flex flex-col items-center justify-center text-center overflow-hidden",
+                  unit_faction_bg_class(unit.faction),
                   border_class
                 ]}
                 title={"#{unit.unit_id} - #{unit.description || unit.name || "Unknown"}"}
               >
                 <%!-- Unit icon from sprite sheet --%>
-                <div class={["unit-icon-#{unit.unit_id} w-12 h-12 flex-shrink-0 rounded"]}></div>
+                <div class={["unit-icon-#{unit.unit_id} w-12 h-12 flex-shrink-0"]}></div>
                 <%= if is_engineer do %>
                   <span class="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center z-10">
                     <span class="text-[8px] font-bold text-yellow-900">★</span>
