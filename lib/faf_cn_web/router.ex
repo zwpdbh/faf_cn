@@ -18,6 +18,7 @@ defmodule FafCnWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    live "/eco-guides", EcoGuidesLive
   end
 
   # Other scopes may use custom stacks.
