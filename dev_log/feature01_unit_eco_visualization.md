@@ -162,3 +162,29 @@ Your plan:
 
 **Files Changed**:
 - `lib/faf_cn_web/live/eco_guides_live.html.heex` - Updated unit selection grid container styling 
+
+## Task 07: Improve comparison section with unit icons
+
+- [x] Add unit icons to engineer comparison cards
+- [x] Display unit names/descriptions in comparison cards
+- [x] Show engineer icon in the "vs Engineer (Base)" header
+- [x] Add unit icons to cross-comparison rows (both from and to units)
+- [x] Fix cross-comparison mass ratio to show correct unit costs
+- [x] Keep letter labels (A, B, C) alongside icons for reference
+
+**Status**: ✅ Completed
+
+**Implementation Details**:
+- Engineer comparison cards now show:
+  - Unit icon with faction background (left side)
+  - Letter label (A, B, C) and unit ID
+  - Unit description/name below
+  - Mass/energy/time ratios
+- "vs Engineer (Base)" header now shows the engineer unit icon
+- Cross-comparisons now show:
+  - Both unit icons with faction backgrounds
+  - Letter labels for both units
+  - Correct mass ratio (to_unit/from_unit instead of to_unit/base_unit)
+
+**Files Changed**:
+- `lib/faf_cn_web/live/eco_guides_live.html.heex` - Updated comparison section UI 
