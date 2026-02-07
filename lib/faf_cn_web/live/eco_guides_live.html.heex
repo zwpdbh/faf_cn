@@ -85,11 +85,8 @@
           <%= if @base_unit do %>
             <div class="flex items-center space-x-4">
               <%!-- Engineer Icon --%>
-              <div class={[
-                "w-16 h-16 rounded-lg flex items-center justify-center shadow-inner",
-                unit_icon_bg_class(@base_unit, @faction_colors)
-              ]}>
-                <.icon name="hero-wrench" class="w-8 h-8 text-white" />
+              <div class="w-16 h-16 rounded-lg flex items-center justify-center shadow-inner bg-gray-100">
+                <div class={"unit-icon-#{@base_unit.unit_id} w-14 h-14"}></div>
               </div>
               <div class="flex-1">
                 <div class="flex items-center space-x-2">
@@ -143,24 +140,20 @@
                 phx-click={if !is_engineer, do: "toggle_unit"}
                 phx-value-unit_id={unit.unit_id}
                 class={[
-                  "group relative aspect-square rounded-lg p-2 transition-all duration-150 flex flex-col items-center justify-center text-center",
-                  unit_icon_bg_class(unit, @faction_colors),
+                  "group relative aspect-square rounded-lg p-1 transition-all duration-150 flex flex-col items-center justify-center text-center overflow-hidden",
                   border_class
                 ]}
                 title={"#{unit.unit_id} - #{unit.description || unit.name || "Unknown"}"}
               >
-                <% icon_name = "hero-#{unit_icon_class(unit)}" %>
-                <.icon name={icon_name} class="w-6 h-6 text-white mb-1" />
-                <span class="text-[10px] font-medium text-white leading-tight truncate w-full">
-                  {unit.unit_id}
-                </span>
+                <%!-- Unit icon from sprite sheet --%>
+                <div class={["unit-icon-#{unit.unit_id} w-12 h-12 flex-shrink-0 rounded"]}></div>
                 <%= if is_engineer do %>
-                  <span class="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
+                  <span class="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center z-10">
                     <span class="text-[8px] font-bold text-yellow-900">★</span>
                   </span>
                 <% end %>
                 <%= if is_selected do %>
-                  <span class="absolute -top-1 -right-1 w-4 h-4 bg-indigo-500 rounded-full flex items-center justify-center">
+                  <span class="absolute -top-1 -right-1 w-4 h-4 bg-indigo-500 rounded-full flex items-center justify-center z-10">
                     <.icon name="hero-check" class="w-3 h-3 text-white" />
                   </span>
                 <% end %>

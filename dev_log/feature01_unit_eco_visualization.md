@@ -93,26 +93,27 @@ Your plan:
 
 ## Task 04: Display FAF units icons
 
-- [ ] Find source for FAF unit icons (from spooky-db or FAF game files)
-- [ ] Download and convert icons to PNG format
-- [ ] Store icons as static assets in `priv/static/images/units/`
-- [ ] Add `icon_path` column to units table in database
-- [ ] Update unit records with icon paths
-- [ ] Update Eco Guides UI to display actual unit icons instead of Heroicons placeholders
+- [x] Find source for FAF unit icons from spooky-db CSS sprite sheet
+- [x] Download unit sprite sheet (`a9005d59.units.png` - 1472x1472px containing 503 unit icons at 64x64px each)
+- [x] Extract CSS background positions for all 503 unit IDs
+- [x] Generate CSS file with unit icon classes (`unit_icon-XXXX`)
+- [x] Update Eco Guides UI to display actual unit icons from sprite sheet
+- [x] Remove unused strategic icons and migration (not needed with sprite sheet approach)
 
-**Status**: 🔄 In Progress
+**Status**: ✅ Completed
 
-Your plan:
+**Implementation Details**:
+- The spooky-db site uses a CSS sprite sheet (`a9005d59.units.png`) where each unit icon is 64x64 pixels
+- CSS classes map unit IDs (e.g., `UEL0105`) to background positions in the sprite sheet
+- Generated `unit_icons.css` with 503 CSS rules for all units
+- Updated `eco_guides_live.html.heex` to use `<div class="unit-icon-{unit_id}">` instead of Heroicons
+- Icons are displayed at 48x48px (w-12 h-12) in the unit grid and 56x56px (w-14 h-14) in the base unit display
+- Sprite sheet is 1472x1472 pixels total (23x23 grid of 64x64 icons)
 
-1. **Research Icon Source**: Check spooky-db repository for icon assets or find alternative source
-2. **Download Icons**: Download icons for all 405 units (UEF, CYBRAN, AEON, SERAPHIM)
-3. **Database Update**: 
-   - Create migration to add `icon_path` column to units table
-   - Update existing units with their icon paths
-4. **Static Assets**:
-   - Create `priv/static/images/units/` directory
-   - Organize icons by faction: `units/uef/`, `units/cybran/`, `units/aeon/`, `units/seraphim/`
-5. **UI Update**:
-   - Update `eco_guides_live.html.heex` to use `<img>` tags with unit icons
-   - Add fallback to Heroicons if icon is missing
-6. **Testing**: Verify all units display their correct icons
+**Files Changed**:
+- `priv/static/images/units/a9005d59.units.png` - Unit icons sprite sheet
+- `assets/css/unit_icons.css` - Generated CSS with background positions for all units
+- `assets/css/app.css` - Import unit_icons.css
+- `lib/faf_cn_web/live/eco_guides_live.html.heex` - Use unit icon CSS classes
+- Removed: `priv/repo/migrations/*_add_unit_icon_path.exs` (not needed with CSS approach)
+- Removed: `priv/static/images/units/strategic/` folder (unused)
