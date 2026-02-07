@@ -208,6 +208,29 @@ defmodule FafCnWeb.EcoGuidesLive do
   end
 
   @doc """
+  Groups cross-comparisons by the "from" unit (base unit of comparison).
+  Returns a list of {from_unit, from_idx, comparisons} tuples where comparisons
+  is a list of {to_unit, to_idx, ratio} tuples.
+  Groups are sorted by base unit mass cost (cheapest first).
+  Comparisons within each group are sorted by mass cost (cheapest first).
+  """
+  def group_comparisons_by_base(comparisons) do
+    comparisons
+    |> Enum.group_by(fn {unit_a, idx_a, _, _, _} -> {unit_a, idx_a} end)
+    |> Enum.map(fn {{unit_a, idx_a}, items} ->
+      comparisons =
+        items
+        |> Enum.map(fn {_, _, unit_b, idx_b, ratio} ->
+          {unit_b, idx_b, ratio}
+        end)
+        |> Enum.sort_by(fn {unit_b, _, _} -> unit_b.build_cost_mass end)
+
+      {unit_a, idx_a, comparisons}
+    end)
+    |> Enum.sort_by(fn {unit_a, _, _} -> unit_a.build_cost_mass end)
+  end
+
+  @doc """
   Generates comparisons specifically against the base unit (engineer).
   """
   def generate_engineer_comparisons(base_unit, selected_units) do

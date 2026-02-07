@@ -188,3 +188,81 @@ Your plan:
 
 **Files Changed**:
 - `lib/faf_cn_web/live/eco_guides_live.html.heex` - Updated comparison section UI 
+
+
+## Task 08: Improve comparison section with correct name
+
+- [x] In vs base part:
+  - [x] Display unit's full name at the right side of icon
+  - [x] Remove letter labels (A, B, C, etc.)
+  - [x] Remove unit ID display (like "UEB0203")
+- [x] In Cross Comparisons part:
+  - [x] Just display icons for both units
+  - [x] Remove letter labels (A, B, etc.)
+
+**Status**: ✅ Completed
+
+**Implementation Details**:
+- Engineer comparison cards now show:
+  - Unit icon with faction background
+  - Unit full name (description) only - no more ID or letter labels
+  - Mass/energy/time ratios
+- Cross-comparisons now show:
+  - To unit icon only (no letter label)
+  - Ratio value
+  - From unit icon only (no letter label)
+  - Mass cost comparison
+
+**Files Changed**:
+- `lib/faf_cn_web/live/eco_guides_live.html.heex` - Simplified comparison section UI
+
+## Task 09: Improve comparison section with style
+
+- [x] Adjust cross comparison icon sizes to match base comparison (32px)
+- [x] Group cross comparisons by the "from" unit (X in "Y = ?x of X")
+- [x] Display each group in a visual card matching base comparison style:
+  - [x] Card header shows base unit icon and name
+  - [x] Each comparison row shows target unit icon, name, and ratio badge
+  - [x] Mass/energy/time ratios displayed in grid below each row
+
+**Status**: ✅ Completed
+
+**Implementation Details**:
+- Added `group_comparisons_by_base/1` helper function to group comparisons
+- Cross comparisons now display as cards grouped by base unit:
+  - Card header: `[Icon] Base Unit Name`
+  - Comparison rows: `[Icon] Target Unit Name = Ratio`
+  - Ratio grid: Mass/Energy/Time breakdown
+- Icon sizes standardized to 32px (w-8 h-8) matching base comparison
+- Visual style consistent with base comparison cards (bg-gray-50, border, rounded)
+
+**Files Changed**:
+- `lib/faf_cn_web/live/eco_guides_live.ex` - Added `group_comparisons_by_base/1` helper
+- `lib/faf_cn_web/live/eco_guides_live.html.heex` - Updated cross comparison UI with cards 
+
+## Task 10: Adjust cross comparison
+
+- [x] Sort groups by base unit mass cost (cheapest base unit first)
+- [x] Sort comparisons within each group by mass cost (cheapest first)
+- [x] Display base unit mass cost in card header
+
+**Status**: ✅ Completed
+
+**Implementation Details**:
+- Groups are now sorted by base unit's `build_cost_mass` (ascending)
+  - Engineer (52 mass) appears first
+  - More expensive base units appear later
+- Within each group, comparisons are sorted by target unit's mass cost
+- Base unit card header shows:
+  - Unit icon
+  - Unit full name
+  - Mass cost (e.g., "Mass: 52")
+
+**Files Changed**:
+- `lib/faf_cn_web/live/eco_guides_live.ex` - Updated sorting logic for groups and comparisons
+- `lib/faf_cn_web/live/eco_guides_live.html.heex` - Added mass cost display in header 
+
+## Task 11: Adjust base comparsion section for Eco Comparion 
+
+- Display the full name for base unit. 
+- Display mass, energy and build time absolute value for base unit
