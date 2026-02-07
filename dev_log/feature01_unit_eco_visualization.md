@@ -282,3 +282,33 @@ Your plan:
 
 **Files Changed**:
 - `lib/faf_cn_web/live/eco_guides_live.html.heex` - Updated base unit display in Eco Comparison section
+
+
+## Task 12: Adjust the cross comparison 
+
+- [x] Improve the cross comparison algorithm to create tiered groups
+- [x] Order all units (base + selected) by mass from cheap to expensive
+- [x] Generate tiered comparison groups:
+  - Group 1: Cheapest unit as base, compare against all more expensive units
+  - Group 2: Second cheapest as base, compare against remaining more expensive units
+  - Group 3: Continue until no more units to compare against
+- [x] In each group, list unit comparisons from cheap to expensive
+
+**Status**: ✅ Completed
+
+**Implementation Details**:
+- Replaced the old `generate_comparisons/2` and `group_comparisons_by_base/1` functions with a new `generate_tiered_cross_comparisons/2` function
+- Algorithm:
+  1. Combine base unit with selected units and sort by mass (cheapest first)
+  2. For each unit at position i, create a group with that unit as base
+  3. Compare base against all units at positions i+1 and beyond (more expensive units)
+  4. Skip the last unit (nothing more expensive to compare against)
+- Example with A(100), B(200), C(150), D(400):
+  - Sorted: A, C, B, D
+  - Group 1: Base A → compares C(1.5x), B(2.0x), D(4.0x)
+  - Group 2: Base C → compares B(1.33x), D(2.67x)
+  - Group 3: Base B → compares D(2.0x)
+
+**Files Changed**:
+- `lib/faf_cn_web/live/eco_guides_live.ex` - Replaced comparison functions with `generate_tiered_cross_comparisons/2`
+- `lib/faf_cn_web/live/eco_guides_live.html.heex` - Updated template to use new function

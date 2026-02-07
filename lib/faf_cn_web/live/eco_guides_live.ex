@@ -187,47 +187,50 @@ defmodule FafCnWeb.EcoGuidesLive do
   end
 
   @doc """
-  Generates all comparison pairs for the selected units.
-  Returns a list of {from_unit, to_unit, ratio} tuples.
+  Generates tiered cross-comparison groups for the selected units.
+
+  Algorithm:
+  1. Order all units (base + selected) by mass from cheap to expensive
+  2. Create tiered groups where each group removes the cheapest unit from the previous group
+  3. In each group, compare all more expensive units against the base (cheapest in group)
+
+  Example: With units A(100), B(200), C(150), D(400):
+  - Sorted: A, C, B, D
+  - Group 1: Base A, compare against C, B, D (cheapest to most expensive)
+  - Group 2: Base C, compare against B, D
+  - Group 3: Base B, compare against D
+
+  Returns a list of {base_unit, comparisons} tuples where comparisons
+  is a list of {to_unit, ratio} tuples sorted by mass (cheapest first).
   """
-  def generate_comparisons(base_unit, selected_units) do
+  def generate_tiered_cross_comparisons(base_unit, selected_units) do
+    # Combine all units and sort by mass (cheapest first)
     all_units = [base_unit | selected_units]
+    sorted_units = Enum.sort_by(all_units, & &1.build_cost_mass)
 
-    # Generate all unique pairs
-    all_units
+    # Generate tiered groups
+    # For each position i, create a group with sorted_units[i] as base
+    # and sorted_units[i+1..] as the comparison targets
+    sorted_units
     |> Enum.with_index()
-    |> Enum.flat_map(fn {unit_a, idx_a} ->
-      all_units
-      |> Enum.drop(idx_a + 1)
-      |> Enum.with_index(idx_a + 1)
-      |> Enum.map(fn {unit_b, idx_b} ->
-        ratio = calculate_eco_ratio(unit_a, unit_b)
-        {unit_a, idx_a, unit_b, idx_b, ratio}
-      end)
-    end)
-  end
+    |> Enum.flat_map(fn {base, idx} ->
+      remaining = Enum.drop(sorted_units, idx + 1)
 
-  @doc """
-  Groups cross-comparisons by the "from" unit (base unit of comparison).
-  Returns a list of {from_unit, from_idx, comparisons} tuples where comparisons
-  is a list of {to_unit, to_idx, ratio} tuples.
-  Groups are sorted by base unit mass cost (cheapest first).
-  Comparisons within each group are sorted by mass cost (cheapest first).
-  """
-  def group_comparisons_by_base(comparisons) do
-    comparisons
-    |> Enum.group_by(fn {unit_a, idx_a, _, _, _} -> {unit_a, idx_a} end)
-    |> Enum.map(fn {{unit_a, idx_a}, items} ->
-      comparisons =
-        items
-        |> Enum.map(fn {_, _, unit_b, idx_b, ratio} ->
-          {unit_b, idx_b, ratio}
-        end)
-        |> Enum.sort_by(fn {unit_b, _, _} -> unit_b.build_cost_mass end)
+      if remaining == [] do
+        # Skip the last unit - nothing to compare against
+        []
+      else
+        # Generate comparisons from base to each remaining unit
+        comparisons =
+          remaining
+          |> Enum.map(fn target ->
+            ratio = calculate_eco_ratio(base, target)
+            {target, ratio}
+          end)
 
-      {unit_a, idx_a, comparisons}
+        [{base, comparisons}]
+      end
     end)
-    |> Enum.sort_by(fn {unit_a, _, _} -> unit_a.build_cost_mass end)
   end
 
   @doc """

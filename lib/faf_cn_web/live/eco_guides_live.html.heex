@@ -280,48 +280,49 @@
                     Cross Comparisons
                   </h3>
                   <div class="space-y-3">
-                    <%= for {unit_a, _idx_a, comparisons} <- group_comparisons_by_base(generate_comparisons(@base_unit, @selected_units)) do %>
+                    <%= for {base_unit, comparisons} <- generate_tiered_cross_comparisons(@base_unit, @selected_units) do %>
                       <%!-- Card for each base unit --%>
                       <div class="bg-gray-50 rounded-lg p-2 border border-gray-200">
                         <%!-- Base unit header --%>
                         <div class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-200">
                           <div class={[
                             "w-6 h-6 rounded flex-shrink-0 overflow-hidden relative",
-                            unit_faction_bg_class(unit_a.faction)
+                            unit_faction_bg_class(base_unit.faction)
                           ]}>
                             <div
-                              class={"unit-icon-#{unit_a.unit_id} absolute"}
+                              class={"unit-icon-#{base_unit.unit_id} absolute"}
                               style="width: 64px; height: 64px; transform: scale(0.375); transform-origin: top left;"
                             >
                             </div>
                           </div>
                           <div class="flex-1 min-w-0">
                             <span class="text-xs font-medium text-gray-700 truncate block">
-                              {unit_a.description || unit_a.name || unit_a.unit_id}
+                              {base_unit.description || base_unit.name || base_unit.unit_id}
                             </span>
                             <span class="text-[10px] text-gray-500">
-                              Mass: {format_number(unit_a.build_cost_mass)}
+                              Mass: {format_number(base_unit.build_cost_mass)}
                             </span>
                           </div>
                         </div>
                         <%!-- Comparisons against this base --%>
                         <div class="space-y-1.5">
-                          <%= for {unit_b, _idx_b, ratio} <- comparisons do %>
+                          <%= for {target_unit, ratio} <- comparisons do %>
                             <div class="flex items-center justify-between py-1">
                               <div class="flex items-center gap-2">
                                 <%!-- To Unit --%>
                                 <div class={[
                                   "w-8 h-8 rounded flex-shrink-0 overflow-hidden relative",
-                                  unit_faction_bg_class(unit_b.faction)
+                                  unit_faction_bg_class(target_unit.faction)
                                 ]}>
                                   <div
-                                    class={"unit-icon-#{unit_b.unit_id} absolute"}
+                                    class={"unit-icon-#{target_unit.unit_id} absolute"}
                                     style="width: 64px; height: 64px; transform: scale(0.5); transform-origin: top left;"
                                   >
                                   </div>
                                 </div>
                                 <span class="text-xs text-gray-700 truncate">
-                                  {unit_b.description || unit_b.name || unit_b.unit_id}
+                                  {target_unit.description || target_unit.name ||
+                                    target_unit.unit_id}
                                 </span>
                               </div>
                               <span class={[
