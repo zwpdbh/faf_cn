@@ -33,6 +33,7 @@ defmodule FafCnWeb.UnitLive do
           |> assign(:edit_logs, edit_logs)
           |> assign(:is_admin, is_admin)
           |> assign(:edit_mode, false)
+          |> assign(:editing_comment_id, nil)
           |> assign(:comment_form, to_form(%{"content" => ""}))
           |> assign(:edit_form, to_form(%{"mass" => unit.build_cost_mass, "energy" => unit.build_cost_energy, "build_time" => unit.build_time, "reason" => ""}))
           |> assign(:edit_error, nil)
@@ -88,6 +89,34 @@ defmodule FafCnWeb.UnitLive do
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to delete comment")}
+    end
+  end
+
+  @impl true
+  def handle_event("edit_comment", %{"comment-id" => comment_id}, socket) do
+    {:noreply, assign(socket, :editing_comment_id, String.to_integer(comment_id))}
+  end
+
+  @impl true
+  def handle_event("cancel_edit_comment", _params, socket) do
+    {:noreply, assign(socket, :editing_comment_id, nil)}
+  end
+
+  @impl true
+  def handle_event("save_comment_edit", %{"comment-id" => comment_id, "content" => content}, socket) do
+    user = socket.assigns.current_user
+
+    case UnitComments.update_comment(String.to_integer(comment_id), user.id, content) do
+      {:ok, _comment} ->
+        comments = UnitComments.list_unit_comments(socket.assigns.unit.id)
+
+        {:noreply,
+         socket
+         |> assign(:comments, comments)
+         |> assign(:editing_comment_id, nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to update comment")}
     end
   end
 
@@ -413,19 +442,57 @@ defmodule FafCnWeb.UnitLive do
                         {format_timestamp(comment.inserted_at)}
                       </span>
                     </div>
-                    <p class="text-gray-700 text-sm whitespace-pre-wrap">
-                      {comment.content}
-                    </p>
 
-                    <%!-- Delete button (only for owner) --%>
-                    <%= if comment.user_id == @current_user.id do %>
-                      <button
-                        phx-click="delete_comment"
-                        phx-value-comment-id={comment.id}
-                        class="mt-2 text-xs text-red-600 hover:text-red-800"
-                      >
-                        Delete
-                      </button>
+                    <%!-- Edit form (when editing this comment) --%>
+                    <%= if @editing_comment_id == comment.id do %>
+                      <form phx-submit="save_comment_edit" class="mb-2">
+                        <input type="hidden" name="comment-id" value={comment.id} />
+                        <textarea
+                          name="content"
+                          rows="2"
+                          class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm mb-2"
+                          required
+                        >{comment.content}</textarea>
+                        <div class="flex gap-2">
+                          <button
+                            type="button"
+                            phx-click="cancel_edit_comment"
+                            class="text-xs text-gray-600 hover:text-gray-800"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            class="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </form>
+                    <% else %>
+                      <p class="text-gray-700 text-sm whitespace-pre-wrap">
+                        {comment.content}
+                      </p>
+
+                      <%!-- Edit/Delete buttons (only for owner) --%>
+                      <%= if comment.user_id == @current_user.id do %>
+                        <div class="flex gap-3 mt-2">
+                          <button
+                            phx-click="edit_comment"
+                            phx-value-comment-id={comment.id}
+                            class="text-xs text-indigo-600 hover:text-indigo-800"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            phx-click="delete_comment"
+                            phx-value-comment-id={comment.id}
+                            class="text-xs text-red-600 hover:text-red-800"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      <% end %>
                     <% end %>
                   </div>
                 </div>

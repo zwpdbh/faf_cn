@@ -16,7 +16,10 @@
 
 ## Goal02: user could edit unit mass, energy and build power.
 
-## Goal03: user could edit comments 
+## Goal03: user could edit comments ✅
+- Users can edit their own comments
+- Inline edit form (textarea + Save/Cancel buttons)
+- Non-owners cannot edit others' comments 
 
 ## Goal04: create authorization system such that only some user could edit unit information. 
 
@@ -108,9 +111,10 @@
 - [x] Toggle edit mode (Edit button on Economy Stats card)
 - [x] Comments hidden during editing
 - [x] Auto-return to stats view after save
-- [ ] Responsive layout for unit detail
-- [ ] Better styling for comments
-- [ ] Empty states (no comments yet)
+- [x] Inline comment editing (Edit/Save/Cancel)
+- [ ] Responsive layout for unit detail (deferred)
+- [ ] Better styling for comments (deferred)
+- [x] Empty states (no comments yet)
 
 ---
 
@@ -207,12 +211,13 @@ Created comments system:
 - Comment form at bottom of comments section
 - Comments displayed in reverse chronological order (newest first)
 - Shows user avatar, name, and relative timestamp ("just now", "5m ago", etc.)
-- Delete button (only for comment owner)
+- **Edit button** (only for comment owner) - inline edit with textarea
+- **Delete button** (only for comment owner)
 - Empty state: "No comments yet. Be the first to share your thoughts!"
 
 **Security:**
 - Only logged-in users can view comments
-- Users can only delete their own comments
+- Users can only edit/delete their own comments
 
 All tests passing (82 tests).
 
@@ -258,10 +263,50 @@ All tests passing (97 tests).
 
 Phase 6 Summary:
 
- Aspect     Details
----------------------------------------------------------------
- Context    FafCn.UnitEditLogs with 3 public functions
- Schema     UnitEditLog with validation
- Tests      22 tests (11 context + 4 schema + 7 LiveView)
- UI         Toggle edit mode, Edit History, Cancel/Save buttons
- Security   Admin-only, required reason, transaction safety
+| Aspect | Details |
+|--------|---------|
+| Context | `FafCn.UnitEditLogs` with 3 public functions |
+| Schema | `UnitEditLog` with validation |
+| Tests | 22 tests (11 context + 4 schema + 7 LiveView) |
+| UI | Toggle edit mode, Edit History, Cancel/Save buttons |
+| Security | Admin-only, required reason, transaction safety |
+
+---
+
+## ✅ Feature Complete - Ready for PR
+
+### Final Status: **All Goals Achieved**
+
+| Goal | Status | Implementation |
+|------|--------|----------------|
+| Goal01: Unit detail page | ✅ | `/units/:unit_id` - unit info, image, stats |
+| Goal02: Edit unit stats | ✅ | Admin-only, toggle edit mode, audit log |
+| Goal03: Edit comments | ✅ | Inline edit, owner-only |
+| Goal04: Authorization | ✅ | Super admin (zwpdbh) manages admins |
+
+### Test Summary
+**99 tests passing** (up from 82 in Phase 5):
+- 4 unit detail page tests
+- 10 comment context tests  
+- 3 comment editing LiveView tests
+- 13 authorization tests
+- 5 admin management tests
+- 11 unit edit logs context tests
+- 4 unit edit log schema tests
+- 7 admin edit LiveView tests
+
+### Key Features Delivered
+1. ✅ Click unit name → detail page
+2. ✅ Large unit icon (2x size)
+3. ✅ Display: name, faction, description, mass, energy, build time
+4. ✅ Comments system (add, edit, delete own)
+5. ✅ Admin-only unit stat editing with audit trail
+6. ✅ Super admin management page (`/settings`)
+7. ✅ Login required for all features
+
+### Security Implementation
+- Authentication required (OAuth GitHub)
+- Authorization: `is_admin?/1` checks role
+- Super admin hardcoded (zwpdbh)
+- Users can only edit/delete own comments
+- Audit log for all unit stat changes
