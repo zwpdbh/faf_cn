@@ -218,7 +218,11 @@ defmodule FafCn.Accounts do
   """
   def is_admin?(nil), do: false
 
-  def is_admin?(%User{id: user_id}) do
+  def is_admin?(user) do
+    is_super_admin?(user) || has_admin_role?(user)
+  end
+
+  defp has_admin_role?(%User{id: user_id}) do
     Repo.exists?(from ur in UserRole, where: ur.user_id == ^user_id and ur.role == "admin")
   end
 

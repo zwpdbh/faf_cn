@@ -46,35 +46,62 @@ defmodule FafCnWeb.UnitLiveEditTest do
           categories: ["ENGINEER", "TECH1"]
         })
 
-      %{conn: conn, admin: admin, non_admin: non_admin, unit: unit}
+      %{conn: conn, admin: admin, super_admin: super_admin, non_admin: non_admin, unit: unit}
     end
 
-    test "admin sees edit form for unit stats", %{conn: conn, admin: admin, unit: unit} do
+    test "super admin sees edit button and can access edit form", %{conn: conn, super_admin: super_admin, unit: unit} do
+      {:ok, view, _html} = conn |> log_in_user(super_admin) |> live(~p"/units/#{unit.unit_id}")
+
+      # Should see the Edit button
+      assert has_element?(view, "button", "Edit")
+
+      # Click edit to enter edit mode
+      html = render_click(view, "toggle_edit_mode")
+
+      # Now the form should be visible
+      assert html =~ "id=\"edit-stats-form\""
+      assert html =~ "name=\"mass\""
+      assert html =~ "Update Stats"
+    end
+
+    test "admin sees edit button and can access edit form", %{conn: conn, admin: admin, unit: unit} do
       {:ok, view, _html} = conn |> log_in_user(admin) |> live(~p"/units/#{unit.unit_id}")
 
-      assert has_element?(view, "#edit-stats-form")
-      assert has_element?(view, "input[name='mass']")
-      assert has_element?(view, "input[name='energy']")
-      assert has_element?(view, "input[name='build_time']")
-      assert has_element?(view, "input[name='reason']")
-      assert has_element?(view, "button", "Update Stats")
+      # Should see the Edit button
+      assert has_element?(view, "button", "Edit")
+
+      # Click edit to enter edit mode
+      html = render_click(view, "toggle_edit_mode")
+
+      # Now the form should be visible
+      assert html =~ "id=\"edit-stats-form\""
+      assert html =~ "name=\"mass\""
+      assert html =~ "name=\"energy\""
+      assert html =~ "name=\"build_time\""
+      assert html =~ "name=\"reason\""
+      assert html =~ "Update Stats"
     end
 
-    test "non-admin does not see edit form", %{conn: conn, non_admin: non_admin, unit: unit} do
+    test "non-admin does not see edit button", %{conn: conn, non_admin: non_admin, unit: unit} do
       {:ok, view, _html} = conn |> log_in_user(non_admin) |> live(~p"/units/#{unit.unit_id}")
 
-      refute has_element?(view, "#edit-stats-form")
+      refute has_element?(view, "button", "Edit")
     end
 
     test "admin can update unit stats with reason", %{conn: conn, admin: admin, unit: unit} do
       {:ok, view, _html} = conn |> log_in_user(admin) |> live(~p"/units/#{unit.unit_id}")
 
-      assert render_submit(view, "update_stats", %{
+      # Enter edit mode
+      render_click(view, "toggle_edit_mode")
+
+      html = render_submit(view, "update_stats", %{
                "mass" => "60",
                "energy" => "550",
                "build_time" => "300",
                "reason" => "Balance update"
-             }) =~ "60"
+             })
+
+      assert html =~ "60"
 
       # Verify the unit was updated
       updated_unit = Units.get_unit!(unit.id)
@@ -86,6 +113,9 @@ defmodule FafCnWeb.UnitLiveEditTest do
     test "admin cannot update without reason", %{conn: conn, admin: admin, unit: unit} do
       {:ok, view, _html} = conn |> log_in_user(admin) |> live(~p"/units/#{unit.unit_id}")
 
+      # Enter edit mode
+      render_click(view, "toggle_edit_mode")
+
       html =
         render_submit(view, "update_stats", %{
           "mass" => "60",
@@ -95,6 +125,21 @@ defmodule FafCnWeb.UnitLiveEditTest do
         })
 
       assert html =~ "Reason is required"
+    end
+
+    test "admin can cancel edit mode", %{conn: conn, admin: admin, unit: unit} do
+      {:ok, view, _html} = conn |> log_in_user(admin) |> live(~p"/units/#{unit.unit_id}")
+
+      # Enter edit mode
+      html = render_click(view, "toggle_edit_mode")
+      assert html =~ "id=\"edit-stats-form\""
+
+      # Cancel edit
+      html = render_click(view, "cancel_edit")
+
+      # Form should be hidden, stats display visible
+      refute html =~ "id=\"edit-stats-form\""
+      assert html =~ "Edit"
     end
   end
 
@@ -133,9 +178,12 @@ defmodule FafCnWeb.UnitLiveEditTest do
       %{conn: conn, admin: admin, unit: unit}
     end
 
-    test "displays edit history on unit page", %{conn: conn, admin: admin, unit: unit} do
+    test "displays edit history when in edit mode", %{conn: conn, admin: admin, unit: unit} do
       # Make an edit
       {:ok, view, _html} = conn |> log_in_user(admin) |> live(~p"/units/#{unit.unit_id}")
+
+      # Enter edit mode and submit
+      render_click(view, "toggle_edit_mode")
 
       render_submit(view, "update_stats", %{
         "mass" => "60",
@@ -144,8 +192,15 @@ defmodule FafCnWeb.UnitLiveEditTest do
         "reason" => "Balance update"
       })
 
-      # Reload the page and check for edit history
-      {:ok, _view, html} = conn |> log_in_user(admin) |> live(~p"/units/#{unit.unit_id}")
+      # Reload the page and enter edit mode to see edit history
+      {:ok, view, _html} = conn |> log_in_user(admin) |> live(~p"/units/#{unit.unit_id}")
+
+      # Edit history is not visible when not in edit mode
+      html = render(view)
+      refute html =~ "Edit History"
+
+      # Enter edit mode to see edit history
+      html = render_click(view, "toggle_edit_mode")
 
       assert html =~ "Edit History"
       assert html =~ "50"

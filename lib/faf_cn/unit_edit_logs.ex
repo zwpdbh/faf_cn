@@ -47,7 +47,7 @@ defmodule FafCn.UnitEditLogs do
   def list_unit_edit_logs(unit_id) do
     UnitEditLog
     |> where(unit_id: ^unit_id)
-    |> order_by(desc: :inserted_at)
+    |> order_by([l], desc: l.inserted_at, desc: l.id)
     |> preload(:editor)
     |> Repo.all()
   end
@@ -76,22 +76,29 @@ defmodule FafCn.UnitEditLogs do
 
   defp do_update_stat(unit, field, new_value, reason, user_id) do
     old_value = Map.get(unit, String.to_atom(field))
+    new_value_int = maybe_to_integer(new_value)
 
-    case Repo.transaction(fn ->
-           # Create edit log first (validates reason)
-           case log_unit_edit(unit.id, field, old_value, new_value, reason, user_id) do
-             {:ok, _log} ->
-               # Then update the unit
-               unit
-               |> Unit.changeset(%{String.to_atom(field) => maybe_to_integer(new_value)})
-               |> Repo.update!()
+    # Only log and update if the value actually changed
+    if to_string(old_value) == to_string(new_value_int) do
+      # No change needed, return the unit as-is
+      {:ok, unit}
+    else
+      case Repo.transaction(fn ->
+             # Create edit log first (validates reason)
+             case log_unit_edit(unit.id, field, old_value, new_value_int, reason, user_id) do
+               {:ok, _log} ->
+                 # Then update the unit
+                 unit
+                 |> Unit.changeset(%{String.to_atom(field) => new_value_int})
+                 |> Repo.update!()
 
-             {:error, changeset} ->
-               Repo.rollback(changeset)
-           end
-         end) do
-      {:ok, unit} -> {:ok, unit}
-      {:error, changeset} -> {:error, changeset}
+               {:error, changeset} ->
+                 Repo.rollback(changeset)
+             end
+           end) do
+        {:ok, unit} -> {:ok, unit}
+        {:error, changeset} -> {:error, changeset}
+      end
     end
   end
 

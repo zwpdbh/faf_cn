@@ -97,12 +97,17 @@
 - [x] Tests for UnitComments context (10 tests)
 
 ### Phase 6: Admin Edit & Audit
-- [ ] Editable form for unit stats (admin only, inline or modal)
-- [ ] "Reason" field for edit (required)
-- [ ] Save to `unit_edit_logs`
-- [ ] Display edit history (collapsible section or separate tab)
+- [x] Editable form for unit stats (admin only, toggle mode)
+- [x] "Reason" field for edit (required)
+- [x] Save to `unit_edit_logs`
+- [x] Display edit history (visible only in edit mode)
+- [x] Only changed fields create log entries
+- [x] Super admins can edit without explicit admin role
 
 ### Phase 7: UI Polish
+- [x] Toggle edit mode (Edit button on Economy Stats card)
+- [x] Comments hidden during editing
+- [x] Auto-return to stats view after save
 - [ ] Responsive layout for unit detail
 - [ ] Better styling for comments
 - [ ] Empty states (no comments yet)
@@ -210,3 +215,53 @@ Created comments system:
 - Users can only delete their own comments
 
 All tests passing (82 tests).
+
+### 2026-02-08 - Phase 6 Complete
+Created admin edit & audit system:
+
+**Files:**
+- `lib/faf_cn/unit_edit_logs.ex` - UnitEditLogs context (audit logging)
+- `test/faf_cn/unit_edit_logs_test.exs` - 11 tests
+- `test/faf_cn/unit_edit_logs/unit_edit_log_test.exs` - 4 schema tests
+- `test/faf_cn_web/live/unit_live_edit_test.exs` - 7 LiveView tests
+- `priv/repo/migrations/20260208093108_rename_edited_by_to_edited_by_id.exs` - DB fix
+
+**Features:**
+- **Toggle edit mode**: "Edit" button on Economy Stats card (admin only)
+- **Edit form**: Mass, Energy, Build Time inputs with required "Reason" field
+- **Smart logging**: Only changed fields create log entries
+- **Edit History**: Visible only when in edit mode (helps admins see past changes)
+- **Authorization**: Both regular admins and super admins can edit
+- **Transaction safety**: Rollback on error, no partial updates
+- **Cancel button**: Exit edit mode without saving
+- **Auto-exit**: Returns to stats view after successful save
+
+**UI Flow:**
+```
+Normal View: Stats display + Edit button + Comments
+     ↓ (click Edit)
+Edit Mode: Edit form + Edit History (if any) + [Cancel|Update Stats]
+     ↓ (save)
+Normal View: Updated stats + success message
+```
+
+**Audit Log Schema:**
+- `unit_id` - Which unit was edited
+- `field` - Which field changed (mass/energy/build_time)
+- `old_value` / `new_value` - Before and after values
+- `reason` - Why the change was made (required)
+- `edited_by_id` - Who made the change
+- `inserted_at` - When the change was made
+
+All tests passing (97 tests).
+
+
+Phase 6 Summary:
+
+ Aspect     Details
+---------------------------------------------------------------
+ Context    FafCn.UnitEditLogs with 3 public functions
+ Schema     UnitEditLog with validation
+ Tests      22 tests (11 context + 4 schema + 7 LiveView)
+ UI         Toggle edit mode, Edit History, Cancel/Save buttons
+ Security   Admin-only, required reason, transaction safety

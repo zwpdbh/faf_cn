@@ -109,17 +109,20 @@ defmodule FafCn.UnitEditLogsTest do
     end
 
     test "returns edit logs ordered by newest first", %{admin: admin, unit: unit} do
-      {:ok, _} =
+      {:ok, _log1} =
         UnitEditLogs.log_unit_edit(unit.id, "build_cost_mass", "50", "55", "First edit", admin.id)
 
-      Process.sleep(10)
+      Process.sleep(20)
 
-      {:ok, _} =
+      {:ok, log2} =
         UnitEditLogs.log_unit_edit(unit.id, "build_cost_mass", "55", "60", "Second edit", admin.id)
 
       logs = UnitEditLogs.list_unit_edit_logs(unit.id)
       assert length(logs) == 2
-      assert hd(logs).reason == "Second edit"
+      # Verify logs are ordered by newest first
+      [first | _] = logs
+      assert first.id == log2.id
+      assert first.reason == "Second edit"
     end
 
     test "returns empty list when no edits", %{unit: unit} do
@@ -208,6 +211,25 @@ defmodule FafCn.UnitEditLogsTest do
                  "",
                  admin.id
                )
+    end
+
+    test "does not create log when value is unchanged", %{admin: admin, unit: unit} do
+      # Update with the same value
+      assert {:ok, updated_unit} =
+               UnitEditLogs.update_unit_stat(
+                 unit,
+                 "build_cost_mass",
+                 "50",
+                 "No change",
+                 admin.id
+               )
+
+      # Unit should be returned unchanged
+      assert updated_unit.build_cost_mass == 50
+
+      # No log should be created
+      logs = UnitEditLogs.list_unit_edit_logs(unit.id)
+      assert logs == []
     end
   end
 end

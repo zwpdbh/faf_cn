@@ -32,12 +32,29 @@ defmodule FafCnWeb.UnitLive do
           |> assign(:comments, comments)
           |> assign(:edit_logs, edit_logs)
           |> assign(:is_admin, is_admin)
+          |> assign(:edit_mode, false)
           |> assign(:comment_form, to_form(%{"content" => ""}))
           |> assign(:edit_form, to_form(%{"mass" => unit.build_cost_mass, "energy" => unit.build_cost_energy, "build_time" => unit.build_time, "reason" => ""}))
           |> assign(:edit_error, nil)
 
         {:ok, socket}
     end
+  end
+
+  @impl true
+  def handle_event("toggle_edit_mode", _params, socket) do
+    {:noreply, assign(socket, :edit_mode, !socket.assigns.edit_mode)}
+  end
+
+  @impl true
+  def handle_event("cancel_edit", _params, socket) do
+    unit = socket.assigns.unit
+
+    {:noreply,
+     socket
+     |> assign(:edit_mode, false)
+     |> assign(:edit_form, to_form(%{"mass" => unit.build_cost_mass, "energy" => unit.build_cost_energy, "build_time" => unit.build_time, "reason" => ""}))
+     |> assign(:edit_error, nil)}
   end
 
   @impl true
@@ -99,6 +116,7 @@ defmodule FafCnWeb.UnitLive do
                    socket
                    |> assign(:unit, final_unit)
                    |> assign(:edit_logs, edit_logs)
+                   |> assign(:edit_mode, false)
                    |> assign(:edit_form, to_form(%{"mass" => final_unit.build_cost_mass, "energy" => final_unit.build_cost_energy, "build_time" => final_unit.build_time, "reason" => ""}))
                    |> assign(:edit_error, nil)
                    |> put_flash(:info, "Unit stats updated")}
@@ -184,36 +202,22 @@ defmodule FafCnWeb.UnitLive do
           </div>
         </div>
 
-        <%!-- Unit Stats --%>
+        <%!-- Unit Stats Card --%>
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">Economy Stats</h2>
-          <div class="grid grid-cols-3 gap-4">
-            <div class="text-center p-4 bg-gray-50 rounded-lg">
-              <div class="text-sm text-gray-500 mb-1">Mass</div>
-              <div class="text-2xl font-bold text-gray-900">
-                {format_number(@unit.build_cost_mass)}
-              </div>
-            </div>
-            <div class="text-center p-4 bg-gray-50 rounded-lg">
-              <div class="text-sm text-gray-500 mb-1">Energy</div>
-              <div class="text-2xl font-bold text-gray-900">
-                {format_number(@unit.build_cost_energy)}
-              </div>
-            </div>
-            <div class="text-center p-4 bg-gray-50 rounded-lg">
-              <div class="text-sm text-gray-500 mb-1">Build Time</div>
-              <div class="text-2xl font-bold text-gray-900">
-                {format_number(@unit.build_time)}
-              </div>
-            </div>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">Economy Stats</h2>
+            <%= if @is_admin and not @edit_mode do %>
+              <button
+                phx-click="toggle_edit_mode"
+                class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors"
+              >
+                <.icon name="hero-pencil-square" class="w-4 h-4 mr-1.5" /> Edit
+              </button>
+            <% end %>
           </div>
-        </div>
 
-        <%!-- Admin Edit Form --%>
-        <%= if @is_admin do %>
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Edit Unit Stats (Admin)</h2>
-
+          <%= if @edit_mode do %>
+            <%!-- Edit Form --%>
             <%= if @edit_error do %>
               <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
                 {@edit_error}
@@ -277,7 +281,14 @@ defmodule FafCnWeb.UnitLive do
                 />
               </div>
 
-              <div class="flex justify-end">
+              <div class="flex justify-end gap-3">
+                <button
+                  type="button"
+                  phx-click="cancel_edit"
+                  class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -286,11 +297,33 @@ defmodule FafCnWeb.UnitLive do
                 </button>
               </div>
             </.form>
-          </div>
-        <% end %>
+          <% else %>
+            <%!-- Stats Display --%>
+            <div class="grid grid-cols-3 gap-4">
+              <div class="text-center p-4 bg-gray-50 rounded-lg">
+                <div class="text-sm text-gray-500 mb-1">Mass</div>
+                <div class="text-2xl font-bold text-gray-900">
+                  {format_number(@unit.build_cost_mass)}
+                </div>
+              </div>
+              <div class="text-center p-4 bg-gray-50 rounded-lg">
+                <div class="text-sm text-gray-500 mb-1">Energy</div>
+                <div class="text-2xl font-bold text-gray-900">
+                  {format_number(@unit.build_cost_energy)}
+                </div>
+              </div>
+              <div class="text-center p-4 bg-gray-50 rounded-lg">
+                <div class="text-sm text-gray-500 mb-1">Build Time</div>
+                <div class="text-2xl font-bold text-gray-900">
+                  {format_number(@unit.build_time)}
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
 
-        <%!-- Edit History --%>
-        <%= if @edit_logs != [] do %>
+        <%!-- Edit History (only show when in edit mode) --%>
+        <%= if @edit_mode and @edit_logs != [] do %>
           <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Edit History</h2>
             <div class="space-y-3">
@@ -315,7 +348,8 @@ defmodule FafCnWeb.UnitLive do
           </div>
         <% end %>
 
-        <%!-- Comments Section --%>
+        <%!-- Comments Section (hidden when in edit mode) --%>
+        <%= if not @edit_mode do %>
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 class="text-lg font-semibold text-gray-900 mb-4">
             Comments ({length(@comments)})
@@ -399,6 +433,7 @@ defmodule FafCnWeb.UnitLive do
             <% end %>
           </div>
         </div>
+        <% end %>
       </div>
     </Layouts.app>
     """
