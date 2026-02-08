@@ -266,9 +266,11 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
 
     * `base_unit` - The base engineer unit
     * `selected_units` - List of selected units to compare
+    * `current_user` - Current logged-in user (nil if not logged in)
   """
   attr :base_unit, :any, required: true
   attr :selected_units, :list, required: true
+  attr :current_user, :any, default: nil
 
   def eco_comparison(assigns) do
     ~H"""
@@ -279,8 +281,8 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
         <.empty_comparison_state />
       <% else %>
         <div class="space-y-4">
-          <.base_unit_comparison base_unit={@base_unit} selected_units={@selected_units} />
-          <.cross_unit_comparison base_unit={@base_unit} selected_units={@selected_units} />
+          <.base_unit_comparison base_unit={@base_unit} selected_units={@selected_units} current_user={@current_user} />
+          <.cross_unit_comparison base_unit={@base_unit} selected_units={@selected_units} current_user={@current_user} />
           <.comparison_summary_stats selected_units={@selected_units} />
         </div>
       <% end %>
@@ -307,9 +309,11 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
 
     * `base_unit` - The base engineer unit
     * `selected_units` - List of selected units
+    * `current_user` - Current logged-in user (nil if not logged in)
   """
   attr :base_unit, :any, required: true
   attr :selected_units, :list, required: true
+  attr :current_user, :any, default: nil
 
   def base_unit_comparison(assigns) do
     ~H"""
@@ -327,12 +331,18 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
             </div>
           </div>
           <div class="flex-1 min-w-0">
-            <a
-              href={~p"/units/#{@base_unit.unit_id}"}
-              class="text-xs font-semibold text-gray-900 truncate hover:text-indigo-600"
-            >
-              {@base_unit.description || @base_unit.name || "Engineer"}
-            </a>
+            <%= if @current_user do %>
+              <a
+                href={~p"/units/#{@base_unit.unit_id}"}
+                class="text-xs font-semibold text-gray-900 truncate hover:text-indigo-600"
+              >
+                {@base_unit.description || @base_unit.name || "Engineer"}
+              </a>
+            <% else %>
+              <span class="text-xs font-semibold text-gray-900 truncate">
+                {@base_unit.description || @base_unit.name || "Engineer"}
+              </span>
+            <% end %>
             <p class="text-[10px] text-gray-500">{@base_unit.unit_id}</p>
           </div>
         </div>
@@ -374,12 +384,18 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
                 </div>
               </div>
               <div class="flex-1 min-w-0">
-                <a
-                  href={~p"/units/#{unit.unit_id}"}
-                  class="text-xs font-medium text-gray-900 truncate hover:text-indigo-600"
-                >
-                  {unit.description || unit.name || unit.unit_id}
-                </a>
+                <%= if @current_user do %>
+                  <a
+                    href={~p"/units/#{unit.unit_id}"}
+                    class="text-xs font-medium text-gray-900 truncate hover:text-indigo-600"
+                  >
+                    {unit.description || unit.name || unit.unit_id}
+                  </a>
+                <% else %>
+                  <span class="text-xs font-medium text-gray-900 truncate">
+                    {unit.description || unit.name || unit.unit_id}
+                  </span>
+                <% end %>
               </div>
               <span class={[
                 "px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0",
@@ -418,9 +434,11 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
 
     * `base_unit` - The base engineer unit
     * `selected_units` - List of selected units
+    * `current_user` - Current logged-in user (nil if not logged in)
   """
   attr :base_unit, :any, required: true
   attr :selected_units, :list, required: true
+  attr :current_user, :any, default: nil
 
   def cross_unit_comparison(assigns) do
     ~H"""
@@ -446,12 +464,18 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
                   </div>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <a
-                    href={~p"/units/#{base_unit.unit_id}"}
-                    class="text-xs font-medium text-gray-700 truncate block hover:text-indigo-600"
-                  >
-                    {base_unit.description || base_unit.name || base_unit.unit_id}
-                  </a>
+                  <%= if @current_user do %>
+                    <a
+                      href={~p"/units/#{base_unit.unit_id}"}
+                      class="text-xs font-medium text-gray-700 truncate block hover:text-indigo-600"
+                    >
+                      {base_unit.description || base_unit.name || base_unit.unit_id}
+                    </a>
+                  <% else %>
+                    <span class="text-xs font-medium text-gray-700 truncate block">
+                      {base_unit.description || base_unit.name || base_unit.unit_id}
+                    </span>
+                  <% end %>
                   <span class="text-[10px] text-gray-500">
                     Mass: {format_number(base_unit.build_cost_mass)}
                   </span>
@@ -473,13 +497,20 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
                         >
                         </div>
                       </div>
-                      <a
-                        href={~p"/units/#{target_unit.unit_id}"}
-                        class="text-xs text-gray-700 truncate hover:text-indigo-600"
-                      >
-                        {target_unit.description || target_unit.name ||
-                          target_unit.unit_id}
-                      </a>
+                      <%= if @current_user do %>
+                        <a
+                          href={~p"/units/#{target_unit.unit_id}"}
+                          class="text-xs text-gray-700 truncate hover:text-indigo-600"
+                        >
+                          {target_unit.description || target_unit.name ||
+                            target_unit.unit_id}
+                        </a>
+                      <% else %>
+                        <span class="text-xs text-gray-700 truncate">
+                          {target_unit.description || target_unit.name ||
+                            target_unit.unit_id}
+                        </span>
+                      <% end %>
                     </div>
                     <span class={[
                       "px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0",
