@@ -312,3 +312,11 @@ Your plan:
 **Files Changed**:
 - `lib/faf_cn_web/live/eco_guides_live.ex` - Replaced comparison functions with `generate_tiered_cross_comparisons/2`
 - `lib/faf_cn_web/live/eco_guides_live.html.heex` - Updated template to use new function
+
+
+## Task 13: Refactor to be template 
+
+- Need to refactor `lib/faf_cn_web/live/eco_guides_live.html.heex` such that it is consistent of 2 big parts:
+- one is the unit selection part
+- another is the Eco Comparison part 
+- refactor them into components for better maintainance

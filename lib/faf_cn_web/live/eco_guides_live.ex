@@ -4,6 +4,8 @@ defmodule FafCnWeb.EcoGuidesLive do
   """
   use FafCnWeb, :live_view
 
+  import FafCnWeb.EcoGuidesLive.Components
+
   alias FafCn.Units
 
   @factions ["UEF", "CYBRAN", "AEON", "SERAPHIM"]
@@ -14,14 +16,6 @@ defmodule FafCnWeb.EcoGuidesLive do
     "CYBRAN" => "URL0105",
     "AEON" => "UAL0105",
     "SERAPHIM" => "XSL0105"
-  }
-
-  # Faction colors for UI styling
-  @faction_colors %{
-    "UEF" => "blue",
-    "CYBRAN" => "red",
-    "AEON" => "emerald",
-    "SERAPHIM" => "violet"
   }
 
   @impl true
@@ -38,7 +32,6 @@ defmodule FafCnWeb.EcoGuidesLive do
       |> assign(:page_title, "Eco Guides")
       |> assign(:factions, @factions)
       |> assign(:faction_engineers, @faction_engineers)
-      |> assign(:faction_colors, @faction_colors)
       |> assign(:units, units)
       |> assign(:units_by_faction, units_by_faction)
       |> assign(:selected_faction, selected_faction)
@@ -70,7 +63,7 @@ defmodule FafCnWeb.EcoGuidesLive do
       {:noreply, socket}
     else
       new_selected_units =
-        if Enum.any?(selected_units, &(&1.unit_id == unit_id)) do
+        if unit_selected?(selected_units, unit_id) do
           Enum.reject(selected_units, &(&1.unit_id == unit_id))
         else
           selected_units ++ [unit]
@@ -101,226 +94,5 @@ defmodule FafCnWeb.EcoGuidesLive do
 
   defp find_unit(units, unit_id) do
     Enum.find(units, &(&1.unit_id == unit_id))
-  end
-
-  @doc """
-  Checks if a unit is currently selected.
-  """
-  def unit_selected?(selected_units, unit_id) do
-    Enum.any?(selected_units, &(&1.unit_id == unit_id))
-  end
-
-  @doc """
-  Gets the icon class for a unit based on its strategic icon name.
-  """
-  def unit_icon_class(unit) do
-    icon_name = get_in(unit.data, ["StrategicIconName"]) || "icon_land1_engineer"
-
-    cond do
-      String.contains?(icon_name, "engineer") -> "wrench"
-      String.contains?(icon_name, "tank") -> "truck"
-      String.contains?(icon_name, "bot") -> "user"
-      String.contains?(icon_name, "air") -> "paper-airplane"
-      String.contains?(icon_name, "ship") -> "bolt"
-      String.contains?(icon_name, "sub") -> "eye-slash"
-      String.contains?(icon_name, "structure") -> "home"
-      String.contains?(icon_name, "commander") -> "star"
-      String.contains?(icon_name, "anti") -> "shield-exclamation"
-      String.contains?(icon_name, "artillery") -> "fire"
-      String.contains?(icon_name, "missile") -> "rocket-launch"
-      true -> "cube"
-    end
-  end
-
-  @doc """
-  Gets the background color class for a unit icon based on tech level and faction.
-  """
-  def unit_icon_bg_class(unit, faction_colors) do
-    color = faction_colors[unit.faction] || "gray"
-
-    tech_level = get_tech_level(unit)
-
-    case tech_level do
-      1 -> "bg-#{color}-500"
-      2 -> "bg-#{color}-600"
-      3 -> "bg-#{color}-700"
-      _ -> "bg-#{color}-800"
-    end
-  end
-
-  @doc """
-  Gets the faction background class for unit icons (matching spooky-db style).
-  """
-  def unit_faction_bg_class(faction) do
-    case faction do
-      "UEF" -> "unit-bg-uef"
-      "CYBRAN" -> "unit-bg-cybran"
-      "AEON" -> "unit-bg-aeon"
-      "SERAPHIM" -> "unit-bg-seraphim"
-      _ -> "unit-bg-uef"
-    end
-  end
-
-  defp get_tech_level(unit) do
-    categories = unit.categories || []
-
-    cond do
-      "TECH1" in categories -> 1
-      "TECH2" in categories -> 2
-      "TECH3" in categories -> 3
-      "EXPERIMENTAL" in categories -> 4
-      true -> 1
-    end
-  end
-
-  @doc """
-  Gets the tech level display for a unit.
-  """
-  def unit_tech_badge(unit) do
-    case get_tech_level(unit) do
-      1 -> "T1"
-      2 -> "T2"
-      3 -> "T3"
-      4 -> "EXP"
-      _ -> "T1"
-    end
-  end
-
-  @doc """
-  Generates tiered cross-comparison groups for the selected units.
-
-  Algorithm:
-  1. Order all units (base + selected) by mass from cheap to expensive
-  2. Create tiered groups where each group removes the cheapest unit from the previous group
-  3. In each group, compare all more expensive units against the base (cheapest in group)
-
-  Example: With units A(100), B(200), C(150), D(400):
-  - Sorted: A, C, B, D
-  - Group 1: Base A, compare against C, B, D (cheapest to most expensive)
-  - Group 2: Base C, compare against B, D
-  - Group 3: Base B, compare against D
-
-  Returns a list of {base_unit, comparisons} tuples where comparisons
-  is a list of {to_unit, ratio} tuples sorted by mass (cheapest first).
-  """
-  def generate_tiered_cross_comparisons(base_unit, selected_units) do
-    # Combine all units and sort by mass (cheapest first)
-    all_units = [base_unit | selected_units]
-    sorted_units = Enum.sort_by(all_units, & &1.build_cost_mass)
-
-    # Generate tiered groups
-    # For each position i, create a group with sorted_units[i] as base
-    # and sorted_units[i+1..] as the comparison targets
-    sorted_units
-    |> Enum.with_index()
-    |> Enum.flat_map(fn {base, idx} ->
-      remaining = Enum.drop(sorted_units, idx + 1)
-
-      if remaining == [] do
-        # Skip the last unit - nothing to compare against
-        []
-      else
-        # Generate comparisons from base to each remaining unit
-        comparisons =
-          remaining
-          |> Enum.map(fn target ->
-            ratio = calculate_eco_ratio(base, target)
-            {target, ratio}
-          end)
-
-        [{base, comparisons}]
-      end
-    end)
-  end
-
-  @doc """
-  Generates comparisons specifically against the base unit (engineer).
-  """
-  def generate_engineer_comparisons(base_unit, selected_units) do
-    selected_units
-    |> Enum.with_index()
-    |> Enum.map(fn {unit, idx} ->
-      ratio = calculate_eco_ratio(base_unit, unit)
-      {unit, idx, ratio}
-    end)
-  end
-
-  @doc """
-  Formats a number with commas for thousands.
-  """
-  def format_number(nil), do: "0"
-  def format_number(n) when n < 1000, do: to_string(n)
-
-  def format_number(n) do
-    n
-    |> to_string()
-    |> String.reverse()
-    |> String.graphemes()
-    |> Enum.chunk_every(3)
-    |> Enum.join(",")
-    |> String.reverse()
-  end
-
-  @doc """
-  Returns a label for the ratio display.
-  """
-  def ratio_label(nil), do: "?"
-  def ratio_label(ratio), do: "#{ratio.mass}x"
-
-  @doc """
-  Returns color class based on ratio value.
-  """
-  def ratio_color_class(ratio) when ratio < 0.8, do: "text-green-600 font-semibold"
-  def ratio_color_class(ratio) when ratio > 5, do: "text-red-600 font-semibold"
-  def ratio_color_class(ratio) when ratio > 1.5, do: "text-orange-500 font-semibold"
-  def ratio_color_class(_ratio), do: "text-yellow-600 font-medium"
-
-  @doc """
-  Returns badge color class based on ratio value.
-  """
-  def ratio_badge_class(ratio) when ratio < 0.8, do: "bg-green-100 text-green-800"
-  def ratio_badge_class(ratio) when ratio > 5, do: "bg-red-100 text-red-800"
-  def ratio_badge_class(ratio) when ratio > 1.5, do: "bg-orange-100 text-orange-800"
-  def ratio_badge_class(_ratio), do: "bg-yellow-100 text-yellow-800"
-
-  @doc """
-  Calculates eco ratio between two units.
-  Returns %{mass: ratio, energy: ratio, build_time: ratio}
-  """
-  def calculate_eco_ratio(base_unit, compare_unit)
-      when is_nil(base_unit) or is_nil(compare_unit) do
-    nil
-  end
-
-  def calculate_eco_ratio(base_unit, compare_unit) do
-    base_mass = max(base_unit.build_cost_mass, 1)
-    base_energy = max(base_unit.build_cost_energy, 1)
-    base_time = max(base_unit.build_time, 1)
-
-    compare_mass = max(compare_unit.build_cost_mass, 1)
-    compare_energy = max(compare_unit.build_cost_energy, 1)
-    compare_time = max(compare_unit.build_time, 1)
-
-    mass_ratio = Float.round(compare_mass / base_mass, 2)
-    energy_ratio = Float.round(compare_energy / base_energy, 2)
-    time_ratio = Float.round(compare_time / base_time, 2)
-
-    %{mass: mass_ratio, energy: energy_ratio, build_time: time_ratio}
-  end
-
-  @doc """
-  Gets the letter label for a unit index (0 = Engineer, 1 = A, 2 = B, etc.)
-  """
-  def unit_letter_label(0), do: "Eng"
-  def unit_letter_label(index), do: <<64 + index>>
-
-  @doc """
-  Returns the full comparison label between two units.
-  """
-  def comparison_label(from_idx, to_idx, _from_unit, _to_unit) do
-    from_label = unit_letter_label(from_idx)
-    to_label = unit_letter_label(to_idx)
-
-    "#{to_label} = ? of #{from_label}"
   end
 end
