@@ -90,3 +90,12 @@ config :phoenix_live_view,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+# OAuth configuration for development
+# Set these environment variables or create a .env file
+config :faf_cn, :oauth_providers,
+  github: [
+    client_id: System.get_env("GITHUB_CLIENT_ID", ""),
+    client_secret: System.get_env("GITHUB_CLIENT_SECRET", ""),
+    redirect_uri: "http://localhost:4000/auth/github/callback"
+  ]

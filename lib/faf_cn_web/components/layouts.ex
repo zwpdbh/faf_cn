@@ -20,7 +20,7 @@ defmodule FafCnWeb.Layouts do
 
   ## Examples
 
-      <Layouts.app flash={@flash}>
+      <Layouts.app flash={@flash} current_user={@current_user}>
         <h1>Content</h1>
       </Layouts.app>
 
@@ -30,6 +30,8 @@ defmodule FafCnWeb.Layouts do
   attr :current_scope, :map,
     default: nil,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
+
+  attr :current_user, :map, default: nil, doc: "the current logged in user"
 
   slot :inner_block, required: true
 
@@ -47,6 +49,7 @@ defmodule FafCnWeb.Layouts do
           <a href={~p"/eco-guides"} class="btn btn-ghost">
             <.icon name="hero-calculator" class="w-5 h-5 mr-1" /> Eco Guide
           </a>
+          <.user_menu current_user={@current_user} />
           <.theme_toggle />
         </nav>
       </div>
@@ -57,6 +60,44 @@ defmodule FafCnWeb.Layouts do
     </main>
 
     <.flash_group flash={@flash} />
+    """
+  end
+
+  @doc """
+  Renders the user menu - shows login button or user avatar with logout.
+  """
+  attr :current_user, :map, default: nil
+
+  def user_menu(assigns) do
+    ~H"""
+    <%= if @current_user do %>
+      <div class="dropdown dropdown-end">
+        <button class="btn btn-ghost btn-circle avatar" tabindex="0">
+          <div class="w-10 rounded-full">
+            <%= if @current_user.avatar_url do %>
+              <img src={@current_user.avatar_url} alt={@current_user.name || @current_user.email} />
+            <% else %>
+              <div class="bg-primary text-primary-content flex items-center justify-center w-full h-full">
+                <.icon name="hero-user" class="w-6 h-6" />
+              </div>
+            <% end %>
+          </div>
+        </button>
+        <ul
+          tabindex="0"
+          class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 mt-4 z-50"
+        >
+          <li class="menu-title">
+            <span>{@current_user.name || @current_user.email}</span>
+          </li>
+          <li><a href={~p"/logout"}>Logout</a></li>
+        </ul>
+      </div>
+    <% else %>
+      <a href={~p"/auth/github"} class="btn btn-ghost">
+        <.icon name="hero-arrow-right-end-on-rectangle" class="w-5 h-5 mr-1" /> Login
+      </a>
+    <% end %>
     """
   end
 
