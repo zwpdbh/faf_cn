@@ -20,6 +20,23 @@ defmodule FafCnWeb.EcoGuidesLive do
     "SERAPHIM" => "XSL0105"
   }
 
+  # Available filters with their category mappings and groupings
+  @filters [
+    %{key: "ENGINEER", label: "Engineer", category: "ENGINEER", group: :usage},
+    %{key: "STRUCTURE", label: "Structure", category: "STRUCTURE", group: :usage},
+    %{key: "LAND", label: "Land", category: "LAND", group: :usage},
+    %{key: "AIR", label: "Air", category: "AIR", group: :usage},
+    %{key: "NAVAL", label: "Naval", category: "NAVAL", group: :usage},
+    %{key: "TECH1", label: "T1", category: "TECH1", group: :tech},
+    %{key: "TECH2", label: "T2", category: "TECH2", group: :tech},
+    %{key: "TECH3", label: "T3", category: "TECH3", group: :tech},
+    %{key: "EXPERIMENTAL", label: "EXP", category: "EXPERIMENTAL", group: :tech}
+  ]
+
+  # Define mutually exclusive groups
+  @usage_filters ["ENGINEER", "STRUCTURE", "LAND", "AIR", "NAVAL"]
+  @tech_filters ["TECH1", "TECH2", "TECH3", "EXPERIMENTAL"]
+
   @impl true
   def mount(_params, _session, socket) do
     units = Units.list_units()
@@ -34,6 +51,8 @@ defmodule FafCnWeb.EcoGuidesLive do
       |> assign(:page_title, "Eco Guides")
       |> assign(:factions, @factions)
       |> assign(:faction_engineers, @faction_engineers)
+      |> assign(:filters, @filters)
+      |> assign(:active_filters, [])
       |> assign(:units, units)
       |> assign(:units_by_faction, units_by_faction)
       |> assign(:selected_faction, selected_faction)
@@ -52,7 +71,8 @@ defmodule FafCnWeb.EcoGuidesLive do
      socket
      |> assign(:selected_faction, faction)
      |> assign(:base_unit, base_unit)
-     |> assign(:selected_units, [])}
+     |> assign(:selected_units, [])
+     |> assign(:active_filters, [])}
   end
 
   @impl true
@@ -82,6 +102,37 @@ defmodule FafCnWeb.EcoGuidesLive do
     {:noreply,
      socket
      |> assign(:selected_units, [])}
+  end
+
+  @impl true
+  def handle_event("toggle_filter", %{"filter" => filter_key}, socket) do
+    active_filters = socket.assigns.active_filters
+
+    new_filters =
+      if filter_key in active_filters do
+        # Toggle off: just remove it
+        List.delete(active_filters, filter_key)
+      else
+        # Toggle on: need to handle mutually exclusive groups
+        # Remove any other filter from the same group, then add new one
+        group_to_remove =
+          cond do
+            filter_key in @usage_filters -> @usage_filters
+            filter_key in @tech_filters -> @tech_filters
+            true -> []
+          end
+
+        active_filters
+        |> Enum.reject(&(&1 in group_to_remove))
+        |> Kernel.++([filter_key])
+      end
+
+    {:noreply, assign(socket, :active_filters, new_filters)}
+  end
+
+  @impl true
+  def handle_event("clear_filters", _params, socket) do
+    {:noreply, assign(socket, :active_filters, [])}
   end
 
   defp group_units_by_faction(units) do
