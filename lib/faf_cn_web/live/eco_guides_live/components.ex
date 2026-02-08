@@ -125,7 +125,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
   end
 
   @doc """
-  Renders the unit selection grid.
+  Renders the unit selection grid with filters.
 
   ## Attributes
 
@@ -133,15 +133,20 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
     * `selected_faction` - Currently selected faction
     * `selected_units` - List of currently selected units
     * `base_unit` - The base engineer unit
+    * `filters` - List of available filter definitions
+    * `active_filters` - List of currently active filter keys
   """
   attr :units_by_faction, :map, required: true
   attr :selected_faction, :string, required: true
   attr :selected_units, :list, required: true
   attr :base_unit, :any, required: true
+  attr :filters, :list, required: true
+  attr :active_filters, :list, required: true
 
   def unit_selection_grid(assigns) do
     ~H"""
-    <% faction_units = @units_by_faction[@selected_faction] || [] %>
+    <% faction_units = @units_by_faction[@selected_faction] || []
+    filtered_units = apply_filters(faction_units, @active_filters) %>
     <div
       class="rounded-lg shadow-sm border border-gray-200 p-4"
       style="background-image: url('/images/units/background.jpg'); background-size: cover; background-position: center;"
@@ -160,8 +165,12 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
         <% end %>
       </div>
 
-      <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-        <%= for unit <- faction_units do %>
+      <%!-- Filter Bar --%>
+      <.filter_bar filters={@filters} active_filters={@active_filters} />
+
+      <%!-- Unit Grid --%>
+      <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 mt-4">
+        <%= for unit <- filtered_units do %>
           <% is_selected = unit_selected?(@selected_units, unit.unit_id)
           is_engineer = unit.unit_id == @base_unit.unit_id
 
@@ -196,6 +205,56 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
           </button>
         <% end %>
       </div>
+
+      <%= if filtered_units == [] do %>
+        <div class="text-center py-8 text-white/70">
+          <p>No units match the selected filters.</p>
+          <button
+            phx-click="clear_filters"
+            class="mt-2 text-sm underline hover:text-white"
+          >
+            Clear filters
+          </button>
+        </div>
+      <% end %>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders the filter bar with filter buttons.
+  """
+  attr :filters, :list, required: true
+  attr :active_filters, :list, required: true
+
+  def filter_bar(assigns) do
+    ~H"""
+    <div class="flex flex-wrap gap-2 mb-2">
+      <%= for filter <- @filters do %>
+        <% is_active = filter.key in @active_filters %>
+        <button
+          phx-click="toggle_filter"
+          phx-value-filter={filter.key}
+          class={[
+            "px-3 py-1.5 rounded text-sm font-medium transition-all",
+            if is_active do
+              "bg-indigo-500 text-white shadow-md"
+            else
+              "bg-white/90 text-gray-700 hover:bg-white hover:shadow"
+            end
+          ]}
+        >
+          {filter.label}
+        </button>
+      <% end %>
+      <%= if length(@active_filters) > 0 do %>
+        <button
+          phx-click="clear_filters"
+          class="px-3 py-1.5 rounded text-sm font-medium bg-gray-500/50 text-white hover:bg-gray-500/70 transition-all"
+        >
+          Clear All
+        </button>
+      <% end %>
     </div>
     """
   end
@@ -207,9 +266,11 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
 
     * `base_unit` - The base engineer unit
     * `selected_units` - List of selected units to compare
+    * `current_user` - Current logged-in user (nil if not logged in)
   """
   attr :base_unit, :any, required: true
   attr :selected_units, :list, required: true
+  attr :current_user, :any, default: nil
 
   def eco_comparison(assigns) do
     ~H"""
@@ -220,8 +281,16 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
         <.empty_comparison_state />
       <% else %>
         <div class="space-y-4">
-          <.base_unit_comparison base_unit={@base_unit} selected_units={@selected_units} />
-          <.cross_unit_comparison base_unit={@base_unit} selected_units={@selected_units} />
+          <.base_unit_comparison
+            base_unit={@base_unit}
+            selected_units={@selected_units}
+            current_user={@current_user}
+          />
+          <.cross_unit_comparison
+            base_unit={@base_unit}
+            selected_units={@selected_units}
+            current_user={@current_user}
+          />
           <.comparison_summary_stats selected_units={@selected_units} />
         </div>
       <% end %>
@@ -248,9 +317,11 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
 
     * `base_unit` - The base engineer unit
     * `selected_units` - List of selected units
+    * `current_user` - Current logged-in user (nil if not logged in)
   """
   attr :base_unit, :any, required: true
   attr :selected_units, :list, required: true
+  attr :current_user, :any, default: nil
 
   def base_unit_comparison(assigns) do
     ~H"""
@@ -268,9 +339,18 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
             </div>
           </div>
           <div class="flex-1 min-w-0">
-            <h3 class="text-xs font-semibold text-gray-900 truncate">
-              {@base_unit.description || @base_unit.name || "Engineer"}
-            </h3>
+            <%= if @current_user do %>
+              <a
+                href={~p"/units/#{@base_unit.unit_id}"}
+                class="text-xs font-semibold text-gray-900 truncate hover:text-indigo-600"
+              >
+                {@base_unit.description || @base_unit.name || "Engineer"}
+              </a>
+            <% else %>
+              <span class="text-xs font-semibold text-gray-900 truncate">
+                {@base_unit.description || @base_unit.name || "Engineer"}
+              </span>
+            <% end %>
             <p class="text-[10px] text-gray-500">{@base_unit.unit_id}</p>
           </div>
         </div>
@@ -312,9 +392,18 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
                 </div>
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-xs font-medium text-gray-900 truncate">
-                  {unit.description || unit.name || unit.unit_id}
-                </p>
+                <%= if @current_user do %>
+                  <a
+                    href={~p"/units/#{unit.unit_id}"}
+                    class="text-xs font-medium text-gray-900 truncate hover:text-indigo-600"
+                  >
+                    {unit.description || unit.name || unit.unit_id}
+                  </a>
+                <% else %>
+                  <span class="text-xs font-medium text-gray-900 truncate">
+                    {unit.description || unit.name || unit.unit_id}
+                  </span>
+                <% end %>
               </div>
               <span class={[
                 "px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0",
@@ -353,9 +442,11 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
 
     * `base_unit` - The base engineer unit
     * `selected_units` - List of selected units
+    * `current_user` - Current logged-in user (nil if not logged in)
   """
   attr :base_unit, :any, required: true
   attr :selected_units, :list, required: true
+  attr :current_user, :any, default: nil
 
   def cross_unit_comparison(assigns) do
     ~H"""
@@ -381,9 +472,18 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
                   </div>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <span class="text-xs font-medium text-gray-700 truncate block">
-                    {base_unit.description || base_unit.name || base_unit.unit_id}
-                  </span>
+                  <%= if @current_user do %>
+                    <a
+                      href={~p"/units/#{base_unit.unit_id}"}
+                      class="text-xs font-medium text-gray-700 truncate block hover:text-indigo-600"
+                    >
+                      {base_unit.description || base_unit.name || base_unit.unit_id}
+                    </a>
+                  <% else %>
+                    <span class="text-xs font-medium text-gray-700 truncate block">
+                      {base_unit.description || base_unit.name || base_unit.unit_id}
+                    </span>
+                  <% end %>
                   <span class="text-[10px] text-gray-500">
                     Mass: {format_number(base_unit.build_cost_mass)}
                   </span>
@@ -405,10 +505,20 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
                         >
                         </div>
                       </div>
-                      <span class="text-xs text-gray-700 truncate">
-                        {target_unit.description || target_unit.name ||
-                          target_unit.unit_id}
-                      </span>
+                      <%= if @current_user do %>
+                        <a
+                          href={~p"/units/#{target_unit.unit_id}"}
+                          class="text-xs text-gray-700 truncate hover:text-indigo-600"
+                        >
+                          {target_unit.description || target_unit.name ||
+                            target_unit.unit_id}
+                        </a>
+                      <% else %>
+                        <span class="text-xs text-gray-700 truncate">
+                          {target_unit.description || target_unit.name ||
+                            target_unit.unit_id}
+                        </span>
+                      <% end %>
                     </div>
                     <span class={[
                       "px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0",
@@ -485,6 +595,21 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
   """
   def unit_selected?(selected_units, unit_id) do
     Enum.any?(selected_units, &(&1.unit_id == unit_id))
+  end
+
+  @doc """
+  Applies active filters to a list of units.
+  """
+  def apply_filters(units, []), do: units
+
+  def apply_filters(units, active_filters) do
+    Enum.filter(units, fn unit ->
+      categories = unit.categories || []
+
+      Enum.all?(active_filters, fn filter_key ->
+        filter_key in categories
+      end)
+    end)
   end
 
   @doc """

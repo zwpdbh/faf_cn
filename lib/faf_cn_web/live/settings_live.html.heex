@@ -1,0 +1,97 @@
+<Layouts.app flash={@flash} current_user={@current_user}>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">Settings</h1>
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Admin Management</h2>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                User
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Email
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Admin Status
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <%= for user <- @users do %>
+              <% is_admin = user.id in Enum.map(@admins, & &1.id)
+              is_super_admin = @current_user.id == user.id %>
+              <tr>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <%= if user.avatar_url do %>
+                      <img
+                        class="h-8 w-8 rounded-full mr-3"
+                        src={user.avatar_url}
+                        alt={user.name}
+                      />
+                    <% else %>
+                      <div class="h-8 w-8 rounded-full bg-gray-300 mr-3 flex items-center justify-center">
+                        <.icon name="hero-user" class="h-5 w-5 text-gray-500" />
+                      </div>
+                    <% end %>
+                    <span class="text-sm font-medium text-gray-900">
+                      {user.name || "Anonymous"}
+                    </span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {user.email}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <%= if is_super_admin do %>
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+                      Super Admin
+                    </span>
+                  <% else %>
+                    <%= if is_admin do %>
+                      <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                        Admin
+                      </span>
+                    <% else %>
+                      <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                        User
+                      </span>
+                    <% end %>
+                  <% end %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <%= if !is_super_admin do %>
+                    <%= if is_admin do %>
+                      <button
+                        phx-click="revoke_admin"
+                        phx-value-user-id={user.id}
+                        class="text-red-600 hover:text-red-900"
+                      >
+                        Remove Admin
+                      </button>
+                    <% else %>
+                      <button
+                        phx-click="grant_admin"
+                        phx-value-user-id={user.id}
+                        class="text-indigo-600 hover:text-indigo-900"
+                      >
+                        Make Admin
+                      </button>
+                    <% end %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</Layouts.app>
