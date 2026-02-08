@@ -56,20 +56,26 @@
 ## Implementation Plan
 
 ### Phase 1: Database Schema
-- [ ] Create `user_roles` table (user_id, role, granted_by, granted_at)
-- [ ] Create `unit_comments` table (unit_id, user_id, content, inserted_at, updated_at)
-- [ ] Create `unit_edit_logs` table (unit_id, field, old_value, new_value, reason, edited_by, inserted_at)
+- [x] Create `user_roles` table (user_id, role, granted_by, granted_at)
+- [x] Create `unit_comments` table (unit_id, user_id, content, inserted_at, updated_at)
+- [x] Create `unit_edit_logs` table (unit_id, field, old_value, new_value, reason, edited_by, inserted_at)
 
 ### Phase 2: Authorization System
-- [ ] Create `FafCn.Accounts.UserRoles` context
-- [ ] Create `is_admin?/1` helper function
-- [ ] Create super admin check (`zwpdbh` by email or provider_uid)
-- [ ] Create admin-only navigation (Settings link)
+- [x] Create `UserRoles` context functions in `Accounts`
+  - `is_super_admin?/1` - Check if user is zwpdbh
+  - `grant_admin_role/2` - Grant admin (super admin only)
+  - `revoke_admin_role/2` - Revoke admin (super admin only)
+  - `is_admin?/1` - Check if user has admin role
+  - `list_admins/0` - List all admin users
+- [x] Tests for authorization functions (13 tests)
 
 ### Phase 3: Admin Management Page
-- [ ] Create `SettingsLive` for admin management (zwpdbh only)
-- [ ] List all users with admin status
-- [ ] Add/Remove admin buttons
+- [x] Create `SettingsLive` for admin management (zwpdbh only)
+  - Super admin check on mount
+  - Redirect non-super-admins with error message
+- [x] List all users with admin status in table
+- [x] Add/Remove admin buttons
+- [x] Tests for SettingsLive (5 tests)
 
 ### Phase 4: Unit Detail Page (Basic)
 - [ ] Create `UnitLive.Show` LiveView
@@ -99,4 +105,57 @@
 ---
 
 ## Progress Log
+
+### 2026-02-08 - Phase 1 Complete
+Created database schema and tests:
+
+**Migrations:**
+- `create_user_roles.exs` - Stores user roles (admin)
+- `create_unit_comments.exs` - Stores user comments on units
+- `create_unit_edit_logs.exs` - Audit log for unit stat edits
+
+**Schemas:**
+- `FafCn.Accounts.UserRole` - User role schema
+- `FafCn.UnitComments.UnitComment` - Unit comment schema
+- `FafCn.UnitEditLogs.UnitEditLog` - Unit edit log schema
+
+**Tests:**
+- `test/faf_cn/accounts/user_role_test.exs` - User role validation tests
+- `test/faf_cn/unit_comments/unit_comment_test.exs` - Unit comment validation tests
+- `test/faf_cn/unit_edit_logs/unit_edit_log_test.exs` - Unit edit log validation tests
+
+All tests passing (50 tests).
+
+### 2026-02-08 - Phase 2 Complete
+Created authorization system in `FafCn.Accounts`:
+
+**Functions:**
+- `is_super_admin?/1` - Checks if user is zwpdbh (by email or provider_uid)
+- `grant_admin_role/2` - Grants admin role (super admin only)
+- `revoke_admin_role/2` - Revokes admin role (super admin only)
+- `is_admin?/1` - Checks if user has admin role
+- `list_admins/0` - Returns list of all admin users
+
+**Tests:**
+- `test/faf_cn/accounts/user_roles_test.exs` - 13 tests for authorization
+
+All tests passing (63 tests).
+
+### 2026-02-08 - Phase 3 Complete
+Created admin management page:
+
+**Files:**
+- `lib/faf_cn_web/live/settings_live.ex` - Settings LiveView
+- `lib/faf_cn_web/live/settings_live.html.heex` - Admin management UI
+
+**Features:**
+- `/settings` route (super admin only)
+- User table with admin status
+- "Make Admin" / "Remove Admin" buttons
+- Auto-redirect with error for non-super-admins
+
+**Tests:**
+- `test/faf_cn_web/live/settings_live_test.exs` - 5 tests
+
+All tests passing (68 tests).
 

@@ -20,6 +20,7 @@ defmodule FafCnWeb.Router do
 
     get "/", PageController, :home
     live "/eco-guides", EcoGuidesLive
+    live "/settings", SettingsLive
 
     # OAuth routes
     get "/auth/:provider", AuthController, :request

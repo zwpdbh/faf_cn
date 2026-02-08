@@ -1,5 +1,5 @@
 defmodule FafCn.AccountsTest do
-  use FafCn.DataCase, async: true
+  use FafCn.DataCase, async: false
 
   alias FafCn.Accounts
   alias FafCn.Accounts.User

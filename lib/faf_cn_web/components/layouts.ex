@@ -49,6 +49,7 @@ defmodule FafCnWeb.Layouts do
           <a href={~p"/eco-guides"} class="btn btn-ghost">
             <.icon name="hero-calculator" class="w-5 h-5 mr-1" /> Eco Guide
           </a>
+          <.settings_link current_user={@current_user} />
           <.user_menu current_user={@current_user} />
           <.theme_toggle />
         </nav>
@@ -60,6 +61,21 @@ defmodule FafCnWeb.Layouts do
     </main>
 
     <.flash_group flash={@flash} />
+    """
+  end
+
+  @doc """
+  Renders the settings link for super admin users.
+  """
+  attr :current_user, :map, default: nil
+
+  def settings_link(assigns) do
+    ~H"""
+    <%= if @current_user && FafCn.Accounts.is_super_admin?(@current_user) do %>
+      <a href={~p"/settings"} class="btn btn-ghost">
+        <.icon name="hero-cog-6-tooth" class="w-5 h-5 mr-1" /> Settings
+      </a>
+    <% end %>
     """
   end
 
