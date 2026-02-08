@@ -99,6 +99,19 @@ if config_env() == :prod do
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.
 
+  # ## OAuth Configuration
+  #
+  # Configure GitHub OAuth credentials via environment variables.
+  # Create OAuth app at: https://github.com/settings/developers
+  #
+  config :faf_cn, :oauth_providers,
+    github: [
+      client_id: System.get_env("GITHUB_CLIENT_ID"),
+      client_secret: System.get_env("GITHUB_CLIENT_SECRET"),
+      redirect_uri:
+        System.get_env("GITHUB_REDIRECT_URI", "http://localhost:4000/auth/github/callback")
+    ]
+
   # ## Configuring the mailer
   #
   # In production you need to configure the mailer to use a different adapter.

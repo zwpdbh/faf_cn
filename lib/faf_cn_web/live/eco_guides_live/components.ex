@@ -9,8 +9,6 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
 
   use FafCnWeb, :html
 
-  alias FafCn.Units.Unit
-
   @doc """
   Renders faction selection tabs.
 
@@ -80,7 +78,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
     * `base_unit` - The base engineer unit struct
     * `selected_faction` - Currently selected faction for styling
   """
-  attr :base_unit, Unit, required: true
+  attr :base_unit, :any, required: true
   attr :selected_faction, :string, required: true
 
   def base_unit_card(assigns) do
@@ -139,7 +137,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
   attr :units_by_faction, :map, required: true
   attr :selected_faction, :string, required: true
   attr :selected_units, :list, required: true
-  attr :base_unit, Unit, required: true
+  attr :base_unit, :any, required: true
 
   def unit_selection_grid(assigns) do
     ~H"""
@@ -210,7 +208,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
     * `base_unit` - The base engineer unit
     * `selected_units` - List of selected units to compare
   """
-  attr :base_unit, Unit, required: true
+  attr :base_unit, :any, required: true
   attr :selected_units, :list, required: true
 
   def eco_comparison(assigns) do
@@ -251,7 +249,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
     * `base_unit` - The base engineer unit
     * `selected_units` - List of selected units
   """
-  attr :base_unit, Unit, required: true
+  attr :base_unit, :any, required: true
   attr :selected_units, :list, required: true
 
   def base_unit_comparison(assigns) do
@@ -356,7 +354,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
     * `base_unit` - The base engineer unit
     * `selected_units` - List of selected units
   """
-  attr :base_unit, Unit, required: true
+  attr :base_unit, :any, required: true
   attr :selected_units, :list, required: true
 
   def cross_unit_comparison(assigns) do

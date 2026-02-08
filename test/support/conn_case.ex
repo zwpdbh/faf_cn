@@ -28,6 +28,27 @@ defmodule FafCnWeb.ConnCase do
       import Plug.Conn
       import Phoenix.ConnTest
       import FafCnWeb.ConnCase
+
+      # Authentication test helpers
+      alias FafCn.Accounts
+
+      def user_fixture(attrs \\ %{}) do
+        {:ok, user} =
+          attrs
+          |> Enum.into(%{
+            email: "user#{System.unique_integer()}@example.com",
+            provider: "github",
+            provider_uid: "#{System.unique_integer()}",
+            name: "Test User"
+          })
+          |> Accounts.register_oauth_user()
+
+        user
+      end
+
+      def log_in_user(conn, user) do
+        init_test_session(conn, %{user_id: user.id})
+      end
     end
   end
 

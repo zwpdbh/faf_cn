@@ -8,6 +8,7 @@ defmodule FafCnWeb.Router do
     plug :put_root_layout, html: {FafCnWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug FafCnWeb.Plugs.FetchUser
   end
 
   pipeline :api do
@@ -19,6 +20,12 @@ defmodule FafCnWeb.Router do
 
     get "/", PageController, :home
     live "/eco-guides", EcoGuidesLive
+
+    # OAuth routes
+    get "/auth/:provider", AuthController, :request
+    get "/auth/:provider/callback", AuthController, :callback
+    post "/auth/:provider/callback", AuthController, :callback
+    get "/logout", AuthController, :logout
   end
 
   # Other scopes may use custom stacks.

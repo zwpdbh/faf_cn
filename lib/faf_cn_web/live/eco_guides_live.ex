@@ -8,6 +8,8 @@ defmodule FafCnWeb.EcoGuidesLive do
 
   alias FafCn.Units
 
+  on_mount {FafCnWeb.UserAuth, :mount_current_user}
+
   @factions ["UEF", "CYBRAN", "AEON", "SERAPHIM"]
 
   # T1 Engineer unit IDs per faction (default base unit)
