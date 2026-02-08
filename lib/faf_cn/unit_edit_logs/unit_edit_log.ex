@@ -15,7 +15,7 @@ defmodule FafCn.UnitEditLogs.UnitEditLog do
     field :reason, :string
 
     belongs_to :unit, Unit
-    belongs_to :editor, User, foreign_key: :edited_by
+    belongs_to :editor, User, foreign_key: :edited_by_id
 
     timestamps(type: :utc_datetime, updated_at: false)
   end
@@ -23,8 +23,8 @@ defmodule FafCn.UnitEditLogs.UnitEditLog do
   @doc false
   def changeset(unit_edit_log, attrs) do
     unit_edit_log
-    |> cast(attrs, [:unit_id, :field, :old_value, :new_value, :reason, :edited_by])
-    |> validate_required([:unit_id, :field, :edited_by])
+    |> cast(attrs, [:unit_id, :field, :old_value, :new_value, :reason, :edited_by_id])
+    |> validate_required([:unit_id, :field, :edited_by_id, :reason])
     |> foreign_key_constraint(:unit_id)
     |> foreign_key_constraint(:edited_by)
   end

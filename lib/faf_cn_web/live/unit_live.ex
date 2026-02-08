@@ -1,11 +1,13 @@
 defmodule FafCnWeb.UnitLive do
   @moduledoc """
-  LiveView for viewing unit details and comments.
+  LiveView for viewing unit details, comments, and admin editing.
   """
   use FafCnWeb, :live_view
 
   alias FafCn.Units
   alias FafCn.UnitComments
+  alias FafCn.UnitEditLogs
+  alias FafCn.Accounts
 
   on_mount {FafCnWeb.UserAuth, :ensure_authenticated}
 
@@ -20,13 +22,19 @@ defmodule FafCnWeb.UnitLive do
 
       unit ->
         comments = UnitComments.list_unit_comments(unit.id)
+        edit_logs = UnitEditLogs.list_unit_edit_logs(unit.id)
+        is_admin = Accounts.is_admin?(socket.assigns.current_user)
 
         socket =
           socket
           |> assign(:page_title, unit.name || unit.unit_id)
           |> assign(:unit, unit)
           |> assign(:comments, comments)
+          |> assign(:edit_logs, edit_logs)
+          |> assign(:is_admin, is_admin)
           |> assign(:comment_form, to_form(%{"content" => ""}))
+          |> assign(:edit_form, to_form(%{"mass" => unit.build_cost_mass, "energy" => unit.build_cost_energy, "build_time" => unit.build_time, "reason" => ""}))
+          |> assign(:edit_error, nil)
 
         {:ok, socket}
     end
@@ -65,6 +73,65 @@ defmodule FafCnWeb.UnitLive do
         {:noreply, put_flash(socket, :error, "Failed to delete comment")}
     end
   end
+
+  @impl true
+  def handle_event("update_stats", params, socket) do
+    unit = socket.assigns.unit
+    user = socket.assigns.current_user
+
+    mass = params["mass"]
+    energy = params["energy"]
+    build_time = params["build_time"]
+    reason = params["reason"]
+
+    if reason == nil or String.trim(reason) == "" do
+      {:noreply, assign(socket, :edit_error, "Reason is required for all edits")}
+    else
+      case UnitEditLogs.update_unit_stat(unit, "build_cost_mass", mass, reason, user.id) do
+        {:ok, updated_unit} ->
+          case UnitEditLogs.update_unit_stat(updated_unit, "build_cost_energy", energy, reason, user.id) do
+            {:ok, updated_unit2} ->
+              case UnitEditLogs.update_unit_stat(updated_unit2, "build_time", build_time, reason, user.id) do
+                {:ok, final_unit} ->
+                  edit_logs = UnitEditLogs.list_unit_edit_logs(unit.id)
+
+                  {:noreply,
+                   socket
+                   |> assign(:unit, final_unit)
+                   |> assign(:edit_logs, edit_logs)
+                   |> assign(:edit_form, to_form(%{"mass" => final_unit.build_cost_mass, "energy" => final_unit.build_cost_energy, "build_time" => final_unit.build_time, "reason" => ""}))
+                   |> assign(:edit_error, nil)
+                   |> put_flash(:info, "Unit stats updated")}
+
+                {:error, changeset} ->
+                  {:noreply, assign(socket, :edit_error, error_message(changeset))}
+              end
+
+            {:error, changeset} ->
+              {:noreply, assign(socket, :edit_error, error_message(changeset))}
+          end
+
+        {:error, "Unauthorized"} ->
+          {:noreply, put_flash(socket, :error, "You are not authorized to edit units")}
+
+        {:error, changeset} ->
+          {:noreply, assign(socket, :edit_error, error_message(changeset))}
+      end
+    end
+  end
+
+  defp error_message(%Ecto.Changeset{} = changeset) do
+    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+      Regex.replace(~r"%\{(\w+)\}", msg, fn _, key ->
+        opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
+      end)
+    end)
+    |> Enum.map(fn {k, v} -> "#{k}: #{Enum.join(v, ", ")}" end)
+    |> Enum.join("; ")
+  end
+
+  defp error_message(msg) when is_binary(msg), do: msg
+  defp error_message(_), do: "An error occurred"
 
   @impl true
   def render(assigns) do
@@ -141,6 +208,112 @@ defmodule FafCnWeb.UnitLive do
             </div>
           </div>
         </div>
+
+        <%!-- Admin Edit Form --%>
+        <%= if @is_admin do %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Edit Unit Stats (Admin)</h2>
+
+            <%= if @edit_error do %>
+              <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+                {@edit_error}
+              </div>
+            <% end %>
+
+            <.form
+              for={@edit_form}
+              id="edit-stats-form"
+              phx-submit="update_stats"
+              class="space-y-4"
+            >
+              <div class="grid grid-cols-3 gap-4">
+                <div>
+                  <label for="mass" class="block text-sm font-medium text-gray-700 mb-1">Mass</label>
+                  <input
+                    type="number"
+                    name="mass"
+                    id="mass"
+                    value={@edit_form[:mass].value}
+                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    required
+                  />
+                </div>
+                <div>
+                  <label for="energy" class="block text-sm font-medium text-gray-700 mb-1">Energy</label>
+                  <input
+                    type="number"
+                    name="energy"
+                    id="energy"
+                    value={@edit_form[:energy].value}
+                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    required
+                  />
+                </div>
+                <div>
+                  <label for="build_time" class="block text-sm font-medium text-gray-700 mb-1">Build Time</label>
+                  <input
+                    type="number"
+                    name="build_time"
+                    id="build_time"
+                    value={@edit_form[:build_time].value}
+                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label for="reason" class="block text-sm font-medium text-gray-700 mb-1">
+                  Reason for Edit <span class="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="reason"
+                  id="reason"
+                  value={@edit_form[:reason].value}
+                  placeholder="e.g., Balance update, Data correction"
+                  class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  required
+                />
+              </div>
+
+              <div class="flex justify-end">
+                <button
+                  type="submit"
+                  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Update Stats
+                </button>
+              </div>
+            </.form>
+          </div>
+        <% end %>
+
+        <%!-- Edit History --%>
+        <%= if @edit_logs != [] do %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Edit History</h2>
+            <div class="space-y-3">
+              <%= for log <- @edit_logs do %>
+                <div class="flex items-center gap-4 p-3 bg-gray-50 rounded-lg text-sm">
+                  <div class="flex-1">
+                    <span class="font-medium text-gray-900">{log.field}</span>
+                    <span class="text-gray-500"> changed from </span>
+                    <span class="font-medium text-red-600">{log.old_value}</span>
+                    <span class="text-gray-500"> to </span>
+                    <span class="font-medium text-green-600">{log.new_value}</span>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-gray-700">{log.reason}</div>
+                    <div class="text-xs text-gray-500">
+                      by {log.editor.name || log.editor.email} · {format_timestamp(log.inserted_at)}
+                    </div>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
 
         <%!-- Comments Section --%>
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">

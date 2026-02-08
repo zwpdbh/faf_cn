@@ -37,7 +37,7 @@ defmodule FafCn.UnitEditLogs.UnitEditLogTest do
         old_value: "50",
         new_value: "60",
         reason: "Balance update",
-        edited_by: user.id
+        edited_by_id: user.id
       }
 
       assert %Ecto.Changeset{valid?: true} = UnitEditLog.changeset(%UnitEditLog{}, attrs)
@@ -46,7 +46,7 @@ defmodule FafCn.UnitEditLogs.UnitEditLogTest do
     test "changeset requires unit_id", %{user: user} do
       attrs = %{
         field: "build_cost_mass",
-        edited_by: user.id
+        edited_by_id: user.id
       }
 
       changeset = UnitEditLog.changeset(%UnitEditLog{}, attrs)
@@ -56,35 +56,33 @@ defmodule FafCn.UnitEditLogs.UnitEditLogTest do
     test "changeset requires field", %{user: user, unit: unit} do
       attrs = %{
         unit_id: unit.id,
-        edited_by: user.id
+        edited_by_id: user.id
       }
 
       changeset = UnitEditLog.changeset(%UnitEditLog{}, attrs)
       assert "can't be blank" in errors_on(changeset).field
     end
 
-    test "changeset requires edited_by", %{unit: unit} do
+    test "changeset requires edited_by_id", %{unit: unit} do
       attrs = %{
         unit_id: unit.id,
         field: "build_cost_mass"
       }
 
       changeset = UnitEditLog.changeset(%UnitEditLog{}, attrs)
-      assert "can't be blank" in errors_on(changeset).edited_by
+      assert "can't be blank" in errors_on(changeset).edited_by_id
     end
 
     test "changeset allows optional values", %{user: user, unit: unit} do
       attrs = %{
         unit_id: unit.id,
         field: "build_cost_mass",
-        edited_by: user.id
+        edited_by_id: user.id
       }
 
       changeset = UnitEditLog.changeset(%UnitEditLog{}, attrs)
-      assert changeset.valid?
-      assert Ecto.Changeset.get_field(changeset, :old_value) == nil
-      assert Ecto.Changeset.get_field(changeset, :new_value) == nil
-      assert Ecto.Changeset.get_field(changeset, :reason) == nil
+      refute changeset.valid?
+      assert "can't be blank" in errors_on(changeset).reason
     end
   end
 end
