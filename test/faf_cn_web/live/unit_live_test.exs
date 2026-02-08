@@ -121,7 +121,11 @@ defmodule FafCnWeb.UnitLiveTest do
       assert html =~ "Original comment"
 
       # Save the edited comment
-      html = render_submit(view, "save_comment_edit", %{"comment-id" => comment_id, "content" => "Updated comment"})
+      html =
+        render_submit(view, "save_comment_edit", %{
+          "comment-id" => comment_id,
+          "content" => "Updated comment"
+        })
 
       # Should show updated content
       assert html =~ "Updated comment"

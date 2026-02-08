@@ -281,8 +281,16 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
         <.empty_comparison_state />
       <% else %>
         <div class="space-y-4">
-          <.base_unit_comparison base_unit={@base_unit} selected_units={@selected_units} current_user={@current_user} />
-          <.cross_unit_comparison base_unit={@base_unit} selected_units={@selected_units} current_user={@current_user} />
+          <.base_unit_comparison
+            base_unit={@base_unit}
+            selected_units={@selected_units}
+            current_user={@current_user}
+          />
+          <.cross_unit_comparison
+            base_unit={@base_unit}
+            selected_units={@selected_units}
+            current_user={@current_user}
+          />
           <.comparison_summary_stats selected_units={@selected_units} />
         </div>
       <% end %>

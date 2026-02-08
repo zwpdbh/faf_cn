@@ -115,7 +115,14 @@ defmodule FafCn.UnitEditLogsTest do
       Process.sleep(20)
 
       {:ok, log2} =
-        UnitEditLogs.log_unit_edit(unit.id, "build_cost_mass", "55", "60", "Second edit", admin.id)
+        UnitEditLogs.log_unit_edit(
+          unit.id,
+          "build_cost_mass",
+          "55",
+          "60",
+          "Second edit",
+          admin.id
+        )
 
       logs = UnitEditLogs.list_unit_edit_logs(unit.id)
       assert length(logs) == 2

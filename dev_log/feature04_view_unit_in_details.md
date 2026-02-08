@@ -285,7 +285,7 @@ Phase 6 Summary:
 | Goal04: Authorization | ✅ | Super admin (zwpdbh) manages admins |
 
 ### Test Summary
-**99 tests passing** (up from 82 in Phase 5):
+**103 tests passing** (up from 82 in Phase 5):
 - 4 unit detail page tests
 - 10 comment context tests  
 - 3 comment editing LiveView tests
@@ -294,6 +294,7 @@ Phase 6 Summary:
 - 11 unit edit logs context tests
 - 4 unit edit log schema tests
 - 7 admin edit LiveView tests
+- 4 eco guides link visibility tests
 
 ### Key Features Delivered
 1. ✅ Click unit name → detail page
@@ -310,3 +311,4 @@ Phase 6 Summary:
 - Super admin hardcoded (zwpdbh)
 - Users can only edit/delete own comments
 - Audit log for all unit stat changes
+- **Unit links hidden from non-logged-in users** (prevents broken experience)

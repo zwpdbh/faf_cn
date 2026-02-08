@@ -35,7 +35,15 @@ defmodule FafCnWeb.UnitLive do
           |> assign(:edit_mode, false)
           |> assign(:editing_comment_id, nil)
           |> assign(:comment_form, to_form(%{"content" => ""}))
-          |> assign(:edit_form, to_form(%{"mass" => unit.build_cost_mass, "energy" => unit.build_cost_energy, "build_time" => unit.build_time, "reason" => ""}))
+          |> assign(
+            :edit_form,
+            to_form(%{
+              "mass" => unit.build_cost_mass,
+              "energy" => unit.build_cost_energy,
+              "build_time" => unit.build_time,
+              "reason" => ""
+            })
+          )
           |> assign(:edit_error, nil)
 
         {:ok, socket}
@@ -54,7 +62,15 @@ defmodule FafCnWeb.UnitLive do
     {:noreply,
      socket
      |> assign(:edit_mode, false)
-     |> assign(:edit_form, to_form(%{"mass" => unit.build_cost_mass, "energy" => unit.build_cost_energy, "build_time" => unit.build_time, "reason" => ""}))
+     |> assign(
+       :edit_form,
+       to_form(%{
+         "mass" => unit.build_cost_mass,
+         "energy" => unit.build_cost_energy,
+         "build_time" => unit.build_time,
+         "reason" => ""
+       })
+     )
      |> assign(:edit_error, nil)}
   end
 
@@ -103,7 +119,11 @@ defmodule FafCnWeb.UnitLive do
   end
 
   @impl true
-  def handle_event("save_comment_edit", %{"comment-id" => comment_id, "content" => content}, socket) do
+  def handle_event(
+        "save_comment_edit",
+        %{"comment-id" => comment_id, "content" => content},
+        socket
+      ) do
     user = socket.assigns.current_user
 
     case UnitComments.update_comment(String.to_integer(comment_id), user.id, content) do
@@ -135,9 +155,21 @@ defmodule FafCnWeb.UnitLive do
     else
       case UnitEditLogs.update_unit_stat(unit, "build_cost_mass", mass, reason, user.id) do
         {:ok, updated_unit} ->
-          case UnitEditLogs.update_unit_stat(updated_unit, "build_cost_energy", energy, reason, user.id) do
+          case UnitEditLogs.update_unit_stat(
+                 updated_unit,
+                 "build_cost_energy",
+                 energy,
+                 reason,
+                 user.id
+               ) do
             {:ok, updated_unit2} ->
-              case UnitEditLogs.update_unit_stat(updated_unit2, "build_time", build_time, reason, user.id) do
+              case UnitEditLogs.update_unit_stat(
+                     updated_unit2,
+                     "build_time",
+                     build_time,
+                     reason,
+                     user.id
+                   ) do
                 {:ok, final_unit} ->
                   edit_logs = UnitEditLogs.list_unit_edit_logs(unit.id)
 
@@ -146,7 +178,15 @@ defmodule FafCnWeb.UnitLive do
                    |> assign(:unit, final_unit)
                    |> assign(:edit_logs, edit_logs)
                    |> assign(:edit_mode, false)
-                   |> assign(:edit_form, to_form(%{"mass" => final_unit.build_cost_mass, "energy" => final_unit.build_cost_energy, "build_time" => final_unit.build_time, "reason" => ""}))
+                   |> assign(
+                     :edit_form,
+                     to_form(%{
+                       "mass" => final_unit.build_cost_mass,
+                       "energy" => final_unit.build_cost_energy,
+                       "build_time" => final_unit.build_time,
+                       "reason" => ""
+                     })
+                   )
                    |> assign(:edit_error, nil)
                    |> put_flash(:info, "Unit stats updated")}
 
@@ -272,7 +312,9 @@ defmodule FafCnWeb.UnitLive do
                   />
                 </div>
                 <div>
-                  <label for="energy" class="block text-sm font-medium text-gray-700 mb-1">Energy</label>
+                  <label for="energy" class="block text-sm font-medium text-gray-700 mb-1">
+                    Energy
+                  </label>
                   <input
                     type="number"
                     name="energy"
@@ -283,7 +325,9 @@ defmodule FafCnWeb.UnitLive do
                   />
                 </div>
                 <div>
-                  <label for="build_time" class="block text-sm font-medium text-gray-700 mb-1">Build Time</label>
+                  <label for="build_time" class="block text-sm font-medium text-gray-700 mb-1">
+                    Build Time
+                  </label>
                   <input
                     type="number"
                     name="build_time"
@@ -379,127 +423,127 @@ defmodule FafCnWeb.UnitLive do
 
         <%!-- Comments Section (hidden when in edit mode) --%>
         <%= if not @edit_mode do %>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">
-            Comments ({length(@comments)})
-          </h2>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">
+              Comments ({length(@comments)})
+            </h2>
 
-          <%!-- Comment Form --%>
-          <.form
-            for={@comment_form}
-            id="comment-form"
-            phx-submit="add_comment"
-            class="mb-6"
-          >
-            <div class="flex gap-3">
-              <textarea
-                name="content"
-                rows="2"
-                placeholder="Add a comment..."
-                class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                required
-              ></textarea>
-              <button
-                type="submit"
-                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                Post
-              </button>
-            </div>
-          </.form>
+            <%!-- Comment Form --%>
+            <.form
+              for={@comment_form}
+              id="comment-form"
+              phx-submit="add_comment"
+              class="mb-6"
+            >
+              <div class="flex gap-3">
+                <textarea
+                  name="content"
+                  rows="2"
+                  placeholder="Add a comment..."
+                  class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  required
+                ></textarea>
+                <button
+                  type="submit"
+                  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Post
+                </button>
+              </div>
+            </.form>
 
-          <%!-- Comments List --%>
-          <div class="space-y-4">
-            <%= if @comments == [] do %>
-              <p class="text-center text-gray-500 py-4">
-                No comments yet. Be the first to share your thoughts!
-              </p>
-            <% else %>
-              <%= for comment <- @comments do %>
-                <div class="flex gap-3 p-4 bg-gray-50 rounded-lg">
-                  <%!-- Avatar --%>
-                  <div class="flex-shrink-0">
-                    <%= if comment.user.avatar_url do %>
-                      <img
-                        src={comment.user.avatar_url}
-                        alt={comment.user.name}
-                        class="w-10 h-10 rounded-full"
-                      />
-                    <% else %>
-                      <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                        <.icon name="hero-user" class="w-6 h-6 text-gray-500" />
-                      </div>
-                    <% end %>
-                  </div>
-
-                  <%!-- Comment Content --%>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between mb-1">
-                      <span class="font-medium text-gray-900">
-                        {comment.user.name || comment.user.email}
-                      </span>
-                      <span class="text-xs text-gray-500">
-                        {format_timestamp(comment.inserted_at)}
-                      </span>
-                    </div>
-
-                    <%!-- Edit form (when editing this comment) --%>
-                    <%= if @editing_comment_id == comment.id do %>
-                      <form phx-submit="save_comment_edit" class="mb-2">
-                        <input type="hidden" name="comment-id" value={comment.id} />
-                        <textarea
-                          name="content"
-                          rows="2"
-                          class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm mb-2"
-                          required
-                        >{comment.content}</textarea>
-                        <div class="flex gap-2">
-                          <button
-                            type="button"
-                            phx-click="cancel_edit_comment"
-                            class="text-xs text-gray-600 hover:text-gray-800"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            class="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
-                          >
-                            Save
-                          </button>
-                        </div>
-                      </form>
-                    <% else %>
-                      <p class="text-gray-700 text-sm whitespace-pre-wrap">
-                        {comment.content}
-                      </p>
-
-                      <%!-- Edit/Delete buttons (only for owner) --%>
-                      <%= if comment.user_id == @current_user.id do %>
-                        <div class="flex gap-3 mt-2">
-                          <button
-                            phx-click="edit_comment"
-                            phx-value-comment-id={comment.id}
-                            class="text-xs text-indigo-600 hover:text-indigo-800"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            phx-click="delete_comment"
-                            phx-value-comment-id={comment.id}
-                            class="text-xs text-red-600 hover:text-red-800"
-                          >
-                            Delete
-                          </button>
+            <%!-- Comments List --%>
+            <div class="space-y-4">
+              <%= if @comments == [] do %>
+                <p class="text-center text-gray-500 py-4">
+                  No comments yet. Be the first to share your thoughts!
+                </p>
+              <% else %>
+                <%= for comment <- @comments do %>
+                  <div class="flex gap-3 p-4 bg-gray-50 rounded-lg">
+                    <%!-- Avatar --%>
+                    <div class="flex-shrink-0">
+                      <%= if comment.user.avatar_url do %>
+                        <img
+                          src={comment.user.avatar_url}
+                          alt={comment.user.name}
+                          class="w-10 h-10 rounded-full"
+                        />
+                      <% else %>
+                        <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                          <.icon name="hero-user" class="w-6 h-6 text-gray-500" />
                         </div>
                       <% end %>
-                    <% end %>
+                    </div>
+
+                    <%!-- Comment Content --%>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="font-medium text-gray-900">
+                          {comment.user.name || comment.user.email}
+                        </span>
+                        <span class="text-xs text-gray-500">
+                          {format_timestamp(comment.inserted_at)}
+                        </span>
+                      </div>
+
+                      <%!-- Edit form (when editing this comment) --%>
+                      <%= if @editing_comment_id == comment.id do %>
+                        <form phx-submit="save_comment_edit" class="mb-2">
+                          <input type="hidden" name="comment-id" value={comment.id} />
+                          <textarea
+                            name="content"
+                            rows="2"
+                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm mb-2"
+                            required
+                          >{comment.content}</textarea>
+                          <div class="flex gap-2">
+                            <button
+                              type="button"
+                              phx-click="cancel_edit_comment"
+                              class="text-xs text-gray-600 hover:text-gray-800"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="submit"
+                              class="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                            >
+                              Save
+                            </button>
+                          </div>
+                        </form>
+                      <% else %>
+                        <p class="text-gray-700 text-sm whitespace-pre-wrap">
+                          {comment.content}
+                        </p>
+
+                        <%!-- Edit/Delete buttons (only for owner) --%>
+                        <%= if comment.user_id == @current_user.id do %>
+                          <div class="flex gap-3 mt-2">
+                            <button
+                              phx-click="edit_comment"
+                              phx-value-comment-id={comment.id}
+                              class="text-xs text-indigo-600 hover:text-indigo-800"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              phx-click="delete_comment"
+                              phx-value-comment-id={comment.id}
+                              class="text-xs text-red-600 hover:text-red-800"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        <% end %>
+                      <% end %>
+                    </div>
                   </div>
-                </div>
+                <% end %>
               <% end %>
-            <% end %>
+            </div>
           </div>
-        </div>
         <% end %>
       </div>
     </Layouts.app>

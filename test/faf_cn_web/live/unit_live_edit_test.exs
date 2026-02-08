@@ -49,7 +49,11 @@ defmodule FafCnWeb.UnitLiveEditTest do
       %{conn: conn, admin: admin, super_admin: super_admin, non_admin: non_admin, unit: unit}
     end
 
-    test "super admin sees edit button and can access edit form", %{conn: conn, super_admin: super_admin, unit: unit} do
+    test "super admin sees edit button and can access edit form", %{
+      conn: conn,
+      super_admin: super_admin,
+      unit: unit
+    } do
       {:ok, view, _html} = conn |> log_in_user(super_admin) |> live(~p"/units/#{unit.unit_id}")
 
       # Should see the Edit button
@@ -64,7 +68,11 @@ defmodule FafCnWeb.UnitLiveEditTest do
       assert html =~ "Update Stats"
     end
 
-    test "admin sees edit button and can access edit form", %{conn: conn, admin: admin, unit: unit} do
+    test "admin sees edit button and can access edit form", %{
+      conn: conn,
+      admin: admin,
+      unit: unit
+    } do
       {:ok, view, _html} = conn |> log_in_user(admin) |> live(~p"/units/#{unit.unit_id}")
 
       # Should see the Edit button
@@ -94,12 +102,13 @@ defmodule FafCnWeb.UnitLiveEditTest do
       # Enter edit mode
       render_click(view, "toggle_edit_mode")
 
-      html = render_submit(view, "update_stats", %{
-               "mass" => "60",
-               "energy" => "550",
-               "build_time" => "300",
-               "reason" => "Balance update"
-             })
+      html =
+        render_submit(view, "update_stats", %{
+          "mass" => "60",
+          "energy" => "550",
+          "build_time" => "300",
+          "reason" => "Balance update"
+        })
 
       assert html =~ "60"
 
