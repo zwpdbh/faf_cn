@@ -78,11 +78,12 @@
 - [x] Tests for SettingsLive (5 tests)
 
 ### Phase 4: Unit Detail Page (Basic)
-- [ ] Create `UnitLive.Show` LiveView
-- [ ] Route: `/units/:unit_id`
-- [ ] Display unit info (name, image 2x size, mass/energy/time)
-- [ ] Add links from Eco Comparison unit names
-- [ ] Require login to view (redirect to home with message if not logged in)
+- [x] Create `UnitLive` LiveView
+- [x] Route: `/units/:unit_id`
+- [x] Display unit info (name, image 2x size, mass/energy/time)
+- [x] Display categories as badges
+- [x] Add links from Eco Comparison unit names
+- [x] Require login to view (uses `ensure_authenticated` hook)
 
 ### Phase 5: Comments System
 - [ ] Create `FafCn.UnitComments` context
@@ -158,4 +159,30 @@ Created admin management page:
 - `test/faf_cn_web/live/settings_live_test.exs` - 5 tests
 
 All tests passing (68 tests).
+
+### 2026-02-08 - Phase 4 Complete
+Created unit detail page:
+
+**Files:**
+- `lib/faf_cn_web/live/unit_live.ex` - Unit detail LiveView
+- `lib/faf_cn_web/live/unit_live.html.heex` - Inline template
+- `test/faf_cn_web/live/unit_live_test.exs` - 4 tests
+
+**Features:**
+- `/units/:unit_id` route (e.g., `/units/UEL0105`)
+- Large unit icon (2x size)
+- Unit info: name, description, faction badge
+- Economy stats: Mass, Energy, Build Time
+- Categories displayed as badges
+- "Back to Eco Guides" link
+- Requires login (redirects if not authenticated)
+- Links from Eco Comparison (unit names are now clickable)
+
+**Tests:**
+- Logged-in user can view unit detail
+- Unit stats are displayed
+- Non-logged-in user is redirected
+- Non-existent unit returns error
+
+All tests passing (72 tests).
 
