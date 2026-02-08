@@ -26,6 +26,9 @@ defmodule FafCnWeb.Router do
     get "/auth/:provider/callback", AuthController, :callback
     post "/auth/:provider/callback", AuthController, :callback
     get "/logout", AuthController, :logout
+
+    # Silently ignore Chrome DevTools discovery requests
+    get "/.well-known/appspecific/com.chrome.devtools.json", PageController, :chrome_devtools
   end
 
   # Other scopes may use custom stacks.
