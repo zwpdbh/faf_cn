@@ -1,10 +1,11 @@
 defmodule FafCnWeb.UnitLive do
   @moduledoc """
-  LiveView for viewing unit details.
+  LiveView for viewing unit details and comments.
   """
   use FafCnWeb, :live_view
 
   alias FafCn.Units
+  alias FafCn.UnitComments
 
   on_mount {FafCnWeb.UserAuth, :ensure_authenticated}
 
@@ -18,10 +19,50 @@ defmodule FafCnWeb.UnitLive do
          |> push_navigate(to: ~p"/")}
 
       unit ->
-        {:ok,
+        comments = UnitComments.list_unit_comments(unit.id)
+
+        socket =
+          socket
+          |> assign(:page_title, unit.name || unit.unit_id)
+          |> assign(:unit, unit)
+          |> assign(:comments, comments)
+          |> assign(:comment_form, to_form(%{"content" => ""}))
+
+        {:ok, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("add_comment", %{"content" => content}, socket) do
+    unit = socket.assigns.unit
+    user = socket.assigns.current_user
+
+    case UnitComments.create_comment(unit.id, user.id, content) do
+      {:ok, _comment} ->
+        comments = UnitComments.list_unit_comments(unit.id)
+
+        {:noreply,
          socket
-         |> assign(:page_title, unit.name || unit.unit_id)
-         |> assign(:unit, unit)}
+         |> assign(:comments, comments)
+         |> assign(:comment_form, to_form(%{"content" => ""}))
+         |> put_flash(:info, "Comment added")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to add comment")}
+    end
+  end
+
+  @impl true
+  def handle_event("delete_comment", %{"comment-id" => comment_id}, socket) do
+    user = socket.assigns.current_user
+
+    case UnitComments.delete_comment(String.to_integer(comment_id), user.id) do
+      :ok ->
+        comments = UnitComments.list_unit_comments(socket.assigns.unit.id)
+        {:noreply, assign(socket, :comments, comments)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to delete comment")}
     end
   end
 
@@ -100,6 +141,91 @@ defmodule FafCnWeb.UnitLive do
             </div>
           </div>
         </div>
+
+        <%!-- Comments Section --%>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">
+            Comments ({length(@comments)})
+          </h2>
+
+          <%!-- Comment Form --%>
+          <.form
+            for={@comment_form}
+            id="comment-form"
+            phx-submit="add_comment"
+            class="mb-6"
+          >
+            <div class="flex gap-3">
+              <textarea
+                name="content"
+                rows="2"
+                placeholder="Add a comment..."
+                class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                required
+              ></textarea>
+              <button
+                type="submit"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Post
+              </button>
+            </div>
+          </.form>
+
+          <%!-- Comments List --%>
+          <div class="space-y-4">
+            <%= if @comments == [] do %>
+              <p class="text-center text-gray-500 py-4">
+                No comments yet. Be the first to share your thoughts!
+              </p>
+            <% else %>
+              <%= for comment <- @comments do %>
+                <div class="flex gap-3 p-4 bg-gray-50 rounded-lg">
+                  <%!-- Avatar --%>
+                  <div class="flex-shrink-0">
+                    <%= if comment.user.avatar_url do %>
+                      <img
+                        src={comment.user.avatar_url}
+                        alt={comment.user.name}
+                        class="w-10 h-10 rounded-full"
+                      />
+                    <% else %>
+                      <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                        <.icon name="hero-user" class="w-6 h-6 text-gray-500" />
+                      </div>
+                    <% end %>
+                  </div>
+
+                  <%!-- Comment Content --%>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="font-medium text-gray-900">
+                        {comment.user.name || comment.user.email}
+                      </span>
+                      <span class="text-xs text-gray-500">
+                        {format_timestamp(comment.inserted_at)}
+                      </span>
+                    </div>
+                    <p class="text-gray-700 text-sm whitespace-pre-wrap">
+                      {comment.content}
+                    </p>
+
+                    <%!-- Delete button (only for owner) --%>
+                    <%= if comment.user_id == @current_user.id do %>
+                      <button
+                        phx-click="delete_comment"
+                        phx-value-comment-id={comment.id}
+                        class="mt-2 text-xs text-red-600 hover:text-red-800"
+                      >
+                        Delete
+                      </button>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
       </div>
     </Layouts.app>
     """
@@ -126,5 +252,18 @@ defmodule FafCnWeb.UnitLive do
     |> Enum.chunk_every(3)
     |> Enum.join(",")
     |> String.reverse()
+  end
+
+  defp format_timestamp(datetime) do
+    now = DateTime.utc_now()
+    diff = DateTime.diff(now, datetime, :second)
+
+    cond do
+      diff < 60 -> "just now"
+      diff < 3600 -> "#{div(diff, 60)}m ago"
+      diff < 86400 -> "#{div(diff, 3600)}h ago"
+      diff < 604_800 -> "#{div(diff, 86400)}d ago"
+      true -> Calendar.strftime(datetime, "%Y-%m-%d")
+    end
   end
 end

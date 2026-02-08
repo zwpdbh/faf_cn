@@ -81,16 +81,20 @@
 - [x] Create `UnitLive` LiveView
 - [x] Route: `/units/:unit_id`
 - [x] Display unit info (name, image 2x size, mass/energy/time)
-- [x] Display categories as badges
 - [x] Add links from Eco Comparison unit names
 - [x] Require login to view (uses `ensure_authenticated` hook)
 
 ### Phase 5: Comments System
-- [ ] Create `FafCn.UnitComments` context
-- [ ] Display comments list (newest first)
-- [ ] Add comment form (bottom of comments)
-- [ ] Edit/Delete own comments
-- [ ] Timestamp display (relative: "2 hours ago")
+- [x] Create `FafCn.UnitComments` context
+  - `list_unit_comments/1` - List comments for a unit
+  - `create_comment/3` - Create a comment
+  - `update_comment/3` - Update own comment
+  - `delete_comment/2` - Delete own comment
+- [x] Display comments list (newest first)
+- [x] Add comment form (bottom of comments)
+- [x] Delete own comments
+- [x] Timestamp display (relative: "just now", "5m ago", etc.)
+- [x] Tests for UnitComments context (10 tests)
 
 ### Phase 6: Admin Edit & Audit
 - [ ] Editable form for unit stats (admin only, inline or modal)
@@ -186,3 +190,23 @@ Created unit detail page:
 
 All tests passing (72 tests).
 
+### 2026-02-08 - Phase 5 Complete
+Created comments system:
+
+**Files:**
+- `lib/faf_cn/unit_comments.ex` - UnitComments context
+- `test/faf_cn/unit_comments_test.exs` - 10 tests
+- Updated `lib/faf_cn_web/live/unit_live.ex` - Added comments UI
+
+**Features:**
+- Comment form at bottom of comments section
+- Comments displayed in reverse chronological order (newest first)
+- Shows user avatar, name, and relative timestamp ("just now", "5m ago", etc.)
+- Delete button (only for comment owner)
+- Empty state: "No comments yet. Be the first to share your thoughts!"
+
+**Security:**
+- Only logged-in users can view comments
+- Users can only delete their own comments
+
+All tests passing (82 tests).
