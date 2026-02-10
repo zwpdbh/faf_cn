@@ -14,6 +14,13 @@ This is a Phoenix 1.8 web application that uses:
 - **GitHub OAuth** for authentication
 - **Tailwind CSS + daisyUI** for styling
 
+### Deployment Features
+
+- **One-command deployment** via `fly deploy`
+- **Auto-deployment on push** to `main` branch via GitHub Actions
+- **Automated database migrations** on deploy
+- **Zero-downtime deployments** with rolling updates
+
 ---
 
 ## Prerequisites
@@ -381,6 +388,140 @@ _build/prod/rel/faf_cn/bin/server
 
 ---
 
+## GitHub Actions Auto-Deployment
+
+The repository includes a GitHub Actions workflow (`.github/workflows/fly-deploy.yml`) that **automatically deploys to Fly.io** when code is pushed to specific branches.
+
+### How It Works
+
+```
+Push to main ──► GitHub Actions ──► flyctl deploy ──► Fly.io
+     │                                         
+     └── Triggers workflow ────► Builds & deploys automatically
+```
+
+**Current Configuration:**
+```yaml
+on:
+  push:
+    branches:
+      - main
+      - wdb/dev    # Also triggers on dev branch
+```
+
+### Setup Instructions
+
+To enable auto-deployment, you need to add your Fly.io API token to GitHub Secrets:
+
+#### Step 1: Generate Fly API Token
+
+```bash
+fly tokens create deploy -x 999999h --app faf-cn
+```
+
+This outputs a token like:
+```
+FlyV1 fm2_lJPECAAAAAAAATfoxBCdssf61KixZQ77E50Pz1bU...
+```
+
+**⚠️ Save this token - you won't be able to see it again!**
+
+#### Step 2: Add to GitHub Secrets
+
+1. Go to your GitHub repository → **Settings** → **Secrets and variables** → **Actions**
+   
+   Or directly: `https://github.com/<username>/faf_cn/settings/secrets/actions`
+
+2. Click **"New repository secret"**
+
+3. Fill in:
+   - **Name**: `FLY_API_TOKEN`
+   - **Value**: *(paste the token from Step 1)*
+
+4. Click **"Add secret"**
+
+#### Step 3: Verify Auto-Deployment
+
+Once set up, every push to `main` will:
+
+1. Trigger the GitHub Actions workflow
+2. Run `flyctl deploy --remote-only`
+3. Deploy your app to https://faf-cn.fly.dev
+
+**Check deployment status:**
+- Go to GitHub repository → **Actions** tab
+- Look for "Fly Deploy" workflow runs
+- Green checkmark = successful deployment
+
+### Workflow File Details
+
+**File**: `.github/workflows/fly-deploy.yml`
+
+```yaml
+name: Fly Deploy
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy:
+    name: Deploy app
+    runs-on: ubuntu-latest
+    concurrency: deploy-group
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+```
+
+### Branch Strategy
+
+| Strategy | Configuration | Use Case |
+|----------|---------------|----------|
+| **Production only** | `branches: [main]` | Only deploy when merging to main (recommended) |
+| **Dev + Production** | `branches: [main, dev]` | Deploy dev branch for testing |
+| **PR-based** | `on: [pull_request]` | Deploy PR previews |
+
+**To modify which branches trigger deployment:**
+
+```bash
+# Edit the workflow file
+vim .github/workflows/fly-deploy.yml
+
+# Change the branches section
+on:
+  push:
+    branches:
+      - main          # Production deployments only
+```
+
+### Manual Deployment vs Auto-Deployment
+
+| Method | Command | When to Use |
+|--------|---------|-------------|
+| **Auto (GitHub Actions)** | Just `git push origin main` | Regular development flow |
+| **Manual (Local)** | `fly deploy --app faf-cn` | Emergency fixes, testing |
+| **Manual (GitHub)** | Click "Run workflow" in Actions tab | Re-run failed deployment |
+
+### Troubleshooting Auto-Deployment
+
+**Issue**: Push doesn't trigger deployment
+- Check you're pushing to `main` branch
+- Verify workflow file exists: `.github/workflows/fly-deploy.yml`
+
+**Issue**: Workflow fails with "FLY_API_TOKEN not found"
+- Go to Settings → Secrets → Actions
+- Ensure `FLY_API_TOKEN` secret exists and is spelled correctly
+- Regenerate token if needed: `fly tokens create deploy --app faf-cn`
+
+**Issue**: Deployment fails but local `fly deploy` works
+- Check GitHub Actions logs for detailed error messages
+- Common causes: missing secrets, Dockerfile issues, database connectivity
+
+---
+
 ## Related Files
 
 | File | Purpose |
@@ -392,6 +533,7 @@ _build/prod/rel/faf_cn/bin/server
 | `rel/overlays/bin/migrate` | Database migration script |
 | `lib/faf_cn/release.ex` | Release utilities (migrations, etc.) |
 | `config/runtime.exs` | Runtime configuration (reads env vars) |
+| `.github/workflows/fly-deploy.yml` | GitHub Actions auto-deployment workflow |
 
 ---
 
@@ -439,7 +581,9 @@ fly apps destroy faf-cn
 
 ## Deployment Checklist
 
-Before deploying, verify:
+### Initial Setup Checklist
+
+Before first deployment, verify:
 
 - [ ] `mix phx.gen.release` has been run
 - [ ] GitHub OAuth app created with correct callback URL
@@ -450,8 +594,19 @@ Before deploying, verify:
 - [ ] App responds with HTTP 200
 - [ ] OAuth login flow works end-to-end
 
+### GitHub Actions Setup Checklist
+
+For auto-deployment on push to `main`:
+
+- [ ] `.github/workflows/fly-deploy.yml` exists
+- [ ] `FLY_API_TOKEN` secret added to GitHub repository
+- [ ] Workflow triggers on correct branch (`main`)
+- [ ] Test push to verify auto-deployment works
+- [ ] GitHub Actions shows green checkmark after deployment
+
 ---
 
 **Last Updated**: 2026-02-10  
 **Deployed Version**: faf-cn@0.1.0  
-**Status**: ✅ Production Ready
+**Status**: ✅ Production Ready  
+**Auto-Deployment**: ✅ Enabled for `main` branch via GitHub Actions
