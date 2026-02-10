@@ -11,7 +11,8 @@ defmodule FafCn.MixProject do
       aliases: aliases(),
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
-      listeners: [Phoenix.CodeReloader]
+      listeners: [Phoenix.CodeReloader],
+      releases: releases()
     ]
   end
 
@@ -34,6 +35,20 @@ defmodule FafCn.MixProject do
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
+
+  # Releases configuration
+  defp releases do
+    [
+      faf_cn: [
+        include_executables_for: [:unix],
+        steps: [:assemble, :tar],
+        # Include priv/repo for seeds and other data files
+        overlays: [
+          "priv/repo"
+        ]
+      ]
+    ]
+  end
 
   # Specifies your project dependencies.
   #
@@ -80,7 +95,8 @@ defmodule FafCn.MixProject do
   defp aliases do
     [
       setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
-      "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
+      "ecto.setup": ["ecto.create", "ecto.migrate", "ecto.seed"],
+      "ecto.seed": ["run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
