@@ -36,9 +36,28 @@ Before you start, ensure you have:
 2. **Fly CLI installed**
    ```bash
    curl -L https://fly.io/install.sh | sh
-   # Add to your shell profile:
-   export FLYCTL_INSTALL="$HOME/.fly"
-   export PATH="$FLYCTL_INSTALL/bin:$PATH"
+   ```
+   
+   **Important**: Add Fly CLI to your shell profile so it's available in all terminals:
+   
+   **macOS (zsh - default)**:
+   ```bash
+   echo 'export FLYCTL_INSTALL="$HOME/.fly"' >> ~/.zshrc
+   echo 'export PATH="$FLYCTL_INSTALL/bin:$PATH"' >> ~/.zshrc
+   source ~/.zshrc
+   ```
+   
+   **Linux (bash)**:
+   ```bash
+   echo 'export FLYCTL_INSTALL="$HOME/.fly"' >> ~/.bashrc
+   echo 'export PATH="$FLYCTL_INSTALL/bin:$PATH"' >> ~/.bashrc
+   source ~/.bashrc
+   ```
+   
+   **Verify installation**:
+   ```bash
+   which fly      # Should show: /Users/<username>/.fly/bin/fly
+   fly version    # Should show version number
    ```
 
 3. **A Fly.io account**
@@ -298,6 +317,63 @@ fly postgres backup restore <backup-id> --app faf-cn-db
 2. Check database attachment: `fly postgres list`
 3. Verify `DATABASE_URL` secret: `fly secrets list --app faf-cn`
 
+### Internal Server Error (500) - Database Unavailable
+
+**Symptom**: Website shows "Internal Server Error", especially on database-dependent pages like `/eco-guides`
+
+**Error in logs**:
+```
+(DBConnection.ConnectionError) connection not available and request was dropped from queue
+Postgrex.Protocol failed to connect: tcp recv (idle): closed
+```
+
+**Root Cause**: PostgreSQL database is down or unhealthy
+
+**Diagnosis Steps**:
+
+```bash
+# 1. Check app status
+fly status --app faf-cn
+
+# 2. Check database status (look for failing checks)
+fly status --app faf-cn-db
+
+# 3. View database logs for errors
+fly logs --app faf-cn-db
+```
+
+**Solution**:
+
+```bash
+# If database shows failing health checks, restart it:
+fly machine restart <machine-id> --app faf-cn-db
+
+# Get the machine ID from: fly status --app faf-cn-db
+```
+
+**Example**:
+```bash
+# Check DB status - shows error state
+$ fly status --app faf-cn-db
+ID             STATE   ROLE  REGION CHECKS                        
+287e041b0591e8 started error sin    3 total, 1 passing, 2 critical
+
+# Restart the database machine
+$ fly machine restart 287e041b0591e8 --app faf-cn-db
+Restarting machine 287e041b0591e8...
+Machine 287e041b0591e8 restarted successfully!
+
+# Verify health - should show all checks passing
+$ fly status --app faf-cn-db
+ID             STATE   ROLE    REGION CHECKS             
+287e041b0591e8 started primary sin    3 total, 3 passing
+```
+
+**Prevention**:
+- Monitor database health checks regularly
+- Set up alerts for failed health checks
+- Fly.io PostgreSQL has auto-restart, but verify it's enabled
+
 ### Build Failures
 
 **Symptom**: `fly deploy` fails during build
@@ -315,6 +391,30 @@ fly postgres backup restore <backup-id> --app faf-cn-db
 1. Verify `GITHUB_REDIRECT_URI` matches exactly in both Fly secrets AND GitHub OAuth settings
 2. Check `PHX_HOST` is set correctly
 3. Ensure `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` are correct
+
+### Fly CLI Not Available in New Terminal
+
+**Symptom**: `fly` command works in one terminal but shows "command not found" in new terminals
+
+**Cause**: The `export PATH` commands were only run in the original terminal session
+
+**Solution**: Add Fly CLI to your shell profile permanently:
+
+**macOS (zsh - default)**:
+```bash
+echo 'export FLYCTL_INSTALL="$HOME/.fly"' >> ~/.zshrc
+echo 'export PATH="$FLYCTL_INSTALL/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+**Linux (bash)**:
+```bash
+echo 'export FLYCTL_INSTALL="$HOME/.fly"' >> ~/.bashrc
+echo 'export PATH="$FLYCTL_INSTALL/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**Verify**: Open a new terminal and run `fly version`
 
 ### App Won't Start
 
