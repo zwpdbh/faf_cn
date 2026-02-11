@@ -131,11 +131,24 @@ Efficiency = Income / Drain
 - 20 engineers with 300M/s income = same result as 12.5 engineers
 - Always balance BP with resource income! 
 
-## Case 04: Stall on Energy
+## Case 04: Stall on Energy (ignore for now)
 
 - This is actually the dead scenario. Because if you stall on energy, the main mass income from mex will also decrease dramtically.
 - Simulat this is too much complex for now.
 - Keep simple so ignore this part.
 
 
+## Explore Optimization Problem
 
+- Give following settings, plan how to build a Monkeylord as quickly as possible. 
+- Initial setup 
+  - 100/s mass
+  - 2000/s energy 
+  - 1 t3 land factory
+  - 3 t3 engineer
+- Factor to consider
+  - Never stall on energy.
+  - Could stall on mass.
+  - Could build more mass generating unit (like Mass Extractor or Mass Fabricator)
+    - Let's do abstraction, to make call it mass generator.
+    - To build mass generator, it also cost mass and energy and it also has build time.
