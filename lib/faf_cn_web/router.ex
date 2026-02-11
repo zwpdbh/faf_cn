@@ -20,6 +20,7 @@ defmodule FafCnWeb.Router do
 
     get "/", PageController, :home
     live "/eco-guides", EcoGuidesLive
+    live "/eco-prediction", EcoPredictionLive
     live "/settings", SettingsLive
     live "/units/:unit_id", UnitLive, :show
 

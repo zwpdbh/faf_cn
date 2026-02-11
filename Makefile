@@ -100,4 +100,4 @@ clean:
 # --------
 
 kimi:
-	@cd /home/zw/code/elixir_programming/faf_cn && kimi --mcp .kimi/mcp.json
+	kimi --mcp-config-file .kimi/mcp.json

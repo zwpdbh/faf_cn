@@ -24,7 +24,7 @@ defmodule FafCn.Release do
   """
   def seed do
     load_app()
-    
+
     # Start the repo
     {:ok, _} = Application.ensure_all_started(:ecto_sql)
     {:ok, _} = FafCn.Repo.start_link()
@@ -67,7 +67,9 @@ defmodule FafCn.Release do
                 :ok
 
               {:error, changeset} ->
-                IO.puts("Failed to insert unit #{unit_data.unit_id}: #{inspect(changeset.errors)}")
+                IO.puts(
+                  "Failed to insert unit #{unit_data.unit_id}: #{inspect(changeset.errors)}"
+                )
             end
           end)
 

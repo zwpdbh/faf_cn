@@ -61,7 +61,7 @@ defmodule FafCnWeb.EcoGuidesLiveTest do
       assert html =~ "href=\"/units/#{tank.unit_id}\""
     end
 
-    test "non-logged-in user sees plain text unit names in comparison (no links)", %{
+    test "non-logged-in user sees clickable unit links in comparison", %{
       conn: conn,
       tank: tank
     } do
@@ -71,9 +71,9 @@ defmodule FafCnWeb.EcoGuidesLiveTest do
       # Select a unit to trigger comparison display
       html = render_click(view, "toggle_unit", %{"unit_id" => tank.unit_id})
 
-      # Should NOT have links in the comparison section
-      refute html =~ "href=\"/units/#{tank.unit_id}\""
-      # But unit name/description should still be visible
+      # Should have links in the comparison section (public access)
+      assert html =~ "href=\"/units/#{tank.unit_id}\""
+      # Unit name/description should still be visible
       assert html =~ tank.unit_id
     end
 
@@ -95,7 +95,7 @@ defmodule FafCnWeb.EcoGuidesLiveTest do
       assert html =~ "href=\"/units/#{base_unit.unit_id}\""
     end
 
-    test "base unit (engineer) is plain text for non-logged-in users", %{
+    test "base unit (engineer) is clickable link for non-logged-in users", %{
       conn: conn,
       base_unit: base_unit,
       tank: tank
@@ -106,8 +106,8 @@ defmodule FafCnWeb.EcoGuidesLiveTest do
       # Select a unit to show comparison with base unit
       html = render_click(view, "toggle_unit", %{"unit_id" => tank.unit_id})
 
-      # Base unit should NOT have a link
-      refute html =~ "href=\"/units/#{base_unit.unit_id}\""
+      # Base unit should have a link (public access)
+      assert html =~ "href=\"/units/#{base_unit.unit_id}\""
     end
   end
 end

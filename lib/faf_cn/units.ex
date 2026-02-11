@@ -32,8 +32,20 @@ defmodule FafCn.Units do
   """
   def list_units_for_eco_guides do
     Unit
-    |> select([u], map(u, [:id, :unit_id, :faction, :name, :description,
-                           :build_cost_mass, :build_cost_energy, :build_time, :categories]))
+    |> select(
+      [u],
+      map(u, [
+        :id,
+        :unit_id,
+        :faction,
+        :name,
+        :description,
+        :build_cost_mass,
+        :build_cost_energy,
+        :build_time,
+        :categories
+      ])
+    )
     |> Repo.all()
   end
 

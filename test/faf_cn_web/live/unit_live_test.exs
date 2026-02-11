@@ -54,9 +54,17 @@ defmodule FafCnWeb.UnitLiveTest do
       assert html =~ "250"
     end
 
-    test "non-logged-in user is redirected", %{conn: conn, unit: unit} do
-      assert {:error, {:redirect, %{to: "/"}}} =
-               live(conn, ~p"/units/#{unit.unit_id}")
+    test "non-logged-in user can view unit detail page", %{conn: conn, unit: unit} do
+      {:ok, _lv, html} = live(conn, ~p"/units/#{unit.unit_id}")
+
+      # Should be able to view unit details
+      assert html =~ "UEL0105"
+      assert html =~ "Engineer"
+      assert html =~ "T1 Engineer"
+      
+      # Should see comments section (empty state)
+      assert html =~ "Comments"
+      assert html =~ "No comments yet"
     end
 
     test "returns error for non-existent unit", %{conn: conn, user: user} do

@@ -4,7 +4,7 @@ defmodule Mix.Tasks.FafCn.Seed do
 
   This task loads unit data from a local JSON file (committed to git) rather than
   fetching from the FAF API. Use this for:
-  
+
   - New developers setting up the project
   - Production database seeding
   - Resetting local database with known data
@@ -68,7 +68,9 @@ defmodule Mix.Tasks.FafCn.Seed do
                 :ok
 
               {:error, changeset} ->
-                Logger.error("Failed to insert unit #{unit_data.unit_id}: #{inspect(changeset.errors)}")
+                Logger.error(
+                  "Failed to insert unit #{unit_data.unit_id}: #{inspect(changeset.errors)}"
+                )
             end
           end)
 
