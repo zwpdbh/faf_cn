@@ -46,7 +46,8 @@ COPY lib lib
 
 COPY assets assets
 
-# compile assets
+# install npm dependencies and compile assets
+RUN cd assets && npm install && cd ..
 RUN mix assets.deploy
 
 # Compile the release
