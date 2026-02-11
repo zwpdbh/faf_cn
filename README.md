@@ -76,3 +76,20 @@ Ready to run in production? Please [check our deployment guides](https://hexdocs
 * Forum: https://elixirforum.com/c/phoenix-forum
 * Source: https://github.com/phoenixframework/phoenix
 
+
+## Roadmap 
+
+- Eco Guide (Done)
+  - List units with icons and filters. User could cross compare units by selecting multiple ones.
+
+- Static Eco prediction (In progress)
+  - User given initial mass and energy, and static build power.
+  - Draw mass and energy on chart.
+
+- Dynamic Eco prediction (In progress)
+  - User given initial mass and energy, allow build more engineer.
+  - Draw mass, energy and build power on chart.
+
+- FAF account registration proxy (Plan stage)
+  - Allow user to register FAF account via this app. 
+  - Allow user verify and rename their account via this app.
