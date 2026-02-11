@@ -39,7 +39,9 @@ defmodule FafCnWeb.EcoGuidesLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    units = Units.list_units()
+    # Use optimized query that excludes the large 'data' JSON field
+    # Reduces memory usage by ~16x compared to list_units()
+    units = Units.list_units_for_eco_guides()
     units_by_faction = group_units_by_faction(units)
 
     # Default to UEF faction

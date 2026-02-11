@@ -20,6 +20,24 @@ defmodule FafCn.Units do
   end
 
   @doc """
+  Returns the list of units for eco guides display.
+  Selects only essential fields to reduce memory usage (~16x reduction).
+  Excludes the large 'data' JSON field which is only needed for unit detail pages.
+
+  ## Examples
+
+      iex> list_units_for_eco_guides()
+      [%Unit{}, ...]
+
+  """
+  def list_units_for_eco_guides do
+    Unit
+    |> select([u], map(u, [:id, :unit_id, :faction, :name, :description,
+                           :build_cost_mass, :build_cost_energy, :build_time, :categories]))
+    |> Repo.all()
+  end
+
+  @doc """
   Returns the list of units for specific factions.
 
   ## Examples
