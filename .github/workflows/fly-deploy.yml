@@ -4,8 +4,8 @@ name: Fly Deploy
 on:
   push:
     branches:
-      - main
-      - wdb/dev
+      - master
+      
 jobs:
   deploy:
     name: Deploy app
