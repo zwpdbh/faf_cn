@@ -5,11 +5,12 @@ defmodule FafCn.EcoEngine.StateTest do
 
   describe "initial/1" do
     test "creates initial state from config" do
-      config = Config.new(%{
-        t1_mex_count: 3,
-        mass_storage: 500,
-        energy_storage: 2000
-      })
+      config =
+        Config.new(%{
+          t1_mex_count: 3,
+          mass_storage: 500,
+          energy_storage: 2000
+        })
 
       state = State.initial(config)
 
@@ -18,7 +19,8 @@ defmodule FafCn.EcoEngine.StateTest do
       assert state.energy_storage == 2000
       assert state.mass_income == 0
       assert state.energy_income == 0
-      assert state.build_power == 10  # ACU default
+      # ACU default
+      assert state.build_power == 10
       assert state.accumulated_mass == 500
       assert state.config == config
     end
@@ -27,6 +29,7 @@ defmodule FafCn.EcoEngine.StateTest do
   describe "to_chart_data/1" do
     test "converts state to chart format" do
       config = Config.new()
+
       state = %State{
         tick: 100,
         mass_storage: 750.5,
@@ -41,10 +44,13 @@ defmodule FafCn.EcoEngine.StateTest do
       chart_data = State.to_chart_data(state)
 
       assert chart_data.time == 100
-      assert chart_data.mass == 751  # rounded
-      assert chart_data.energy == 2400  # rounded
+      # rounded
+      assert chart_data.mass == 751
+      # rounded
+      assert chart_data.energy == 2400
       assert chart_data.build_power == 15
-      assert chart_data.accumulated_mass == 800  # rounded
+      # rounded
+      assert chart_data.accumulated_mass == 800
     end
   end
 end

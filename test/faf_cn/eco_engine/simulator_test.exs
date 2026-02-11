@@ -24,44 +24,57 @@ defmodule FafCn.EcoEngine.SimulatorTest do
     end
 
     test "adds T1 mex income" do
-      config = Config.new(%{t1_mex_count: 2})  # 4 mass/sec
+      # 4 mass/sec
+      config = Config.new(%{t1_mex_count: 2})
       state = Simulator.init(config)
       new_state = Simulator.tick(state)
 
-      assert new_state.mass_storage == 654  # 650 + 4
+      # 650 + 4
+      assert new_state.mass_storage == 654
       assert new_state.mass_income == 4
     end
 
     test "adds T2 mex income" do
-      config = Config.new(%{t1_mex_count: 0, t2_mex_count: 1, t3_mex_count: 0})  # 6 mass/sec
+      # 6 mass/sec
+      config = Config.new(%{t1_mex_count: 0, t2_mex_count: 1, t3_mex_count: 0})
       state = Simulator.init(config)
       new_state = Simulator.tick(state)
 
-      assert new_state.mass_storage == 656  # 650 + 6
+      # 650 + 6
+      assert new_state.mass_storage == 656
     end
 
     test "adds T3 mex income" do
-      config = Config.new(%{t1_mex_count: 0, t2_mex_count: 0, t3_mex_count: 1})  # 18 mass/sec
+      # 18 mass/sec
+      config = Config.new(%{t1_mex_count: 0, t2_mex_count: 0, t3_mex_count: 1})
       state = Simulator.init(config)
       new_state = Simulator.tick(state)
 
-      assert new_state.mass_storage == 668  # 650 + 18
+      # 650 + 18
+      assert new_state.mass_storage == 668
     end
 
     test "adds mixed mex income" do
-      config = Config.new(%{
-        t1_mex_count: 1,  # 2 mass/sec
-        t2_mex_count: 1,  # 6 mass/sec
-        t3_mex_count: 1   # 18 mass/sec
-      })
+      config =
+        Config.new(%{
+          # 2 mass/sec
+          t1_mex_count: 1,
+          # 6 mass/sec
+          t2_mex_count: 1,
+          # 18 mass/sec
+          t3_mex_count: 1
+        })
+
       state = Simulator.init(config)
       new_state = Simulator.tick(state)
 
-      assert new_state.mass_storage == 676  # 650 + 26
+      # 650 + 26
+      assert new_state.mass_storage == 676
     end
 
     test "accumulates mass over time" do
-      config = Config.new(%{t1_mex_count: 1})  # 2 mass/sec
+      # 2 mass/sec
+      config = Config.new(%{t1_mex_count: 1})
       state = Simulator.init(config)
 
       # Tick 5 times
@@ -71,7 +84,8 @@ defmodule FafCn.EcoEngine.SimulatorTest do
         end)
 
       assert new_state.tick == 5
-      assert new_state.mass_storage == 660  # 650 + (2 * 5)
+      # 650 + (2 * 5)
+      assert new_state.mass_storage == 660
       assert new_state.accumulated_mass == 660
     end
 
@@ -80,16 +94,19 @@ defmodule FafCn.EcoEngine.SimulatorTest do
       state = Simulator.init(config)
       new_state = Simulator.tick(state)
 
-      assert new_state.energy_storage == 2500  # unchanged
+      # unchanged
+      assert new_state.energy_storage == 2500
     end
   end
 
   describe "run/2" do
     test "runs simulation for specified ticks" do
-      config = Config.new(%{t1_mex_count: 1})  # 2 mass/sec
+      # 2 mass/sec
+      config = Config.new(%{t1_mex_count: 1})
       states = Simulator.run(config, 5)
 
-      assert length(states) == 6  # initial + 5 ticks
+      # initial + 5 ticks
+      assert length(states) == 6
 
       # Check first state (initial)
       assert hd(states).tick == 0
@@ -98,11 +115,13 @@ defmodule FafCn.EcoEngine.SimulatorTest do
       # Check last state
       last = List.last(states)
       assert last.tick == 5
-      assert last.mass_storage == 660  # 650 + (2 * 5)
+      # 650 + (2 * 5)
+      assert last.mass_storage == 660
     end
 
     test "returns correct state progression" do
-      config = Config.new(%{t1_mex_count: 1})  # 2 mass/sec
+      # 2 mass/sec
+      config = Config.new(%{t1_mex_count: 1})
       states = Simulator.run(config, 3)
 
       masses = Enum.map(states, & &1.mass_storage)
@@ -115,7 +134,8 @@ defmodule FafCn.EcoEngine.SimulatorTest do
       config = Config.new(%{t1_mex_count: 1})
       chart_data = Simulator.run_chart_data(config, 3)
 
-      assert length(chart_data) == 4  # initial + 3 ticks
+      # initial + 3 ticks
+      assert length(chart_data) == 4
 
       first = hd(chart_data)
       assert first.time == 0

@@ -14,13 +14,13 @@ defmodule FafCn.EcoEngine.Config do
   ]
 
   @type t :: %__MODULE__{
-    t1_mex_count: non_neg_integer(),
-    t2_mex_count: non_neg_integer(),
-    t3_mex_count: non_neg_integer(),
-    mass_storage: non_neg_integer(),
-    energy_storage: non_neg_integer(),
-    build_order: list(map())
-  }
+          t1_mex_count: non_neg_integer(),
+          t2_mex_count: non_neg_integer(),
+          t3_mex_count: non_neg_integer(),
+          mass_storage: non_neg_integer(),
+          energy_storage: non_neg_integer(),
+          build_order: list(map())
+        }
 
   @doc """
   Creates a new config with defaults.

@@ -15,15 +15,15 @@ defmodule FafCn.EcoEngine.State do
   ]
 
   @type t :: %__MODULE__{
-    tick: non_neg_integer(),
-    mass_storage: float(),
-    energy_storage: float(),
-    mass_income: non_neg_integer(),
-    energy_income: non_neg_integer(),
-    build_power: non_neg_integer(),
-    accumulated_mass: float(),
-    config: FafCn.EcoEngine.Config.t()
-  }
+          tick: non_neg_integer(),
+          mass_storage: float(),
+          energy_storage: float(),
+          mass_income: non_neg_integer(),
+          energy_income: non_neg_integer(),
+          build_power: non_neg_integer(),
+          accumulated_mass: float(),
+          config: FafCn.EcoEngine.Config.t()
+        }
 
   @doc """
   Creates initial state from config.
@@ -35,7 +35,8 @@ defmodule FafCn.EcoEngine.State do
       energy_storage: config.energy_storage,
       mass_income: 0,
       energy_income: 0,
-      build_power: 10,  # ACU build power
+      # ACU build power
+      build_power: 10,
       accumulated_mass: config.mass_storage,
       config: config
     }

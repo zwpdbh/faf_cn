@@ -8,8 +8,10 @@ defmodule FafCnWeb.EcoPredictionLive do
 
   on_mount {FafCnWeb.UserAuth, :mount_current_user}
 
-  @tick_interval 100  # 100ms = 1 game second
-  @default_max_duration 1200  # 20 minutes default
+  # 100ms = 1 game second
+  @tick_interval 100
+  # 20 minutes default
+  @default_max_duration 1200
 
   @impl true
   def mount(_params, _session, socket) do
@@ -29,7 +31,8 @@ defmodule FafCnWeb.EcoPredictionLive do
     |> assign(:mass_storage, 650)
     |> assign(:energy_storage, 2500)
     |> assign(:max_duration, @default_max_duration)
-    |> assign(:simulation_state, :idle)  # :idle, :running, :paused
+    # :idle, :running, :paused
+    |> assign(:simulation_state, :idle)
     |> assign(:current_tick, 0)
     |> assign(:timer_ref, nil)
     |> assign(:chart_data, %{
@@ -61,7 +64,7 @@ defmodule FafCnWeb.EcoPredictionLive do
           <%!-- Start Conditions Card --%>
           <div class="bg-white shadow rounded-lg p-6">
             <h2 class="text-lg font-medium text-gray-900 mb-4">Start Conditions</h2>
-            
+
             <%!-- Mex Counts --%>
             <div class="space-y-4">
               <div class="grid grid-cols-3 md:grid-cols-6 gap-3">
@@ -73,9 +76,11 @@ defmodule FafCnWeb.EcoPredictionLive do
                     value={@t1_mex}
                     phx-change="update_t1_mex"
                     disabled={@simulation_state == :running}
-                    class={["block w-full rounded-md shadow-sm text-sm",
+                    class={[
+                      "block w-full rounded-md shadow-sm text-sm",
                       @simulation_state == :running && "bg-gray-100",
-                      @simulation_state != :running && "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      @simulation_state != :running &&
+                        "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     ]}
                   />
                   <p class="mt-1 text-xs text-gray-500">+2/s</p>
@@ -88,9 +93,11 @@ defmodule FafCnWeb.EcoPredictionLive do
                     value={@t2_mex}
                     phx-change="update_t2_mex"
                     disabled={@simulation_state == :running}
-                    class={["block w-full rounded-md shadow-sm text-sm",
+                    class={[
+                      "block w-full rounded-md shadow-sm text-sm",
                       @simulation_state == :running && "bg-gray-100",
-                      @simulation_state != :running && "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      @simulation_state != :running &&
+                        "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     ]}
                   />
                   <p class="mt-1 text-xs text-gray-500">+6/s</p>
@@ -103,9 +110,11 @@ defmodule FafCnWeb.EcoPredictionLive do
                     value={@t3_mex}
                     phx-change="update_t3_mex"
                     disabled={@simulation_state == :running}
-                    class={["block w-full rounded-md shadow-sm text-sm",
+                    class={[
+                      "block w-full rounded-md shadow-sm text-sm",
                       @simulation_state == :running && "bg-gray-100",
-                      @simulation_state != :running && "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      @simulation_state != :running &&
+                        "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     ]}
                   />
                   <p class="mt-1 text-xs text-gray-500">+18/s</p>
@@ -118,9 +127,11 @@ defmodule FafCnWeb.EcoPredictionLive do
                     value={@mass_storage}
                     phx-change="update_mass_storage"
                     disabled={@simulation_state == :running}
-                    class={["block w-full rounded-md shadow-sm text-sm",
+                    class={[
+                      "block w-full rounded-md shadow-sm text-sm",
                       @simulation_state == :running && "bg-gray-100",
-                      @simulation_state != :running && "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      @simulation_state != :running &&
+                        "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     ]}
                   />
                 </div>
@@ -132,9 +143,11 @@ defmodule FafCnWeb.EcoPredictionLive do
                     value={@energy_storage}
                     phx-change="update_energy_storage"
                     disabled={@simulation_state == :running}
-                    class={["block w-full rounded-md shadow-sm text-sm",
+                    class={[
+                      "block w-full rounded-md shadow-sm text-sm",
                       @simulation_state == :running && "bg-gray-100",
-                      @simulation_state != :running && "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      @simulation_state != :running &&
+                        "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     ]}
                   />
                 </div>
@@ -147,9 +160,11 @@ defmodule FafCnWeb.EcoPredictionLive do
                     value={@max_duration}
                     phx-change="update_max_duration"
                     disabled={@simulation_state == :running}
-                    class={["block w-full rounded-md shadow-sm text-sm",
+                    class={[
+                      "block w-full rounded-md shadow-sm text-sm",
                       @simulation_state == :running && "bg-gray-100",
-                      @simulation_state != :running && "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      @simulation_state != :running &&
+                        "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     ]}
                   />
                   <p class="mt-1 text-xs text-gray-500">{div(@max_duration, 60)} min</p>
@@ -159,124 +174,114 @@ defmodule FafCnWeb.EcoPredictionLive do
           </div>
 
           <%!-- Simulation Result Card --%>
-            <div class="bg-white shadow rounded-lg p-6">
-              <%!-- Chart Header with Controls --%>
-              <div class="flex flex-wrap items-center justify-between mb-4 gap-4">
-                <h2 class="text-lg font-medium text-gray-900">Simulation Result</h2>
-                
-                <%!-- Chart Series Toggles --%>
-                <div class="flex items-center gap-4 text-sm">
-                  <label class="flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={@show_mass}
-                      phx-click="toggle_mass"
-                      class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                    />
-                    <span class="ml-2 flex items-center">
-                      <span class="w-3 h-3 rounded-full bg-emerald-500 mr-1"></span>
-                      Mass
-                    </span>
-                  </label>
-                  <label class="flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={@show_energy}
-                      phx-click="toggle_energy"
-                      class="rounded border-gray-300 text-amber-500 focus:ring-amber-500"
-                    />
-                    <span class="ml-2 flex items-center">
-                      <span class="w-3 h-3 rounded-full bg-amber-500 mr-1"></span>
-                      Energy
-                    </span>
-                  </label>
-                  <label class="flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={@show_build_power}
-                      phx-click="toggle_build_power"
-                      class="rounded border-gray-300 text-blue-500 focus:ring-blue-500"
-                    />
-                    <span class="ml-2 flex items-center">
-                      <span class="w-3 h-3 rounded-full bg-blue-500 mr-1"></span>
-                      Build Power
-                    </span>
-                  </label>
-                </div>
+          <div class="bg-white shadow rounded-lg p-6">
+            <%!-- Chart Header with Controls --%>
+            <div class="flex flex-wrap items-center justify-between mb-4 gap-4">
+              <h2 class="text-lg font-medium text-gray-900">Simulation Result</h2>
+
+              <%!-- Chart Series Toggles --%>
+              <div class="flex items-center gap-4 text-sm">
+                <label class="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={@show_mass}
+                    phx-click="toggle_mass"
+                    class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span class="ml-2 flex items-center">
+                    <span class="w-3 h-3 rounded-full bg-emerald-500 mr-1"></span> Mass
+                  </span>
+                </label>
+                <label class="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={@show_energy}
+                    phx-click="toggle_energy"
+                    class="rounded border-gray-300 text-amber-500 focus:ring-amber-500"
+                  />
+                  <span class="ml-2 flex items-center">
+                    <span class="w-3 h-3 rounded-full bg-amber-500 mr-1"></span> Energy
+                  </span>
+                </label>
+                <label class="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={@show_build_power}
+                    phx-click="toggle_build_power"
+                    class="rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+                  />
+                  <span class="ml-2 flex items-center">
+                    <span class="w-3 h-3 rounded-full bg-blue-500 mr-1"></span> Build Power
+                  </span>
+                </label>
               </div>
-
-              <%!-- Chart --%>
-              <div
-                id="eco-chart"
-                phx-hook="EcoChart"
-                data-time={Jason.encode!(@chart_data.time)}
-                data-mass={Jason.encode!(@chart_data.mass)}
-                data-energy={Jason.encode!(@chart_data.energy)}
-                data-build-power={Jason.encode!(@chart_data.build_power)}
-                data-show-mass={@show_mass}
-                data-show-energy={@show_energy}
-                data-show-build-power={@show_build_power}
-                class="w-full h-96"
-              />
-
-              <%!-- Action Buttons --%>
-              <div class="mt-6 flex items-center justify-center gap-4">
-                <%= if @simulation_state == :idle do %>
-                  <button
-                    phx-click="start_simulation"
-                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                  >
-                    <.icon name="hero-play" class="w-5 h-5 mr-2" />
-                    Run Simulation
-                  </button>
-                <% end %>
-
-                <%= if @simulation_state == :running do %>
-                  <button
-                    phx-click="pause_simulation"
-                    class="px-6 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors flex items-center"
-                  >
-                    <.icon name="hero-pause" class="w-5 h-5 mr-2" />
-                    Pause
-                  </button>
-                <% end %>
-
-                <%= if @simulation_state == :paused do %>
-                  <button
-                    phx-click="resume_simulation"
-                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                  >
-                    <.icon name="hero-play" class="w-5 h-5 mr-2" />
-                    Resume
-                  </button>
-                <% end %>
-
-                <button
-                  phx-click="reset_simulation"
-                  disabled={@simulation_state == :idle and @current_tick == 0}
-                  class={["px-6 py-2 rounded-lg transition-colors flex items-center",
-                    (@simulation_state == :idle and @current_tick == 0) && "bg-gray-200 text-gray-400 cursor-not-allowed",
-                    (@simulation_state != :idle or @current_tick > 0) && "bg-gray-600 text-white hover:bg-gray-700"
-                  ]}
-                >
-                  <.icon name="hero-arrow-path" class="w-5 h-5 mr-2" />
-                  Reset
-                </button>
-              </div>
-
-              <%!-- Progress Info --%>
-              <%= if @simulation_state != :idle or @current_tick > 0 do %>
-                <div class="mt-4 text-center text-sm text-gray-500">
-                  Time: {@current_tick}s / {@max_duration}s
-                  <%= if @simulation_state == :running do %>
-                    <span class="text-blue-600 ml-2">(Running)</span>
-                  <% end %>
-                  <%= if @simulation_state == :paused do %>
-                    <span class="text-amber-600 ml-2">(Paused)</span>
-                  <% end %>
-                </div>
-              <% end %>
             </div>
+
+            <%!-- Chart --%>
+            <div
+              id="eco-chart"
+              phx-hook="EcoChart"
+              phx-update="ignore"
+              class="w-full h-96"
+            />
+
+            <%!-- Action Buttons --%>
+            <div class="mt-6 flex items-center justify-center gap-4">
+              <%= if @simulation_state == :idle do %>
+                <button
+                  phx-click="start_simulation"
+                  class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                >
+                  <.icon name="hero-play" class="w-5 h-5 mr-2" /> Run Simulation
+                </button>
+              <% end %>
+
+              <%= if @simulation_state == :running do %>
+                <button
+                  phx-click="pause_simulation"
+                  class="px-6 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors flex items-center"
+                >
+                  <.icon name="hero-pause" class="w-5 h-5 mr-2" /> Pause
+                </button>
+              <% end %>
+
+              <%= if @simulation_state == :paused do %>
+                <button
+                  phx-click="resume_simulation"
+                  class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                >
+                  <.icon name="hero-play" class="w-5 h-5 mr-2" /> Resume
+                </button>
+              <% end %>
+
+              <button
+                phx-click="reset_simulation"
+                disabled={@simulation_state == :idle and @current_tick == 0}
+                class={[
+                  "px-6 py-2 rounded-lg transition-colors flex items-center",
+                  (@simulation_state == :idle and @current_tick == 0) &&
+                    "bg-gray-200 text-gray-400 cursor-not-allowed",
+                  (@simulation_state != :idle or @current_tick > 0) &&
+                    "bg-gray-600 text-white hover:bg-gray-700"
+                ]}
+              >
+                <.icon name="hero-arrow-path" class="w-5 h-5 mr-2" /> Reset
+              </button>
+            </div>
+
+            <%!-- Progress Info --%>
+            <%= if @simulation_state != :idle or @current_tick > 0 do %>
+              <div class="mt-4 text-center text-sm text-gray-500">
+                Time: {@current_tick}s / {@max_duration}s
+                <%= if @simulation_state == :running do %>
+                  <span class="text-blue-600 ml-2">(Running)</span>
+                <% end %>
+                <%= if @simulation_state == :paused do %>
+                  <span class="text-amber-600 ml-2">(Paused)</span>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
 
           <%!-- Build Order Card --%>
           <div class="bg-white shadow rounded-lg p-6">
@@ -320,13 +325,14 @@ defmodule FafCnWeb.EcoPredictionLive do
 
   @impl true
   def handle_event("update_max_duration", %{"value" => value}, socket) do
-    duration = 
+    duration =
       case Integer.parse(value) do
         {n, _} when n < 60 -> 60
         {n, _} when n > 3600 -> 3600
         {n, _} -> n
         :error -> @default_max_duration
       end
+
     {:noreply, assign(socket, :max_duration, duration)}
   end
 
@@ -334,17 +340,38 @@ defmodule FafCnWeb.EcoPredictionLive do
 
   @impl true
   def handle_event("toggle_mass", _params, socket) do
-    {:noreply, assign(socket, :show_mass, !socket.assigns.show_mass)}
+    new_val = !socket.assigns.show_mass
+
+    socket =
+      socket
+      |> assign(:show_mass, new_val)
+      |> push_chart_data()
+
+    {:noreply, socket}
   end
 
   @impl true
   def handle_event("toggle_energy", _params, socket) do
-    {:noreply, assign(socket, :show_energy, !socket.assigns.show_energy)}
+    new_val = !socket.assigns.show_energy
+
+    socket =
+      socket
+      |> assign(:show_energy, new_val)
+      |> push_chart_data()
+
+    {:noreply, socket}
   end
 
   @impl true
   def handle_event("toggle_build_power", _params, socket) do
-    {:noreply, assign(socket, :show_build_power, !socket.assigns.show_build_power)}
+    new_val = !socket.assigns.show_build_power
+
+    socket =
+      socket
+      |> assign(:show_build_power, new_val)
+      |> push_chart_data()
+
+    {:noreply, socket}
   end
 
   # Event Handlers - Simulation Control
@@ -357,13 +384,36 @@ defmodule FafCnWeb.EcoPredictionLive do
   def handle_event("start_simulation", _params, %{assigns: %{simulation_state: :idle}} = socket) do
     config = create_config(socket.assigns)
     initial_state = Simulator.init(config)
-    
+
+    %{show_mass: show_mass, show_energy: show_energy, show_build_power: show_build_power} =
+      socket.assigns
+
+    # Get initial data point
+    data_point = State.to_chart_data(initial_state)
+
+    chart_data = %{
+      time: [data_point.time],
+      mass: [data_point.mass],
+      energy: [data_point.energy],
+      build_power: [data_point.build_power],
+      accumulated_mass: [data_point.accumulated_mass]
+    }
+
     socket =
       socket
       |> assign(:simulation_state, :running)
-      |> assign(:current_tick, 0)
+      |> assign(:current_tick, 1)
       |> assign(:simulator_state, initial_state)
-      |> assign(:chart_data, empty_chart_data())
+      |> assign(:chart_data, chart_data)
+      |> push_event("chart-data", %{
+        time: chart_data.time,
+        mass: chart_data.mass,
+        energy: chart_data.energy,
+        build_power: chart_data.build_power,
+        show_mass: show_mass,
+        show_energy: show_energy,
+        show_build_power: show_build_power
+      })
       |> schedule_tick()
 
     {:noreply, socket}
@@ -374,7 +424,11 @@ defmodule FafCnWeb.EcoPredictionLive do
 
   # Pause simulation: only allowed from :running state
   @impl true
-  def handle_event("pause_simulation", _params, %{assigns: %{simulation_state: :running}} = socket) do
+  def handle_event(
+        "pause_simulation",
+        _params,
+        %{assigns: %{simulation_state: :running}} = socket
+      ) do
     socket =
       socket
       |> assign(:simulation_state, :paused)
@@ -388,7 +442,11 @@ defmodule FafCnWeb.EcoPredictionLive do
 
   # Resume simulation: only allowed from :paused state
   @impl true
-  def handle_event("resume_simulation", _params, %{assigns: %{simulation_state: :paused}} = socket) do
+  def handle_event(
+        "resume_simulation",
+        _params,
+        %{assigns: %{simulation_state: :paused}} = socket
+      ) do
     socket =
       socket
       |> assign(:simulation_state, :running)
@@ -400,21 +458,40 @@ defmodule FafCnWeb.EcoPredictionLive do
   # Ignore resume when not paused
   def handle_event("resume_simulation", _params, socket), do: {:noreply, socket}
 
-  # Reset simulation: allowed from any state except :idle with tick 0
+  # Reset simulation: allowed from any state
   @impl true
   def handle_event("reset_simulation", _params, socket) do
     socket =
       socket
       |> assign_simulation_defaults()
       |> cancel_tick()
+      |> push_event("chart-data", %{
+        time: [],
+        mass: [],
+        energy: [],
+        build_power: [],
+        show_mass: true,
+        show_energy: true,
+        show_build_power: true
+      })
 
     {:noreply, socket}
   end
 
   # Tick handler: only process when running and have valid simulator state
   @impl true
-  def handle_info(:tick, %{assigns: %{simulation_state: :running, simulator_state: %State{} = state}} = socket) do
-    %{current_tick: tick, chart_data: chart_data, max_duration: max_duration} = socket.assigns
+  def handle_info(
+        :tick,
+        %{assigns: %{simulation_state: :running, simulator_state: %State{} = state}} = socket
+      ) do
+    %{
+      current_tick: tick,
+      chart_data: chart_data,
+      max_duration: max_duration,
+      show_mass: show_mass,
+      show_energy: show_energy,
+      show_build_power: show_build_power
+    } = socket.assigns
 
     if tick >= max_duration do
       # Simulation complete - transition to idle
@@ -428,7 +505,7 @@ defmodule FafCnWeb.EcoPredictionLive do
       # Calculate next state
       new_state = Simulator.tick(state)
       data_point = State.to_chart_data(new_state)
-      
+
       # Append to chart data
       new_chart_data = %{
         time: chart_data.time ++ [data_point.time],
@@ -438,11 +515,21 @@ defmodule FafCnWeb.EcoPredictionLive do
         accumulated_mass: chart_data.accumulated_mass ++ [data_point.accumulated_mass]
       }
 
+      # Push chart data to client
       socket =
         socket
         |> assign(:current_tick, tick + 1)
         |> assign(:simulator_state, new_state)
         |> assign(:chart_data, new_chart_data)
+        |> push_event("chart-data", %{
+          time: new_chart_data.time,
+          mass: new_chart_data.mass,
+          energy: new_chart_data.energy,
+          build_power: new_chart_data.build_power,
+          show_mass: show_mass,
+          show_energy: show_energy,
+          show_build_power: show_build_power
+        })
         |> schedule_tick()
 
       {:noreply, socket}
@@ -464,14 +551,23 @@ defmodule FafCnWeb.EcoPredictionLive do
     })
   end
 
-  defp empty_chart_data do
+  defp push_chart_data(socket) do
     %{
-      time: [],
-      mass: [],
-      energy: [],
-      build_power: [],
-      accumulated_mass: []
-    }
+      chart_data: chart_data,
+      show_mass: show_mass,
+      show_energy: show_energy,
+      show_build_power: show_build_power
+    } = socket.assigns
+
+    push_event(socket, "chart-data", %{
+      time: chart_data.time,
+      mass: chart_data.mass,
+      energy: chart_data.energy,
+      build_power: chart_data.build_power,
+      show_mass: show_mass,
+      show_energy: show_energy,
+      show_build_power: show_build_power
+    })
   end
 
   defp schedule_tick(socket) do
@@ -483,6 +579,7 @@ defmodule FafCnWeb.EcoPredictionLive do
     if socket.assigns.timer_ref do
       Process.cancel_timer(socket.assigns.timer_ref)
     end
+
     assign(socket, :timer_ref, nil)
   end
 end

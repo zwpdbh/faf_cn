@@ -16,13 +16,14 @@ defmodule FafCn.EcoEngine.ConfigTest do
     end
 
     test "creates config with custom values" do
-      config = Config.new(%{
-        t1_mex_count: 4,
-        t2_mex_count: 2,
-        t3_mex_count: 1,
-        mass_storage: 1000,
-        energy_storage: 5000
-      })
+      config =
+        Config.new(%{
+          t1_mex_count: 4,
+          t2_mex_count: 2,
+          t3_mex_count: 1,
+          mass_storage: 1000,
+          energy_storage: 5000
+        })
 
       assert config.t1_mex_count == 4
       assert config.t2_mex_count == 2
@@ -35,8 +36,10 @@ defmodule FafCn.EcoEngine.ConfigTest do
       config = Config.new(%{t1_mex_count: 5})
 
       assert config.t1_mex_count == 5
-      assert config.t2_mex_count == 0  # default
-      assert config.mass_storage == 650  # default
+      # default
+      assert config.t2_mex_count == 0
+      # default
+      assert config.mass_storage == 650
     end
   end
 
@@ -57,11 +60,15 @@ defmodule FafCn.EcoEngine.ConfigTest do
     end
 
     test "calculates mixed mex income correctly" do
-      config = Config.new(%{
-        t1_mex_count: 2,  # 4 mass/sec
-        t2_mex_count: 1,  # 6 mass/sec
-        t3_mex_count: 1   # 18 mass/sec
-      })
+      config =
+        Config.new(%{
+          # 4 mass/sec
+          t1_mex_count: 2,
+          # 6 mass/sec
+          t2_mex_count: 1,
+          # 18 mass/sec
+          t3_mex_count: 1
+        })
 
       assert Config.mass_income_per_tick(config) == 28
     end

@@ -19,15 +19,15 @@ defmodule FafCn.EcoEngine.Simulator do
   """
   def tick(%State{} = state) do
     mass_income = Config.mass_income_per_tick(state.config)
-    
+
     # Simplified: assume energy is sufficient
     # In full version, would calculate energy income/drain
     energy_income = 0
-    
+
     new_mass = state.mass_storage + mass_income
     new_energy = state.energy_storage + energy_income
     new_accumulated = state.accumulated_mass + mass_income
-    
+
     %State{
       state
       | tick: state.tick + 1,
@@ -45,7 +45,7 @@ defmodule FafCn.EcoEngine.Simulator do
   """
   def run(%Config{} = config, duration_ticks) do
     initial = init(config)
-    
+
     Enum.reduce(1..duration_ticks, [initial], fn _tick, [current | _] = acc ->
       new_state = tick(current)
       [new_state | acc]
