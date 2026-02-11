@@ -9,7 +9,7 @@ defmodule FafCnWeb.UnitLive do
   alias FafCn.UnitEditLogs
   alias FafCn.Accounts
 
-  on_mount {FafCnWeb.UserAuth, :ensure_authenticated}
+  on_mount {FafCnWeb.UserAuth, :mount_current_user}
 
   @impl true
   def mount(%{"unit_id" => unit_id}, _session, socket) do
@@ -77,9 +77,14 @@ defmodule FafCnWeb.UnitLive do
   @impl true
   def handle_event("add_comment", %{"content" => content}, socket) do
     unit = socket.assigns.unit
-    user = socket.assigns.current_user
-
-    case UnitComments.create_comment(unit.id, user.id, content) do
+    
+    # Guard: require authentication
+    if is_nil(socket.assigns.current_user) do
+      {:noreply, put_flash(socket, :error, "You must be logged in to add comments")}
+    else
+      user = socket.assigns.current_user
+      
+      case UnitComments.create_comment(unit.id, user.id, content) do
       {:ok, _comment} ->
         comments = UnitComments.list_unit_comments(unit.id)
 
@@ -91,20 +96,26 @@ defmodule FafCnWeb.UnitLive do
 
       {:error, _changeset} ->
         {:noreply, put_flash(socket, :error, "Failed to add comment")}
+      end
     end
   end
 
   @impl true
   def handle_event("delete_comment", %{"comment-id" => comment_id}, socket) do
-    user = socket.assigns.current_user
-
-    case UnitComments.delete_comment(String.to_integer(comment_id), user.id) do
+    # Guard: require authentication
+    if is_nil(socket.assigns.current_user) do
+      {:noreply, put_flash(socket, :error, "You must be logged in to delete comments")}
+    else
+      user = socket.assigns.current_user
+      
+      case UnitComments.delete_comment(String.to_integer(comment_id), user.id) do
       :ok ->
         comments = UnitComments.list_unit_comments(socket.assigns.unit.id)
         {:noreply, assign(socket, :comments, comments)}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to delete comment")}
+      end
     end
   end
 
@@ -124,9 +135,13 @@ defmodule FafCnWeb.UnitLive do
         %{"comment-id" => comment_id, "content" => content},
         socket
       ) do
-    user = socket.assigns.current_user
-
-    case UnitComments.update_comment(String.to_integer(comment_id), user.id, content) do
+    # Guard: require authentication
+    if is_nil(socket.assigns.current_user) do
+      {:noreply, put_flash(socket, :error, "You must be logged in to edit comments")}
+    else
+      user = socket.assigns.current_user
+      
+      case UnitComments.update_comment(String.to_integer(comment_id), user.id, content) do
       {:ok, _comment} ->
         comments = UnitComments.list_unit_comments(socket.assigns.unit.id)
 
@@ -137,15 +152,21 @@ defmodule FafCnWeb.UnitLive do
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to update comment")}
+      end
     end
   end
 
   @impl true
   def handle_event("update_stats", params, socket) do
     unit = socket.assigns.unit
-    user = socket.assigns.current_user
-
-    mass = params["mass"]
+    
+    # Guard: require authentication
+    if is_nil(socket.assigns.current_user) do
+      {:noreply, put_flash(socket, :error, "You must be logged in to edit units")}
+    else
+      user = socket.assigns.current_user
+      
+      mass = params["mass"]
     energy = params["energy"]
     build_time = params["build_time"]
     reason = params["reason"]
@@ -203,6 +224,7 @@ defmodule FafCnWeb.UnitLive do
 
         {:error, changeset} ->
           {:noreply, assign(socket, :edit_error, error_message(changeset))}
+        end
       end
     end
   end
@@ -275,7 +297,7 @@ defmodule FafCnWeb.UnitLive do
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold text-gray-900">Economy Stats</h2>
-            <%= if @is_admin and not @edit_mode do %>
+            <%= if @current_user && @is_admin && !@edit_mode do %>
               <button
                 phx-click="toggle_edit_mode"
                 class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors"
@@ -429,28 +451,39 @@ defmodule FafCnWeb.UnitLive do
             </h2>
 
             <%!-- Comment Form --%>
-            <.form
-              for={@comment_form}
-              id="comment-form"
-              phx-submit="add_comment"
-              class="mb-6"
-            >
-              <div class="flex gap-3">
-                <textarea
-                  name="content"
-                  rows="2"
-                  placeholder="Add a comment..."
-                  class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  required
-                ></textarea>
-                <button
-                  type="submit"
-                  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Post
-                </button>
+            <%= if @current_user do %>
+              <.form
+                for={@comment_form}
+                id="comment-form"
+                phx-submit="add_comment"
+                class="mb-6"
+              >
+                <div class="flex gap-3">
+                  <textarea
+                    name="content"
+                    rows="2"
+                    placeholder="Add a comment..."
+                    class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    required
+                  ></textarea>
+                  <button
+                    type="submit"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Post
+                  </button>
+                </div>
+              </.form>
+            <% else %>
+              <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p class="text-sm text-gray-600 text-center">
+                  <a href={~p"/auth/github"} class="text-indigo-600 hover:text-indigo-800 font-medium">
+                    Log in
+                  </a>
+                  to add comments
+                </p>
               </div>
-            </.form>
+            <% end %>
 
             <%!-- Comments List --%>
             <div class="space-y-4">
@@ -519,7 +552,7 @@ defmodule FafCnWeb.UnitLive do
                         </p>
 
                         <%!-- Edit/Delete buttons (only for owner) --%>
-                        <%= if comment.user_id == @current_user.id do %>
+                        <%= if @current_user && comment.user_id == @current_user.id do %>
                           <div class="flex gap-3 mt-2">
                             <button
                               phx-click="edit_comment"
