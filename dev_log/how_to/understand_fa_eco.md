@@ -79,3 +79,63 @@ Now let's study building a Cybran Experimental - the Monkeylord - using 10, 15, 
 - 20 T3 engineers build Monkeylord in just **42 seconds**!
 - That's 10.6× faster than 2 engineers would take
 - Mass drain becomes the bottleneck - need serious eco to support 20 engineers
+
+
+## Case 03 -- Stall on Mass 
+
+Same as Case 02, but now with **limited resources**:
+- Mass income: **300/s** (fixed)
+- Energy income: **5,000/s** (fixed)
+
+This shows what happens when your eco can't support your build power.
+
+### Build Time: Resource-Limited Monkeylord Production
+
+| T3 Engineers | Theoretical BP | Theoretical Time | Limiting Factor                   | Actual Time | Efficiency |
+| ------------ | -------------- | ---------------- | --------------------------------- | ----------- | ---------- |
+| 10           | 325            | 84.6s            | None (sufficient eco)             | **84.6s**   | 100%       |
+| 15           | 487.5          | 56.4s            | Mass stall (need 355/s, have 300) | **66.7s**   | 85%        |
+| 20           | 650            | 42.3s            | Mass stall (need 473/s, have 300) | **66.7s**   | 63%        |
+
+**Resource Analysis**:
+
+**10 Engineers**:
+- Drain: 236M/s < 300M/s ✓ | 3,073E/s < 5,000E/s ✓
+- Result: No stall, builds at full speed
+
+**15 Engineers**:
+- Drain: 355M/s > 300M/s ✗ MASS STALL | 4,610E/s < 5,000E/s ✓
+- Result: Mass-limited, builds at 85% efficiency
+- Extra BP wasted: You paid for 15 engineers but only get ~12.5 worth
+
+**20 Engineers**:
+- Drain: 473M/s > 300M/s ✗ MASS STALL | 6,147E/s > 5,000E/s ✗ ENERGY STALL
+- Result: Double stall! Mass is the primary limit
+- Wasted: 37% of your build power is idle
+
+### The Stall Formula
+
+When `Drain > Income`:
+
+```
+Actual Time = Total Cost / Income (whichever is lower)
+Efficiency = Income / Drain
+```
+
+**15 Engineers Example**:
+- Mass limited: 20,000M / 300M/s = 66.7s
+- Efficiency: 300/355 = 85%
+
+**Key Lesson**: 
+- More build power without matching eco = **wasted investment**
+- 20 engineers with 300M/s income = same result as 12.5 engineers
+- Always balance BP with resource income! 
+
+## Case 04: Stall on Energy
+
+- This is actually the dead scenario. Because if you stall on energy, the main mass income from mex will also decrease dramtically.
+- Simulat this is too much complex for now.
+- Keep simple so ignore this part.
+
+
+
