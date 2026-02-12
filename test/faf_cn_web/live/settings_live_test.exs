@@ -75,7 +75,7 @@ defmodule FafCnWeb.SettingsLiveTest do
       |> element("button", "Make Admin")
       |> render_click()
 
-      assert Accounts.is_admin?(user)
+      assert Accounts.admin?(user)
     end
 
     test "super admin can revoke admin role", %{
@@ -93,7 +93,7 @@ defmodule FafCnWeb.SettingsLiveTest do
       |> element("button", "Remove Admin")
       |> render_click()
 
-      refute Accounts.is_admin?(admin)
+      refute Accounts.admin?(admin)
     end
   end
 end

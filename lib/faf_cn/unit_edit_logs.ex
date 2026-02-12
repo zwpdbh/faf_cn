@@ -67,10 +67,10 @@ defmodule FafCn.UnitEditLogs do
   def update_unit_stat(unit, field, new_value, reason, user_id) do
     editor = Accounts.get_user!(user_id)
 
-    unless Accounts.is_admin?(editor) do
-      {:error, "Unauthorized"}
-    else
+    if Accounts.admin?(editor) do
       do_update_stat(unit, field, new_value, reason, user_id)
+    else
+      {:error, "Unauthorized"}
     end
   end
 
@@ -83,24 +83,31 @@ defmodule FafCn.UnitEditLogs do
       # No change needed, return the unit as-is
       {:ok, unit}
     else
-      case Repo.transaction(fn ->
-             # Create edit log first (validates reason)
-             case log_unit_edit(unit.id, field, old_value, new_value_int, reason, user_id) do
-               {:ok, _log} ->
-                 # Then update the unit
-                 unit
-                 |> Unit.changeset(%{String.to_atom(field) => new_value_int})
-                 |> Repo.update!()
-
-               {:error, changeset} ->
-                 Repo.rollback(changeset)
-             end
-           end) do
-        {:ok, unit} -> {:ok, unit}
-        {:error, changeset} -> {:error, changeset}
-      end
+      perform_stat_update(unit, field, old_value, new_value_int, reason, user_id)
     end
   end
+
+  defp perform_stat_update(unit, field, old_value, new_value_int, reason, user_id) do
+    Repo.transaction(fn ->
+      do_stat_update_transaction(unit, field, old_value, new_value_int, reason, user_id)
+    end)
+    |> handle_stat_update_result()
+  end
+
+  defp do_stat_update_transaction(unit, field, old_value, new_value_int, reason, user_id) do
+    case log_unit_edit(unit.id, field, old_value, new_value_int, reason, user_id) do
+      {:ok, _log} ->
+        unit
+        |> Unit.changeset(%{String.to_atom(field) => new_value_int})
+        |> Repo.update!()
+
+      {:error, changeset} ->
+        Repo.rollback(changeset)
+    end
+  end
+
+  defp handle_stat_update_result({:ok, unit}), do: {:ok, unit}
+  defp handle_stat_update_result({:error, changeset}), do: {:error, changeset}
 
   defp maybe_to_integer(value) when is_binary(value) do
     case Integer.parse(value) do

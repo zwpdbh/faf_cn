@@ -74,7 +74,7 @@ defmodule FafCnWeb.Layouts do
 
   def settings_link(assigns) do
     ~H"""
-    <%= if @current_user && FafCn.Accounts.is_super_admin?(@current_user) do %>
+    <%= if @current_user && FafCn.Accounts.super_admin?(@current_user) do %>
       <a href={~p"/settings"} class="btn btn-ghost">
         <.icon name="hero-cog-6-tooth" class="w-5 h-5 mr-1" /> Settings
       </a>

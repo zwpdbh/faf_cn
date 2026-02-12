@@ -55,6 +55,7 @@ defmodule FafCn.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:tidewave, "~> 0.5", only: :dev},
       {:phoenix, "~> 1.8.3"},
       {:phoenix_ecto, "~> 4.5"},

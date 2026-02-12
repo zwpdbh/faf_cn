@@ -13,7 +13,7 @@ defmodule FafCnWeb.SettingsLive do
   def mount(_params, _session, socket) do
     current_user = socket.assigns.current_user
 
-    if current_user && Accounts.is_super_admin?(current_user) do
+    if current_user && Accounts.super_admin?(current_user) do
       users = Accounts.list_users()
       admins = Accounts.list_admins()
 

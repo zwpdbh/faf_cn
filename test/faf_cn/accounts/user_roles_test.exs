@@ -29,7 +29,7 @@ defmodule FafCn.Accounts.UserRolesTest do
       assert {:ok, %UserRole{role: "admin"}} =
                Accounts.grant_admin_role(user.id, super_admin.id)
 
-      assert Accounts.is_admin?(user)
+      assert Accounts.admin?(user)
     end
 
     test "returns error when non-super-admin tries to grant", %{user: user} do
@@ -74,7 +74,7 @@ defmodule FafCn.Accounts.UserRolesTest do
 
     test "revokes admin role successfully by super admin", %{super_admin: super_admin, user: user} do
       assert {:ok, _} = Accounts.revoke_admin_role(user.id, super_admin.id)
-      refute Accounts.is_admin?(user)
+      refute Accounts.admin?(user)
     end
 
     test "returns error when non-super-admin tries to revoke", %{user: user} do
@@ -102,7 +102,7 @@ defmodule FafCn.Accounts.UserRolesTest do
     end
   end
 
-  describe "is_admin?/1" do
+  describe "admin?/1" do
     test "returns true for admin user" do
       {:ok, super_admin} =
         Accounts.register_oauth_user(%{
@@ -121,7 +121,7 @@ defmodule FafCn.Accounts.UserRolesTest do
         })
 
       Accounts.grant_admin_role(user.id, super_admin.id)
-      assert Accounts.is_admin?(user)
+      assert Accounts.admin?(user)
     end
 
     test "returns false for non-admin user" do
@@ -133,15 +133,15 @@ defmodule FafCn.Accounts.UserRolesTest do
           name: "Regular User"
         })
 
-      refute Accounts.is_admin?(user)
+      refute Accounts.admin?(user)
     end
 
     test "returns false for nil user" do
-      refute Accounts.is_admin?(nil)
+      refute Accounts.admin?(nil)
     end
   end
 
-  describe "is_super_admin?/1" do
+  describe "super_admin?/1" do
     test "returns true for zwpdbh user" do
       {:ok, user} =
         Accounts.register_oauth_user(%{
@@ -151,7 +151,7 @@ defmodule FafCn.Accounts.UserRolesTest do
           name: "Super Admin"
         })
 
-      assert Accounts.is_super_admin?(user)
+      assert Accounts.super_admin?(user)
     end
 
     test "returns false for other users" do
@@ -163,7 +163,7 @@ defmodule FafCn.Accounts.UserRolesTest do
           name: "Other User"
         })
 
-      refute Accounts.is_super_admin?(user)
+      refute Accounts.super_admin?(user)
     end
   end
 
