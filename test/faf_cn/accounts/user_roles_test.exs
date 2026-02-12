@@ -4,13 +4,26 @@ defmodule FafCn.Accounts.UserRolesTest do
   alias FafCn.Accounts
   alias FafCn.Accounts.UserRole
 
+  setup do
+    # Set up super admin env vars for tests
+    System.put_env("SUPER_ADMIN_EMAIL", "superadmin@example.com")
+    System.put_env("SUPER_ADMIN_GITHUB_ID", "99999")
+
+    on_exit(fn ->
+      System.delete_env("SUPER_ADMIN_EMAIL")
+      System.delete_env("SUPER_ADMIN_GITHUB_ID")
+    end)
+
+    :ok
+  end
+
   describe "grant_admin_role/2" do
     setup do
       {:ok, super_admin} =
         Accounts.register_oauth_user(%{
-          email: "zwpdbh@example.com",
+          email: "superadmin@example.com",
           provider: "github",
-          provider_uid: "4442806",
+          provider_uid: "99999",
           name: "Super Admin"
         })
 
@@ -37,7 +50,7 @@ defmodule FafCn.Accounts.UserRolesTest do
         Accounts.register_oauth_user(%{
           email: "other@example.com",
           provider: "github",
-          provider_uid: "99999",
+          provider_uid: "88888",
           name: "Other User"
         })
 
@@ -54,9 +67,9 @@ defmodule FafCn.Accounts.UserRolesTest do
     setup do
       {:ok, super_admin} =
         Accounts.register_oauth_user(%{
-          email: "zwpdbh@example.com",
+          email: "superadmin@example.com",
           provider: "github",
-          provider_uid: "4442806",
+          provider_uid: "99999",
           name: "Super Admin"
         })
 
@@ -82,7 +95,7 @@ defmodule FafCn.Accounts.UserRolesTest do
         Accounts.register_oauth_user(%{
           email: "other@example.com",
           provider: "github",
-          provider_uid: "99999",
+          provider_uid: "88888",
           name: "Other User"
         })
 
@@ -106,9 +119,9 @@ defmodule FafCn.Accounts.UserRolesTest do
     test "returns true for admin user" do
       {:ok, super_admin} =
         Accounts.register_oauth_user(%{
-          email: "zwpdbh@example.com",
+          email: "superadmin@example.com",
           provider: "github",
-          provider_uid: "4442806",
+          provider_uid: "99999",
           name: "Super Admin"
         })
 
@@ -142,12 +155,30 @@ defmodule FafCn.Accounts.UserRolesTest do
   end
 
   describe "super_admin?/1" do
-    test "returns true for zwpdbh user" do
+    test "returns true for configured super admin by email" do
+      System.put_env("SUPER_ADMIN_EMAIL", "admin@example.com")
+      on_exit(fn -> System.delete_env("SUPER_ADMIN_EMAIL") end)
+
       {:ok, user} =
         Accounts.register_oauth_user(%{
-          email: "zwpdbh@example.com",
+          email: "admin@example.com",
           provider: "github",
-          provider_uid: "4442806",
+          provider_uid: "12345",
+          name: "Super Admin"
+        })
+
+      assert Accounts.super_admin?(user)
+    end
+
+    test "returns true for configured super admin by provider_uid" do
+      System.put_env("SUPER_ADMIN_GITHUB_ID", "99999")
+      on_exit(fn -> System.delete_env("SUPER_ADMIN_GITHUB_ID") end)
+
+      {:ok, user} =
+        Accounts.register_oauth_user(%{
+          email: "other@example.com",
+          provider: "github",
+          provider_uid: "99999",
           name: "Super Admin"
         })
 
@@ -155,6 +186,14 @@ defmodule FafCn.Accounts.UserRolesTest do
     end
 
     test "returns false for other users" do
+      System.put_env("SUPER_ADMIN_EMAIL", "admin@example.com")
+      System.put_env("SUPER_ADMIN_GITHUB_ID", "99999")
+
+      on_exit(fn ->
+        System.delete_env("SUPER_ADMIN_EMAIL")
+        System.delete_env("SUPER_ADMIN_GITHUB_ID")
+      end)
+
       {:ok, user} =
         Accounts.register_oauth_user(%{
           email: "other@example.com",
@@ -171,9 +210,9 @@ defmodule FafCn.Accounts.UserRolesTest do
     test "returns list of admin users" do
       {:ok, super_admin} =
         Accounts.register_oauth_user(%{
-          email: "zwpdbh@example.com",
+          email: "superadmin@example.com",
           provider: "github",
-          provider_uid: "4442806",
+          provider_uid: "99999",
           name: "Super Admin"
         })
 
