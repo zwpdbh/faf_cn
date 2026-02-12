@@ -289,6 +289,114 @@ mix credo explain lib/my_app_web/live/my_live.ex:42
 # Strict mode (catches more issues)
 mix credo --strict
 ```
+
+## Tailwind CSS v4 Guidelines
+
+This project uses **Tailwind CSS v4** which has different class names than v3.
+
+### Deprecated Class Names (v3 → v4)
+
+| v3 (Deprecated) | v4 (Use instead) |
+|-----------------|------------------|
+| `flex-shrink-0` | `shrink-0` |
+| `flex-shrink` | `shrink` |
+| `flex-grow-0` | `grow-0` |
+| `flex-grow` | `grow` |
+| `decoration-slice` | `box-decoration-slice` |
+| `decoration-clone` | `box-decoration-clone` |
+| `bg-gradient-to-*` | `bg-linear-to-*` |
+| `border-1` | `border` (1px default) |
+| `[[data-theme=light]_&]:*` | `in-data-[theme=light]:*` |
+| `[[data-theme=dark]_&]:*` | `in-data-[theme=dark]:*` |
+| `bg-opacity-50` | `bg-black/50` |
+| `text-opacity-50` | `text-black/50` |
+
+### Checking for Deprecated Classes
+
+VSCode will highlight deprecated classes with warnings. Fix them as you encounter them - the Tailwind CSS IntelliSense extension will suggest the correct v4 class names.
+
+## Dialyzer (Static Type Analysis) Guidelines
+
+This project uses **Dialyzer** for static type analysis to catch type errors, unreachable code, and other issues.
+
+### Running Dialyzer
+
+```bash
+# Run Dialyzer (first run is slow - builds PLT cache)
+mix dialyzer
+
+# Format for GitHub Actions
+mix dialyzer --format github
+
+# Explain a specific warning
+mix dialyzer --explain <warning_name>
+```
+
+### Common Dialyzer Warnings
+
+#### 1. Pattern matching on `:variable_` can never match
+
+**Issue**: A catch-all clause `_ -> ...` is unreachable because all possible values are already covered.
+
+**Fix**: Remove the unreachable clause.
+
+**Bad:**
+```elixir
+case get_tech_level(unit) do
+  1 -> "T1"
+  2 -> "T2"
+  3 -> "T3"
+  4 -> "EXP"
+  _ -> "T1"  # Unreachable - get_tech_level always returns 1-4
+end
+```
+
+**Good:**
+```elixir
+case get_tech_level(unit) do
+  1 -> "T1"
+  2 -> "T2"
+  3 -> "T3"
+  4 -> "EXP"
+end
+```
+
+#### 2. The pattern can never match the type
+
+**Issue**: Function pattern matching covers all cases, making some clauses unreachable.
+
+**Fix**: Use pattern matching instead of `cond` with `true ->` fallback when types are known.
+
+**Bad:**
+```elixir
+defp extract_token(token) do
+  cond do
+    is_struct(token) -> {:ok, token.access_token}
+    is_map(token) -> {:ok, token["access_token"]}
+    true -> {:error, :no_token}  # Dialyzer knows token is always struct or map
+  end
+end
+```
+
+**Good:**
+```elixir
+defp extract_token(%{access_token: token}) when is_binary(token) do
+  {:ok, token}
+end
+
+defp extract_token(%{"access_token" => token}) when is_binary(token) do
+  {:ok, token}
+end
+
+defp extract_token(_) do
+  {:error, :no_token}
+end
+```
+
+### Dialyzer Configuration
+
+- Warnings configuration: `dialyzer.ignore-warnings.exs`
+- Mix.Task warnings are ignored (false positives in Mix tasks)
 <!-- phoenix:elixir-end -->
 
 <!-- phoenix:phoenix-start -->

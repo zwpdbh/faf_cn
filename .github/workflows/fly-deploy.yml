@@ -44,6 +44,13 @@ jobs:
           key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
           restore-keys: ${{ runner.os }}-mix-
 
+      - name: Restore Dialyzer PLT cache
+        uses: actions/cache@v3
+        with:
+          path: _build/dev/*.plt
+          key: ${{ runner.os }}-dialyzer-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-dialyzer-
+
       - name: Install dependencies
         run: mix deps.get
 
@@ -55,6 +62,9 @@ jobs:
 
       - name: Check formatting
         run: mix format --check-formatted
+
+      - name: Run Dialyzer
+        run: mix dialyzer --format github
 
       - name: Run tests
         env:

@@ -12,7 +12,11 @@ defmodule FafCn.MixProject do
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader],
-      releases: releases()
+      releases: releases(),
+      dialyzer: [
+        ignore_warnings: "dialyzer.ignore-warnings.exs",
+        plt_add_apps: [:mix]
+      ]
     ]
   end
 
@@ -56,6 +60,7 @@ defmodule FafCn.MixProject do
   defp deps do
     [
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:tidewave, "~> 0.5", only: :dev},
       {:phoenix, "~> 1.8.3"},
       {:phoenix_ecto, "~> 4.5"},

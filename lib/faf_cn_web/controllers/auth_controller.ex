@@ -183,12 +183,16 @@ defmodule FafCnWeb.AuthController do
     end
   end
 
-  defp extract_access_token(token) do
-    cond do
-      is_struct(token) -> {:ok, token.access_token}
-      is_map(token) -> {:ok, token["access_token"]}
-      true -> {:error, :no_token}
-    end
+  defp extract_access_token(%{access_token: token}) when is_binary(token) do
+    {:ok, token}
+  end
+
+  defp extract_access_token(%{"access_token" => token}) when is_binary(token) do
+    {:ok, token}
+  end
+
+  defp extract_access_token(_token) do
+    {:error, :no_token}
   end
 
   defp fetch_github_emails_api(access_token) do

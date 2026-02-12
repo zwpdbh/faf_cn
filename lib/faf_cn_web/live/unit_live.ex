@@ -265,7 +265,7 @@ defmodule FafCnWeb.UnitLive do
           <div class="flex items-start gap-6">
             <%!-- Large Unit Icon --%>
             <div class={[
-              "w-24 h-24 rounded-xl flex items-center justify-center flex-shrink-0",
+              "w-24 h-24 rounded-xl flex items-center justify-center shrink-0",
               unit_faction_bg_class(@unit.faction)
             ]}>
               <div class={"unit-icon-#{@unit.unit_id} w-20 h-20"}></div>
@@ -500,7 +500,7 @@ defmodule FafCnWeb.UnitLive do
                 <%= for comment <- @comments do %>
                   <div class="flex gap-3 p-4 bg-gray-50 rounded-lg">
                     <%!-- Avatar --%>
-                    <div class="flex-shrink-0">
+                    <div class="shrink-0">
                       <%= if comment.user.avatar_url do %>
                         <img
                           src={comment.user.avatar_url}

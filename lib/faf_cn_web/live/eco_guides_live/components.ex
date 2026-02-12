@@ -191,7 +191,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
             title={"#{unit.unit_id} - #{unit.description || unit.name || "Unknown"}"}
           >
             <%!-- Unit icon from sprite sheet --%>
-            <div class={["unit-icon-#{unit.unit_id} w-12 h-12 flex-shrink-0"]}></div>
+            <div class={["unit-icon-#{unit.unit_id} w-12 h-12 shrink-0"]}></div>
             <%= if is_engineer do %>
               <span class="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center z-10">
                 <span class="text-[8px] font-bold text-yellow-900">★</span>
@@ -329,7 +329,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
       <div class="bg-gray-100 rounded-lg p-2 mb-3 border border-gray-200">
         <div class="flex items-center gap-2 mb-2">
           <div class={[
-            "w-8 h-8 rounded flex-shrink-0 overflow-hidden relative",
+            "w-8 h-8 rounded shrink-0 overflow-hidden relative",
             unit_faction_bg_class(@base_unit.faction)
           ]}>
             <div
@@ -376,7 +376,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
             <div class="flex items-center gap-2 mb-2">
               <%!-- Unit Icon --%>
               <div class={[
-                "w-8 h-8 rounded flex-shrink-0 overflow-hidden relative",
+                "w-8 h-8 rounded shrink-0 overflow-hidden relative",
                 unit_faction_bg_class(unit.faction)
               ]}>
                 <div
@@ -394,7 +394,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
                 </a>
               </div>
               <span class={[
-                "px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0",
+                "px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0",
                 ratio_badge_class(ratio.mass)
               ]}>
                 {ratio.mass}x
@@ -450,7 +450,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
               <%!-- Base unit header --%>
               <div class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-200">
                 <div class={[
-                  "w-6 h-6 rounded flex-shrink-0 overflow-hidden relative",
+                  "w-6 h-6 rounded shrink-0 overflow-hidden relative",
                   unit_faction_bg_class(base_unit.faction)
                 ]}>
                   <div
@@ -478,7 +478,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
                     <div class="flex items-center gap-2">
                       <%!-- To Unit --%>
                       <div class={[
-                        "w-8 h-8 rounded flex-shrink-0 overflow-hidden relative",
+                        "w-8 h-8 rounded shrink-0 overflow-hidden relative",
                         unit_faction_bg_class(target_unit.faction)
                       ]}>
                         <div
@@ -496,7 +496,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
                       </a>
                     </div>
                     <span class={[
-                      "px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0",
+                      "px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0",
                       ratio_badge_class(ratio.mass)
                     ]}>
                       {ratio.mass}x
@@ -622,7 +622,6 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
       2 -> "T2"
       3 -> "T3"
       4 -> "EXP"
-      _ -> "T1"
     end
   end
 
