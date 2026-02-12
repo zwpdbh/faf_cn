@@ -678,26 +678,21 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
     all_units = [base_unit | selected_units]
     sorted_units = Enum.sort_by(all_units, & &1.build_cost_mass)
 
-    # Generate tiered groups
+    # Generate tiered groups - skip last unit (nothing to compare against)
     sorted_units
     |> Enum.with_index()
+    |> Enum.reject(fn {_base, idx} -> idx == length(sorted_units) - 1 end)
     |> Enum.flat_map(fn {base, idx} ->
       remaining = Enum.drop(sorted_units, idx + 1)
+      comparisons = build_comparisons(base, remaining)
+      [{base, comparisons}]
+    end)
+  end
 
-      if remaining == [] do
-        # Skip the last unit - nothing to compare against
-        []
-      else
-        # Generate comparisons from base to each remaining unit
-        comparisons =
-          remaining
-          |> Enum.map(fn target ->
-            ratio = calculate_eco_ratio(base, target)
-            {target, ratio}
-          end)
-
-        [{base, comparisons}]
-      end
+  defp build_comparisons(base_unit, targets) do
+    Enum.map(targets, fn target ->
+      ratio = calculate_eco_ratio(base_unit, target)
+      {target, ratio}
     end)
   end
 

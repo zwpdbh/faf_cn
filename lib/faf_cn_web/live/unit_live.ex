@@ -158,75 +158,81 @@ defmodule FafCnWeb.UnitLive do
 
   @impl true
   def handle_event("update_stats", params, socket) do
+    user = socket.assigns.current_user
     unit = socket.assigns.unit
 
-    # Guard: require authentication
-    if is_nil(socket.assigns.current_user) do
-      {:noreply, put_flash(socket, :error, "You must be logged in to edit units")}
+    with {:ok, user} <- require_authentication(user),
+         {:ok, reason} <- validate_reason(params["reason"]),
+         {:ok, final_unit} <- update_unit_stats(unit, params, reason, user.id) do
+      handle_stats_update_success(socket, unit, final_unit)
     else
-      user = socket.assigns.current_user
+      {:error, :not_authenticated} ->
+        {:noreply, put_flash(socket, :error, "You must be logged in to edit units")}
 
-      mass = params["mass"]
-      energy = params["energy"]
-      build_time = params["build_time"]
-      reason = params["reason"]
-
-      if reason == nil or String.trim(reason) == "" do
+      {:error, :missing_reason} ->
         {:noreply, assign(socket, :edit_error, "Reason is required for all edits")}
-      else
-        case UnitEditLogs.update_unit_stat(unit, "build_cost_mass", mass, reason, user.id) do
-          {:ok, updated_unit} ->
-            case UnitEditLogs.update_unit_stat(
-                   updated_unit,
-                   "build_cost_energy",
-                   energy,
-                   reason,
-                   user.id
-                 ) do
-              {:ok, updated_unit2} ->
-                case UnitEditLogs.update_unit_stat(
-                       updated_unit2,
-                       "build_time",
-                       build_time,
-                       reason,
-                       user.id
-                     ) do
-                  {:ok, final_unit} ->
-                    edit_logs = UnitEditLogs.list_unit_edit_logs(unit.id)
 
-                    {:noreply,
-                     socket
-                     |> assign(:unit, final_unit)
-                     |> assign(:edit_logs, edit_logs)
-                     |> assign(:edit_mode, false)
-                     |> assign(
-                       :edit_form,
-                       to_form(%{
-                         "mass" => final_unit.build_cost_mass,
-                         "energy" => final_unit.build_cost_energy,
-                         "build_time" => final_unit.build_time,
-                         "reason" => ""
-                       })
-                     )
-                     |> assign(:edit_error, nil)
-                     |> put_flash(:info, "Unit stats updated")}
+      {:error, "Unauthorized"} ->
+        {:noreply, put_flash(socket, :error, "You are not authorized to edit units")}
 
-                  {:error, changeset} ->
-                    {:noreply, assign(socket, :edit_error, error_message(changeset))}
-                end
-
-              {:error, changeset} ->
-                {:noreply, assign(socket, :edit_error, error_message(changeset))}
-            end
-
-          {:error, "Unauthorized"} ->
-            {:noreply, put_flash(socket, :error, "You are not authorized to edit units")}
-
-          {:error, changeset} ->
-            {:noreply, assign(socket, :edit_error, error_message(changeset))}
-        end
-      end
+      {:error, changeset} ->
+        {:noreply, assign(socket, :edit_error, error_message(changeset))}
     end
+  end
+
+  defp require_authentication(nil), do: {:error, :not_authenticated}
+  defp require_authentication(user), do: {:ok, user}
+
+  defp validate_reason(nil), do: {:error, :missing_reason}
+
+  defp validate_reason(reason) do
+    if String.trim(reason) == "" do
+      {:error, :missing_reason}
+    else
+      {:ok, reason}
+    end
+  end
+
+  defp update_unit_stats(unit, params, reason, user_id) do
+    with {:ok, unit1} <-
+           UnitEditLogs.update_unit_stat(unit, "build_cost_mass", params["mass"], reason, user_id),
+         {:ok, unit2} <-
+           UnitEditLogs.update_unit_stat(
+             unit1,
+             "build_cost_energy",
+             params["energy"],
+             reason,
+             user_id
+           ) do
+      UnitEditLogs.update_unit_stat(
+        unit2,
+        "build_time",
+        params["build_time"],
+        reason,
+        user_id
+      )
+    end
+  end
+
+  defp handle_stats_update_success(socket, original_unit, final_unit) do
+    edit_logs = UnitEditLogs.list_unit_edit_logs(original_unit.id)
+
+    {:noreply,
+     socket
+     |> assign(:unit, final_unit)
+     |> assign(:edit_logs, edit_logs)
+     |> assign(:edit_mode, false)
+     |> assign(
+       :edit_form,
+       to_form(%{
+         "mass" => final_unit.build_cost_mass,
+         "energy" => final_unit.build_cost_energy,
+         "build_time" => final_unit.build_time,
+         "reason" => ""
+       })
+     )
+     |> assign(:edit_error, nil)
+     |> put_flash(:info, "Unit stats updated")}
   end
 
   defp error_message(%Ecto.Changeset{} = changeset) do
