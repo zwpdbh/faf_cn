@@ -10,37 +10,56 @@ defmodule FafCnWeb.EcoPredictionLive do
 
   @factions ["UEF", "CYBRAN", "AEON", "SERAPHIM"]
 
+  @filters [
+    %{key: "ENGINEER", label: "Engineer", category: "ENGINEER", group: :usage},
+    %{key: "STRUCTURE", label: "Structure", category: "STRUCTURE", group: :usage},
+    %{key: "LAND", label: "Land", category: "LAND", group: :usage},
+    %{key: "AIR", label: "Air", category: "AIR", group: :usage},
+    %{key: "NAVAL", label: "Naval", category: "NAVAL", group: :usage},
+    %{key: "TECH1", label: "T1", category: "TECH1", group: :tech},
+    %{key: "TECH2", label: "T2", category: "TECH2", group: :tech},
+    %{key: "TECH3", label: "T3", category: "TECH3", group: :tech},
+    %{key: "EXPERIMENTAL", label: "EXP", category: "EXPERIMENTAL", group: :tech}
+  ]
+
+  @usage_filters ["ENGINEER", "STRUCTURE", "LAND", "AIR", "NAVAL"]
+  @tech_filters ["TECH1", "TECH2", "TECH3", "EXPERIMENTAL"]
+
   @impl true
   def mount(_params, _session, socket) do
     units = Units.list_units_for_eco_guides()
     units_by_faction = group_units_by_faction(units)
 
-    {:ok, assign(socket,
-      page_title: "Eco Prediction",
-      factions: @factions,
-      selected_faction: "UEF",
-      units: units,
-      units_by_faction: units_by_faction,
-      
-      # Left column: Initial Eco
-      mass_income: "10",
-      energy_income: "100",
-      t1_engineers: "5",
-      t2_engineers: "0",
-      t3_engineers: "0",
-      mass_storage: "650",
-      mass_storage_max: "650",
-      energy_storage: "2500",
-      energy_storage_max: "2500",
-      
-      # Left column: Unit Selection
-      selected_unit: nil,
-      goal_quantity: 1,
-      
-      # Right column: Results
-      show_results: false,
-      simulation_result: nil
-    )}
+    {:ok,
+     assign(socket,
+       page_title: "Eco Prediction",
+       factions: @factions,
+       filters: @filters,
+       active_filters: ["EXPERIMENTAL"],
+       selected_faction: "UEF",
+       units: units,
+       units_by_faction: units_by_faction,
+
+       # Left column: Initial Eco
+       mass_income: "10",
+       energy_income: "100",
+       t1_engineers: "5",
+       t2_engineers: "0",
+       t3_engineers: "0",
+       mass_storage: "650",
+       mass_storage_max: "650",
+       energy_storage: "2500",
+       energy_storage_max: "2500",
+
+       # Left column: Unit Selection
+       selected_unit: nil,
+       goal_quantity: 1,
+
+       # Right column: Results
+       show_results: false,
+       simulation_result: nil,
+       chart_view: "mass"
+     )}
   end
 
   @impl true
@@ -56,11 +75,16 @@ defmodule FafCnWeb.EcoPredictionLive do
           </p>
         </div>
 
+        <%!-- Faction Tabs (at top like Eco Guides) --%>
+        <div class="mb-6">
+          <.faction_tabs factions={@factions} selected_faction={@selected_faction} />
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <%!-- Left Column (8 cols): Initial Eco + Unit Selection --%>
           <div class="lg:col-span-8 space-y-6">
             <%!-- 1. Set Initial Eco --%>
-            <.initial_eco_card 
+            <.initial_eco_card
               mass_income={@mass_income}
               energy_income={@energy_income}
               t1_engineers={@t1_engineers}
@@ -72,12 +96,13 @@ defmodule FafCnWeb.EcoPredictionLive do
               energy_storage_max={@energy_storage_max}
             />
 
-            <%!-- 2. Select Units (with faction tabs inside) --%>
+            <%!-- 2. Select Units (with filters like Eco Guides) --%>
             <.unit_selection_card
-              factions={@factions}
               units_by_faction={@units_by_faction}
               selected_faction={@selected_faction}
               selected_unit={@selected_unit}
+              filters={@filters}
+              active_filters={@active_filters}
             />
           </div>
 
@@ -94,6 +119,16 @@ defmodule FafCnWeb.EcoPredictionLive do
             <% end %>
           </div>
         </div>
+
+        <%!-- Full Width Chart (spans both columns) --%>
+        <%= if @show_results do %>
+          <.eco_chart_card
+            result={@simulation_result}
+            mass_income={@mass_income}
+            energy_income={@energy_income}
+            chart_view={@chart_view}
+          />
+        <% end %>
       </div>
     </Layouts.app>
     """
@@ -107,18 +142,36 @@ defmodule FafCnWeb.EcoPredictionLive do
       <nav class="-mb-px flex space-x-8" aria-label="Tabs">
         <%= for faction <- @factions do %>
           <% is_active = @selected_faction == faction
+
           active_classes =
             case faction do
-              "UEF" -> if is_active, do: "border-blue-500 text-blue-600", else: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              "CYBRAN" -> if is_active, do: "border-red-500 text-red-600", else: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              "AEON" -> if is_active, do: "border-emerald-500 text-emerald-600", else: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              "SERAPHIM" -> if is_active, do: "border-violet-500 text-violet-600", else: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            end
-          %>
+              "UEF" ->
+                if is_active,
+                  do: "border-blue-500 text-blue-600",
+                  else: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+
+              "CYBRAN" ->
+                if is_active,
+                  do: "border-red-500 text-red-600",
+                  else: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+
+              "AEON" ->
+                if is_active,
+                  do: "border-emerald-500 text-emerald-600",
+                  else: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+
+              "SERAPHIM" ->
+                if is_active,
+                  do: "border-violet-500 text-violet-600",
+                  else: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            end %>
           <button
             phx-click="select_faction"
             phx-value-faction={faction}
-            class={["whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors", active_classes]}
+            class={[
+              "whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors",
+              active_classes
+            ]}
           >
             {faction}
           </button>
@@ -130,117 +183,120 @@ defmodule FafCnWeb.EcoPredictionLive do
 
   def initial_eco_card(assigns) do
     ~H"""
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4">1. Set Initial Eco</h2>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+      <h2 class="text-base font-semibold text-gray-900 mb-2">1. Set Initial Eco</h2>
 
-      <div class="space-y-6">
-        <%!-- Mass Group --%>
-        <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
-          <h3 class="text-sm font-semibold text-blue-900 mb-3 flex items-center gap-2">
-            <.icon name="hero-cube" class="w-4 h-4" /> Mass
-          </h3>
-          <div class="space-y-3">
-            <div>
-              <label class="block text-xs font-medium text-blue-700 mb-1">Income / second</label>
-              <input
-                type="number"
-                value={@mass_income}
-                phx-change="update_mass_income"
-                class="w-full px-3 py-2 border border-blue-200 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
-              />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-blue-700 mb-1">Storage (Current / Max)</label>
-              <div class="flex gap-2">
+      <div class="space-y-2">
+        <%!-- Mass & Energy in 2 columns --%>
+        <div class="grid grid-cols-2 gap-2">
+          <%!-- Mass Group --%>
+          <div class="bg-blue-50 rounded p-2 border border-blue-100">
+            <h3 class="text-xs font-semibold text-blue-900 mb-1 flex items-center gap-1">
+              <.icon name="hero-cube" class="w-3 h-3" /> Mass
+            </h3>
+            <div class="space-y-1">
+              <div>
+                <label class="block text-[10px] font-medium text-blue-700 mb-0.5">Income/s</label>
                 <input
                   type="number"
-                  value={@mass_storage}
-                  phx-change="update_mass_storage"
-                  placeholder="Current"
-                  class="flex-1 px-3 py-2 border border-blue-200 rounded-md bg-white"
+                  value={@mass_income}
+                  phx-change="update_mass_income"
+                  class="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-blue-500 focus:border-blue-500 bg-white"
                 />
-                <span class="self-center text-blue-400">/</span>
-                <input
-                  type="number"
-                  value={@mass_storage_max}
-                  phx-change="update_mass_max"
-                  placeholder="Max"
-                  class="flex-1 px-3 py-2 border border-blue-200 rounded-md bg-white"
-                />
+              </div>
+              <div>
+                <label class="block text-[10px] font-medium text-blue-700 mb-0.5">Storage</label>
+                <div class="flex gap-1">
+                  <input
+                    type="number"
+                    value={@mass_storage}
+                    phx-change="update_mass_storage"
+                    placeholder="Cur"
+                    class="flex-1 px-1.5 py-1 text-sm border border-blue-200 rounded bg-white"
+                  />
+                  <span class="self-center text-blue-400 text-xs">/</span>
+                  <input
+                    type="number"
+                    value={@mass_storage_max}
+                    phx-change="update_mass_max"
+                    placeholder="Max"
+                    class="flex-1 px-1.5 py-1 text-sm border border-blue-200 rounded bg-white"
+                  />
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <%!-- Energy Group --%>
-        <div class="bg-yellow-50 rounded-lg p-4 border border-yellow-100">
-          <h3 class="text-sm font-semibold text-yellow-900 mb-3 flex items-center gap-2">
-            <.icon name="hero-bolt" class="w-4 h-4" /> Energy
-          </h3>
-          <div class="space-y-3">
-            <div>
-              <label class="block text-xs font-medium text-yellow-700 mb-1">Income / second</label>
-              <input
-                type="number"
-                value={@energy_income}
-                phx-change="update_energy_income"
-                class="w-full px-3 py-2 border border-yellow-200 rounded-md focus:ring-yellow-500 focus:border-yellow-500 bg-white"
-              />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-yellow-700 mb-1">Storage (Current / Max)</label>
-              <div class="flex gap-2">
+          <%!-- Energy Group --%>
+          <div class="bg-yellow-50 rounded p-2 border border-yellow-100">
+            <h3 class="text-xs font-semibold text-yellow-900 mb-1 flex items-center gap-1">
+              <.icon name="hero-bolt" class="w-3 h-3" /> Energy
+            </h3>
+            <div class="space-y-1">
+              <div>
+                <label class="block text-[10px] font-medium text-yellow-700 mb-0.5">Income/s</label>
                 <input
                   type="number"
-                  value={@energy_storage}
-                  phx-change="update_energy_storage"
-                  placeholder="Current"
-                  class="flex-1 px-3 py-2 border border-yellow-200 rounded-md bg-white"
+                  value={@energy_income}
+                  phx-change="update_energy_income"
+                  class="w-full px-2 py-1 text-sm border border-yellow-200 rounded focus:ring-yellow-500 focus:border-yellow-500 bg-white"
                 />
-                <span class="self-center text-yellow-400">/</span>
-                <input
-                  type="number"
-                  value={@energy_storage_max}
-                  phx-change="update_energy_max"
-                  placeholder="Max"
-                  class="flex-1 px-3 py-2 border border-yellow-200 rounded-md bg-white"
-                />
+              </div>
+              <div>
+                <label class="block text-[10px] font-medium text-yellow-700 mb-0.5">Storage</label>
+                <div class="flex gap-1">
+                  <input
+                    type="number"
+                    value={@energy_storage}
+                    phx-change="update_energy_storage"
+                    placeholder="Cur"
+                    class="flex-1 px-1.5 py-1 text-sm border border-yellow-200 rounded bg-white"
+                  />
+                  <span class="self-center text-yellow-400 text-xs">/</span>
+                  <input
+                    type="number"
+                    value={@energy_storage_max}
+                    phx-change="update_energy_max"
+                    placeholder="Max"
+                    class="flex-1 px-1.5 py-1 text-sm border border-yellow-200 rounded bg-white"
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         <%!-- Build Power Group --%>
-        <div class="bg-purple-50 rounded-lg p-4 border border-purple-100">
-          <h3 class="text-sm font-semibold text-purple-900 mb-3 flex items-center gap-2">
-            <.icon name="hero-wrench" class="w-4 h-4" /> Build Power (Engineers)
+        <div class="bg-purple-50 rounded p-2 border border-purple-100">
+          <h3 class="text-xs font-semibold text-purple-900 mb-1 flex items-center gap-1">
+            <.icon name="hero-wrench" class="w-3 h-3" /> Engineers
           </h3>
-          <div class="grid grid-cols-3 gap-3">
+          <div class="grid grid-cols-3 gap-2">
             <div>
-              <label class="block text-xs font-medium text-purple-700 mb-1">T1</label>
+              <label class="block text-[10px] font-medium text-purple-700 mb-0.5">T1</label>
               <input
                 type="number"
                 value={@t1_engineers}
                 phx-change="update_t1_eng"
-                class="w-full px-3 py-2 border border-purple-200 rounded-md bg-white"
+                class="w-full px-2 py-1 text-sm border border-purple-200 rounded bg-white"
               />
             </div>
             <div>
-              <label class="block text-xs font-medium text-purple-700 mb-1">T2</label>
+              <label class="block text-[10px] font-medium text-purple-700 mb-0.5">T2</label>
               <input
                 type="number"
                 value={@t2_engineers}
                 phx-change="update_t2_eng"
-                class="w-full px-3 py-2 border border-purple-200 rounded-md bg-white"
+                class="w-full px-2 py-1 text-sm border border-purple-200 rounded bg-white"
               />
             </div>
             <div>
-              <label class="block text-xs font-medium text-purple-700 mb-1">T3</label>
+              <label class="block text-[10px] font-medium text-purple-700 mb-0.5">T3</label>
               <input
                 type="number"
                 value={@t3_engineers}
                 phx-change="update_t3_eng"
-                class="w-full px-3 py-2 border border-purple-200 rounded-md bg-white"
+                class="w-full px-2 py-1 text-sm border border-purple-200 rounded bg-white"
               />
             </div>
           </div>
@@ -252,49 +308,31 @@ defmodule FafCnWeb.EcoPredictionLive do
 
   def unit_selection_card(assigns) do
     units = assigns.units_by_faction[assigns.selected_faction] || []
-    assigns = assign(assigns, :units, units)
-    
+    filtered_units = apply_filters(units, assigns.active_filters)
+    assigns = assign(assigns, :filtered_units, filtered_units)
+
     ~H"""
     <div
       class="rounded-lg shadow-sm border border-gray-200 p-4"
       style="background-image: url('/images/units/background.jpg'); background-size: cover; background-position: center;"
     >
-      <%!-- Header with Title and Faction Tabs --%>
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
+      <%!-- Header with Title --%>
+      <div class="flex items-center justify-between mb-3">
         <h2 class="text-lg font-semibold text-white drop-shadow-md">2. Select Units</h2>
-        
-        <%!-- Faction Tabs inside the card --%>
-        <div class="flex space-x-1 bg-black/30 rounded-lg p-1">
-          <%= for faction <- @factions do %>
-            <% is_active = @selected_faction == faction
-            active_classes =
-              case faction do
-                "UEF" -> if is_active, do: "bg-blue-600 text-white", else: "text-blue-200 hover:bg-blue-900/50"
-                "CYBRAN" -> if is_active, do: "bg-red-600 text-white", else: "text-red-200 hover:bg-red-900/50"
-                "AEON" -> if is_active, do: "bg-emerald-600 text-white", else: "text-emerald-200 hover:bg-emerald-900/50"
-                "SERAPHIM" -> if is_active, do: "bg-violet-600 text-white", else: "text-violet-200 hover:bg-violet-900/50"
-              end
-            %>
-            <button
-              phx-click="select_faction"
-              phx-value-faction={faction}
-              class={["px-3 py-1 rounded text-xs font-medium transition-colors", active_classes]}
-            >
-              {faction}
-            </button>
-          <% end %>
-        </div>
       </div>
+
+      <%!-- Filter Bar (like Eco Guides) --%>
+      <.filter_bar filters={@filters} active_filters={@active_filters} />
 
       <%!-- Unit Grid --%>
       <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-        <%= for unit <- @units do %>
+        <%= for unit <- @filtered_units do %>
           <% is_selected = @selected_unit && @selected_unit.unit_id == unit.unit_id
+
           border_class =
             if is_selected,
               do: "ring-2 ring-indigo-500 ring-offset-1",
-              else: "hover:ring-2 hover:ring-gray-300 hover:ring-offset-1 cursor-pointer"
-          %>
+              else: "hover:ring-2 hover:ring-gray-300 hover:ring-offset-1 cursor-pointer" %>
           <button
             type="button"
             phx-click="select_unit"
@@ -315,6 +353,12 @@ defmodule FafCnWeb.EcoPredictionLive do
           </button>
         <% end %>
       </div>
+
+      <%= if @filtered_units == [] do %>
+        <div class="text-center py-8 text-white/70">
+          <p class="text-sm">No units match the selected filters</p>
+        </div>
+      <% end %>
     </div>
     """
   end
@@ -325,7 +369,10 @@ defmodule FafCnWeb.EcoPredictionLive do
       <%= if @selected_unit do %>
         <%!-- Selected Unit Display --%>
         <div class="text-center mb-4">
-          <div class={["w-16 h-16 rounded-lg mx-auto mb-2", unit_faction_bg_class(@selected_unit.faction)]}>
+          <div class={[
+            "w-16 h-16 rounded-lg mx-auto mb-2",
+            unit_faction_bg_class(@selected_unit.faction)
+          ]}>
             <div class={"unit-icon-#{@selected_unit.unit_id} w-full h-full"} />
           </div>
           <h3 class="font-semibold text-gray-900">{@selected_unit.name}</h3>
@@ -346,7 +393,8 @@ defmodule FafCnWeb.EcoPredictionLive do
             class="w-full px-3 py-2 border border-gray-300 rounded-md text-center text-lg font-semibold"
           />
           <p class="text-sm text-indigo-600 font-medium mt-2 text-center">
-            Total: {@goal_quantity * @selected_unit.build_cost_mass}M / {@goal_quantity * @selected_unit.build_cost_energy}E
+            Total: {@goal_quantity * @selected_unit.build_cost_mass}M / {@goal_quantity *
+              @selected_unit.build_cost_energy}E
           </p>
         </div>
 
@@ -374,28 +422,33 @@ defmodule FafCnWeb.EcoPredictionLive do
     ~H"""
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
       <h3 class="font-semibold text-gray-900 mb-4">Timeline</h3>
-      
+
       <div class="relative pl-6 space-y-4">
         <%!-- Vertical line --%>
         <div class="absolute left-2 top-2 bottom-2 w-0.5 bg-gray-300"></div>
-        
+
         <%= for {milestone, idx} <- Enum.with_index(@result.milestones) do %>
           <div class="relative">
             <%!-- Dot --%>
             <div class={[
               "absolute -left-4 w-4 h-4 rounded-full border-2",
-              if(idx == length(@result.milestones) - 1, 
-                do: "bg-green-500 border-green-500", 
-                else: "bg-white border-indigo-500")
-            ]}></div>
-            
+              if(idx == length(@result.milestones) - 1,
+                do: "bg-green-500 border-green-500",
+                else: "bg-white border-indigo-500"
+              )
+            ]}>
+            </div>
+
             <div class="flex items-center gap-3">
               <span class="text-sm font-mono text-gray-500 w-14">
-                <%= format_time(milestone.time) %>
+                {format_time(milestone.time)}
               </span>
               <div class={[
                 "flex-1 p-2 rounded text-sm",
-                if(idx == length(@result.milestones) - 1, do: "bg-green-100 font-medium", else: "bg-gray-50")
+                if(idx == length(@result.milestones) - 1,
+                  do: "bg-green-100 font-medium",
+                  else: "bg-gray-50"
+                )
               ]}>
                 {milestone.label}
               </div>
@@ -407,38 +460,207 @@ defmodule FafCnWeb.EcoPredictionLive do
     """
   end
 
+  def filter_bar(assigns) do
+    ~H"""
+    <div class="flex flex-wrap gap-2 mb-3">
+      <%= for filter <- @filters do %>
+        <% is_active = filter.key in @active_filters %>
+        <button
+          phx-click="toggle_filter"
+          phx-value-filter={filter.key}
+          class={[
+            "px-3 py-1.5 rounded text-sm font-medium transition-all",
+            if is_active do
+              "bg-indigo-500 text-white shadow-md"
+            else
+              "bg-white/90 text-gray-700 hover:bg-white hover:shadow"
+            end
+          ]}
+        >
+          {filter.label}
+        </button>
+      <% end %>
+      <%= if length(@active_filters) > 0 do %>
+        <button
+          phx-click="clear_filters"
+          class="px-3 py-1.5 rounded text-sm font-medium bg-gray-500/50 text-white hover:bg-gray-500/70 transition-all"
+        >
+          Clear All
+        </button>
+      <% end %>
+    </div>
+    """
+  end
+
+  def eco_chart_card(assigns) do
+    ~H"""
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mt-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">Resource Accumulation Over Time</h3>
+        <div class="text-sm text-gray-500">
+          Time to goal:
+          <span class="font-medium text-indigo-600">{format_time(@result.completion_time)}</span>
+        </div>
+      </div>
+
+      <%!-- View Toggle --%>
+      <div class="flex gap-2 mb-4">
+        <button
+          phx-click="set_chart_view"
+          phx-value-view="mass"
+          class={[
+            "flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2",
+            if(@chart_view == "mass",
+              do: "bg-blue-500 text-white",
+              else: "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            )
+          ]}
+        >
+          <span class="w-2 h-2 rounded-full bg-white"></span> Mass ({@mass_income}/s)
+        </button>
+        <button
+          phx-click="set_chart_view"
+          phx-value-view="energy"
+          class={[
+            "flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2",
+            if(@chart_view == "energy",
+              do: "bg-yellow-500 text-white",
+              else: "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            )
+          ]}
+        >
+          <span class="w-2 h-2 rounded-full bg-white"></span> Energy ({@energy_income}/s)
+        </button>
+      </div>
+
+      <%!-- Chart Container --%>
+      <div
+        id={"eco-chart-#{@chart_view}-#{@result.completion_time}"}
+        phx-hook="EcoChart"
+        data-mass-income={@mass_income}
+        data-energy-income={@energy_income}
+        data-completion-time={@result.completion_time}
+        data-goal-mass={@result.goal_mass}
+        data-goal-energy={@result.goal_energy}
+        data-view={@chart_view}
+        class="w-full h-80 bg-gray-50 rounded-lg border border-gray-200"
+      >
+        <%!-- Fallback content --%>
+        <div class="flex items-center justify-center h-full text-gray-400">
+          <div class="text-center">
+            <.icon name="hero-chart-bar" class="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <p class="text-sm">Loading chart...</p>
+          </div>
+        </div>
+      </div>
+
+      <%!-- Legend --%>
+      <div class="flex justify-center mt-4">
+        <%= if @chart_view == "mass" do %>
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+            <span class="text-sm text-gray-600">Accumulated Mass</span>
+            <span class="text-xs text-gray-400 ml-1">Goal: {@result.goal_mass}M</span>
+          </div>
+        <% else %>
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+            <span class="text-sm text-gray-600">Accumulated Energy</span>
+            <span class="text-xs text-gray-400 ml-1">Goal: {@result.goal_energy}E</span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
   # Event Handlers
 
   @impl true
   def handle_event("select_faction", %{"faction" => faction}, socket) do
-    {:noreply, assign(socket, :selected_faction, faction)}
+    {:noreply, assign(socket, selected_faction: faction, active_filters: [])}
+  end
+
+  @impl true
+  def handle_event("toggle_filter", %{"filter" => filter_key}, socket) do
+    active_filters = socket.assigns.active_filters
+
+    new_filters =
+      if filter_key in active_filters do
+        List.delete(active_filters, filter_key)
+      else
+        # Remove mutually exclusive filters from same group
+        group_to_remove =
+          cond do
+            filter_key in @usage_filters -> @usage_filters
+            filter_key in @tech_filters -> @tech_filters
+            true -> []
+          end
+
+        active_filters
+        |> Enum.reject(&(&1 in group_to_remove))
+        |> Kernel.++([filter_key])
+      end
+
+    {:noreply, assign(socket, :active_filters, new_filters)}
+  end
+
+  @impl true
+  def handle_event("clear_filters", _params, socket) do
+    {:noreply, assign(socket, :active_filters, [])}
+  end
+
+  @impl true
+  def handle_event("set_chart_view", %{"view" => view}, socket) do
+    {:noreply, assign(socket, :chart_view, view)}
   end
 
   @impl true
   def handle_event("select_unit", %{"unit-id" => unit_id}, socket) do
     unit = Enum.find(socket.assigns.units, &(&1.unit_id == unit_id))
-    {:noreply, assign(socket, :selected_unit, unit)}
+
+    {:noreply,
+     socket
+     |> assign(:selected_unit, unit)
+     |> assign(:show_results, false)}
   end
 
   @impl true
   def handle_event("update_quantity", %{"value" => qty}, socket) do
     qty = String.to_integer(qty) |> max(1)
-    {:noreply, assign(socket, :goal_quantity, qty)}
+
+    {:noreply,
+     socket
+     |> assign(:goal_quantity, qty)
+     |> assign(:show_results, false)}
   end
 
   @impl true
   def handle_event("update_" <> field, %{"value" => value}, socket) do
     field_atom = String.to_atom(field)
-    {:noreply, assign(socket, field_atom, value)}
+
+    {:noreply,
+     socket
+     |> assign(field_atom, value)
+     |> assign(:show_results, false)}
   end
 
   @impl true
   def handle_event("run_simulation", _params, socket) do
+    unit = socket.assigns.selected_unit
+    quantity = socket.assigns.goal_quantity
+
+    # Calculate total cost
+    goal_mass = unit.build_cost_mass * quantity
+    goal_energy = unit.build_cost_energy * quantity
+
     # Generate dummy result for UI prototype
     result = %{
       completion_time: 347,
-      goal_quantity: socket.assigns.goal_quantity,
-      unit_name: socket.assigns.selected_unit.name,
+      goal_quantity: quantity,
+      goal_mass: goal_mass,
+      goal_energy: goal_energy,
+      unit_name: unit.name,
       milestones: [
         %{time: 0, label: "Start"},
         %{time: 120, label: "Mass storage full"},
@@ -446,10 +668,11 @@ defmodule FafCnWeb.EcoPredictionLive do
         %{time: 347, label: "Goal Complete"}
       ]
     }
-    
-    {:noreply, socket
-      |> assign(:show_results, true)
-      |> assign(:simulation_result, result)}
+
+    {:noreply,
+     socket
+     |> assign(:show_results, true)
+     |> assign(:simulation_result, result)}
   end
 
   # Helpers
@@ -477,5 +700,18 @@ defmodule FafCnWeb.EcoPredictionLive do
     mins = div(seconds, 60)
     secs = rem(seconds, 60)
     "#{mins}:#{String.pad_leading("#{secs}", 2, "0")}"
+  end
+
+  defp apply_filters(units, []), do: units
+
+  defp apply_filters(units, active_filters) do
+    Enum.filter(units, fn unit ->
+      categories = unit.categories || []
+
+      # Check if unit matches ALL active filters
+      Enum.all?(active_filters, fn filter ->
+        filter in categories
+      end)
+    end)
   end
 end
