@@ -101,6 +101,302 @@ custom classes must fully style the input
       assert_receive {:DOWN, ^ref, :process, ^pid, :normal}
 
    - Instead of sleeping to synchronize before the next call, **always** use `_ = :sys.get_state/1` to ensure the process has handled prior messages
+
+## Credo (Static Analysis) Guidelines
+
+This project uses Credo for static code analysis. Run `mix credo` to check for issues.
+
+### Common Patterns to Fix
+
+#### 1. Replace nested `if/case/cond` with `with`
+
+**Bad (nesting depth 5):**
+```elixir
+def handle_event("update", params, socket) do
+  if check1 do
+    case result1 do
+      {:ok, val1} ->
+        case result2 do
+          {:ok, val2} ->
+            case result3 do
+              {:ok, val3} -> success
+              {:error, e} -> error3
+            end
+          {:error, e} -> error2
+        end
+      {:error, e} -> error1
+    end
+  else
+    error0
+  end
+end
+```
+
+**Good (flat structure):**
+```elixir
+def handle_event("update", params, socket) do
+  with :ok <- validate1(params),
+       {:ok, val1} <- operation1(params),
+       {:ok, val2} <- operation2(val1),
+       {:ok, val3} <- operation3(val2) do
+    success_response
+  else
+    {:error, :validation_failed} -> validation_error
+    {:error, reason} -> handle_error(reason)
+  end
+end
+```
+
+#### 2. Extract helper functions for complex logic
+
+**Bad (cyclomatic complexity 18):**
+```elixir
+defp complex_function(conn, params, config) do
+  case step1 do
+    {:ok, result} ->
+      # 50 lines of nested logic
+      case step2 do
+        {:ok, result2} ->
+          # more nested logic...
+        {:error, e} -> handle_error(e)
+      end
+    {:error, e} -> handle_error(e)
+  end
+end
+```
+
+**Good (extracted helpers):**
+```elixir
+defp complex_function(conn, params, config) do
+  with {:ok, result1} <- step1(params),
+       {:ok, result2} <- step2(result1),
+       {:ok, result3} <- step3(result2) do
+    success(result3)
+  else
+    {:error, reason} -> handle_error(reason)
+  end
+end
+
+defp step1(params), do: # simple 5-line function
+defp step2(result), do: # simple 5-line function
+defp step3(result), do: # simple 5-line function
+```
+
+#### 3. Use `Enum.reject` instead of `if` in pipelines
+
+**Bad (nesting in Enum.flat_map):**
+```elixir
+list
+|> Enum.with_index()
+|> Enum.flat_map(fn {item, idx} ->
+  remaining = Enum.drop(list, idx + 1)
+  if remaining == [] do
+    []
+  else
+    [{item, process(remaining)}]
+  end
+end)
+```
+
+**Good (filter then process):**
+```elixir
+list
+|> Enum.with_index()
+|> Enum.reject(fn {_item, idx} -> idx == length(list) - 1 end)
+|> Enum.flat_map(fn {item, idx} ->
+  remaining = Enum.drop(list, idx + 1)
+  [{item, process(remaining)}]
+end)
+```
+
+#### 4. Predicate naming convention
+
+**Bad:**
+```elixir
+def is_admin?(user), do: # ...
+def is_valid?(data), do: # ...
+```
+
+**Good:**
+```elixir
+def admin?(user), do: # ...
+def valid?(data), do: # ...
+```
+
+Exception: Guard functions CAN use `is_` prefix: `is_integer/1`, `is_binary/1`, etc.
+
+#### 5. Use `Enum.map_join/3` instead of `Enum.map/2 |> Enum.join/2`
+
+**Bad:**
+```elixir
+list
+|> Enum.map(fn x -> "#{x.key}: #{x.value}" end)
+|> Enum.join(", ")
+```
+
+**Good:**
+```elixir
+list
+|> Enum.map_join(", ", fn x -> "#{x.key}: #{x.value}" end)
+```
+
+#### 6. Number readability
+
+**Bad:**
+```elixir
+@timeout 86400
+@max_size 1073741824
+```
+
+**Good:**
+```elixir
+@timeout 86_400
+@max_size 1_073_741_824
+```
+
+#### 7. Avoid `unless` with `else`
+
+**Bad:**
+```elixir
+unless authorized?(user) do
+  {:error, :unauthorized}
+else
+  perform_action()
+end
+```
+
+**Good:**
+```elixir
+if authorized?(user) do
+  perform_action()
+else
+  {:error, :unauthorized}
+end
+```
+
+### Running Credo
+
+```bash
+# Check all files
+mix credo
+
+# Check specific file
+mix credo lib/my_app_web/live/my_live.ex
+
+# Explain a specific issue
+mix credo explain lib/my_app_web/live/my_live.ex:42
+
+# Strict mode (catches more issues)
+mix credo --strict
+```
+
+## Tailwind CSS v4 Guidelines
+
+This project uses **Tailwind CSS v4** which has different class names than v3.
+
+### Deprecated Class Names (v3 → v4)
+
+| v3 (Deprecated) | v4 (Use instead) |
+|-----------------|------------------|
+| `flex-shrink-0` | `shrink-0` |
+| `flex-shrink` | `shrink` |
+| `flex-grow-0` | `grow-0` |
+| `flex-grow` | `grow` |
+| `decoration-slice` | `box-decoration-slice` |
+| `decoration-clone` | `box-decoration-clone` |
+| `bg-gradient-to-*` | `bg-linear-to-*` |
+| `border-1` | `border` (1px default) |
+| `[[data-theme=light]_&]:*` | `in-data-[theme=light]:*` |
+| `[[data-theme=dark]_&]:*` | `in-data-[theme=dark]:*` |
+| `bg-opacity-50` | `bg-black/50` |
+| `text-opacity-50` | `text-black/50` |
+
+### Checking for Deprecated Classes
+
+VSCode will highlight deprecated classes with warnings. Fix them as you encounter them - the Tailwind CSS IntelliSense extension will suggest the correct v4 class names.
+
+## Dialyzer (Static Type Analysis) Guidelines
+
+This project uses **Dialyzer** for static type analysis to catch type errors, unreachable code, and other issues.
+
+### Running Dialyzer
+
+```bash
+# Run Dialyzer (first run is slow - builds PLT cache)
+mix dialyzer
+
+# Format for GitHub Actions
+mix dialyzer --format github
+
+# Explain a specific warning
+mix dialyzer --explain <warning_name>
+```
+
+### Common Dialyzer Warnings
+
+#### 1. Pattern matching on `:variable_` can never match
+
+**Issue**: A catch-all clause `_ -> ...` is unreachable because all possible values are already covered.
+
+**Fix**: Remove the unreachable clause.
+
+**Bad:**
+```elixir
+case get_tech_level(unit) do
+  1 -> "T1"
+  2 -> "T2"
+  3 -> "T3"
+  4 -> "EXP"
+  _ -> "T1"  # Unreachable - get_tech_level always returns 1-4
+end
+```
+
+**Good:**
+```elixir
+case get_tech_level(unit) do
+  1 -> "T1"
+  2 -> "T2"
+  3 -> "T3"
+  4 -> "EXP"
+end
+```
+
+#### 2. The pattern can never match the type
+
+**Issue**: Function pattern matching covers all cases, making some clauses unreachable.
+
+**Fix**: Use pattern matching instead of `cond` with `true ->` fallback when types are known.
+
+**Bad:**
+```elixir
+defp extract_token(token) do
+  cond do
+    is_struct(token) -> {:ok, token.access_token}
+    is_map(token) -> {:ok, token["access_token"]}
+    true -> {:error, :no_token}  # Dialyzer knows token is always struct or map
+  end
+end
+```
+
+**Good:**
+```elixir
+defp extract_token(%{access_token: token}) when is_binary(token) do
+  {:ok, token}
+end
+
+defp extract_token(%{"access_token" => token}) when is_binary(token) do
+  {:ok, token}
+end
+
+defp extract_token(_) do
+  {:error, :no_token}
+end
+```
+
+### Dialyzer Configuration
+
+- Warnings configuration: `dialyzer.ignore-warnings.exs`
+- Mix.Task warnings are ignored (false positives in Mix tasks)
 <!-- phoenix:elixir-end -->
 
 <!-- phoenix:phoenix-start -->

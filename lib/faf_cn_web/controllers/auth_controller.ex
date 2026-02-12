@@ -67,80 +67,81 @@ defmodule FafCnWeb.AuthController do
   end
 
   defp do_github_callback(conn, params, config) do
-    case Assent.Strategy.Github.callback(config, params) do
-      {:ok, %{user: user_info, token: token}} ->
-        require Logger
-        Logger.info("GitHub OAuth user_info: #{inspect(user_info)}")
+    require Logger
 
-        # Fetch additional user info (email) if not provided
-        user_info =
-          case user_info["email"] do
-            nil ->
-              case fetch_github_email(config, token) do
-                {:ok, email} -> Map.put(user_info, "email", email)
-                _ -> user_info
-              end
+    with {:ok, %{user: user_info, token: token}} <-
+           Assent.Strategy.Github.callback(config, params),
+         {:ok, user_info} <- ensure_user_email(user_info, config, token),
+         :ok <- validate_github_id(user_info),
+         :ok <- validate_github_email(user_info),
+         attrs <- build_user_attrs(user_info),
+         {:ok, user} <- Accounts.register_oauth_user(attrs) do
+      conn
+      |> put_session(:user_id, user.id)
+      |> configure_session(renew: true)
+      |> put_flash(:info, "Welcome, #{user.name || user.email}!")
+      |> redirect(to: "/")
+    else
+      {:error, :missing_github_id} ->
+        Logger.error("GitHub OAuth: Missing 'sub' or 'id' in user_info")
 
-            _ ->
-              user_info
-          end
+        conn
+        |> put_flash(:error, "Authentication failed: Missing user ID from GitHub")
+        |> redirect(to: "/")
 
-        # Validate required fields
-        # GitHub returns "sub" (OpenID Connect standard) or "id" depending on scope
-        github_id = user_info["sub"] || user_info["id"]
-        email = user_info["email"]
+      {:error, :missing_email} ->
+        Logger.error("GitHub OAuth: Missing 'email' in user_info")
 
-        cond do
-          is_nil(github_id) ->
-            Logger.error("GitHub OAuth: Missing 'sub' or 'id' in user_info")
+        conn
+        |> put_flash(:error, "Authentication failed: Missing email from GitHub")
+        |> redirect(to: "/")
 
-            conn
-            |> put_flash(:error, "Authentication failed: Missing user ID from GitHub")
-            |> redirect(to: "/")
+      {:error, %Ecto.Changeset{} = changeset} ->
+        Logger.error("Failed to register OAuth user: #{inspect(changeset.errors)}")
 
-          is_nil(email) ->
-            Logger.error("GitHub OAuth: Missing 'email' in user_info")
-
-            conn
-            |> put_flash(:error, "Authentication failed: Missing email from GitHub")
-            |> redirect(to: "/")
-
-          true ->
-            attrs = %{
-              email: email,
-              provider: "github",
-              provider_uid: to_string(github_id),
-              name:
-                user_info["name"] || user_info["preferred_username"] || user_info["login"] ||
-                  email,
-              avatar_url: user_info["picture"] || user_info["avatar_url"]
-            }
-
-            case Accounts.register_oauth_user(attrs) do
-              {:ok, user} ->
-                conn
-                |> put_session(:user_id, user.id)
-                |> configure_session(renew: true)
-                |> put_flash(:info, "Welcome, #{user.name || user.email}!")
-                |> redirect(to: "/")
-
-              {:error, changeset} ->
-                Logger.error("Failed to register OAuth user: #{inspect(changeset.errors)}")
-
-                conn
-                |> put_flash(:error, "Failed to create account: #{inspect(changeset.errors)}")
-                |> redirect(to: "/")
-            end
-        end
+        conn
+        |> put_flash(:error, "Failed to create account: #{inspect(changeset.errors)}")
+        |> redirect(to: "/")
 
       {:error, error} ->
-        require Logger
         Logger.error("GitHub OAuth callback error: #{inspect(error)}")
 
         conn
         |> put_flash(:error, "Authentication failed: #{inspect(error)}")
         |> redirect(to: "/")
     end
+  end
+
+  defp ensure_user_email(user_info, config, token) do
+    if user_info["email"] do
+      {:ok, user_info}
+    else
+      case fetch_github_email(config, token) do
+        {:ok, email} -> {:ok, Map.put(user_info, "email", email)}
+        _ -> {:ok, user_info}
+      end
+    end
+  end
+
+  defp validate_github_id(user_info) do
+    if user_info["sub"] || user_info["id"], do: :ok, else: {:error, :missing_github_id}
+  end
+
+  defp validate_github_email(user_info) do
+    if user_info["email"], do: :ok, else: {:error, :missing_email}
+  end
+
+  defp build_user_attrs(user_info) do
+    github_id = user_info["sub"] || user_info["id"]
+    email = user_info["email"]
+
+    %{
+      email: email,
+      provider: "github",
+      provider_uid: to_string(github_id),
+      name: user_info["name"] || user_info["preferred_username"] || user_info["login"] || email,
+      avatar_url: user_info["picture"] || user_info["avatar_url"]
+    }
   end
 
   @doc """
@@ -175,38 +176,49 @@ defmodule FafCnWeb.AuthController do
   end
 
   defp fetch_github_email(_config, token) do
-    # GitHub doesn't always return email in user info, fetch from emails endpoint
-    # Token can be a struct or map depending on Assent version
-    access_token =
-      cond do
-        is_struct(token) -> token.access_token
-        is_map(token) -> token["access_token"]
-        true -> nil
-      end
+    with {:ok, access_token} <- extract_access_token(token),
+         {:ok, emails} <- fetch_github_emails_api(access_token),
+         email <- find_verified_email(emails) do
+      {:ok, email}
+    end
+  end
 
-    if is_nil(access_token) do
-      {:error, :no_token}
-    else
-      case Req.get("https://api.github.com/user/emails",
-             headers: [
-               {"authorization", "token #{access_token}"},
-               {"accept", "application/vnd.github.v3+json"}
-             ]
-           ) do
-        {:ok, %{status: 200, body: emails}} when is_list(emails) ->
-          # Find primary verified email
-          email =
-            emails
-            |> Enum.find(fn e -> e["primary"] && e["verified"] end)
-            |> Kernel.||(Enum.find(emails, & &1["verified"]))
+  defp extract_access_token(%{access_token: token}) when is_binary(token) do
+    {:ok, token}
+  end
 
-          {:ok, email && email["email"]}
+  defp extract_access_token(%{"access_token" => token}) when is_binary(token) do
+    {:ok, token}
+  end
 
-        error ->
-          require Logger
-          Logger.warning("Failed to fetch GitHub emails: #{inspect(error)}")
-          {:error, :no_email}
-      end
+  defp extract_access_token(_token) do
+    {:error, :no_token}
+  end
+
+  defp fetch_github_emails_api(access_token) do
+    case Req.get("https://api.github.com/user/emails",
+           headers: [
+             {"authorization", "token #{access_token}"},
+             {"accept", "application/vnd.github.v3+json"}
+           ]
+         ) do
+      {:ok, %{status: 200, body: emails}} when is_list(emails) ->
+        {:ok, emails}
+
+      error ->
+        require Logger
+        Logger.warning("Failed to fetch GitHub emails: #{inspect(error)}")
+        {:error, :no_email}
+    end
+  end
+
+  defp find_verified_email(emails) do
+    emails
+    |> Enum.find(fn e -> e["primary"] && e["verified"] end)
+    |> Kernel.||(Enum.find(emails, & &1["verified"]))
+    |> case do
+      nil -> {:error, :no_email}
+      email -> {:ok, email["email"]}
     end
   end
 end

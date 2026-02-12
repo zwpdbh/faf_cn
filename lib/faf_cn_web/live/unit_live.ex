@@ -23,7 +23,7 @@ defmodule FafCnWeb.UnitLive do
       unit ->
         comments = UnitComments.list_unit_comments(unit.id)
         edit_logs = UnitEditLogs.list_unit_edit_logs(unit.id)
-        is_admin = Accounts.is_admin?(socket.assigns.current_user)
+        is_admin = Accounts.admin?(socket.assigns.current_user)
 
         socket =
           socket
@@ -77,25 +77,25 @@ defmodule FafCnWeb.UnitLive do
   @impl true
   def handle_event("add_comment", %{"content" => content}, socket) do
     unit = socket.assigns.unit
-    
+
     # Guard: require authentication
     if is_nil(socket.assigns.current_user) do
       {:noreply, put_flash(socket, :error, "You must be logged in to add comments")}
     else
       user = socket.assigns.current_user
-      
+
       case UnitComments.create_comment(unit.id, user.id, content) do
-      {:ok, _comment} ->
-        comments = UnitComments.list_unit_comments(unit.id)
+        {:ok, _comment} ->
+          comments = UnitComments.list_unit_comments(unit.id)
 
-        {:noreply,
-         socket
-         |> assign(:comments, comments)
-         |> assign(:comment_form, to_form(%{"content" => ""}))
-         |> put_flash(:info, "Comment added")}
+          {:noreply,
+           socket
+           |> assign(:comments, comments)
+           |> assign(:comment_form, to_form(%{"content" => ""}))
+           |> put_flash(:info, "Comment added")}
 
-      {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Failed to add comment")}
+        {:error, _changeset} ->
+          {:noreply, put_flash(socket, :error, "Failed to add comment")}
       end
     end
   end
@@ -107,14 +107,14 @@ defmodule FafCnWeb.UnitLive do
       {:noreply, put_flash(socket, :error, "You must be logged in to delete comments")}
     else
       user = socket.assigns.current_user
-      
-      case UnitComments.delete_comment(String.to_integer(comment_id), user.id) do
-      :ok ->
-        comments = UnitComments.list_unit_comments(socket.assigns.unit.id)
-        {:noreply, assign(socket, :comments, comments)}
 
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Failed to delete comment")}
+      case UnitComments.delete_comment(String.to_integer(comment_id), user.id) do
+        :ok ->
+          comments = UnitComments.list_unit_comments(socket.assigns.unit.id)
+          {:noreply, assign(socket, :comments, comments)}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to delete comment")}
       end
     end
   end
@@ -140,93 +140,99 @@ defmodule FafCnWeb.UnitLive do
       {:noreply, put_flash(socket, :error, "You must be logged in to edit comments")}
     else
       user = socket.assigns.current_user
-      
+
       case UnitComments.update_comment(String.to_integer(comment_id), user.id, content) do
-      {:ok, _comment} ->
-        comments = UnitComments.list_unit_comments(socket.assigns.unit.id)
+        {:ok, _comment} ->
+          comments = UnitComments.list_unit_comments(socket.assigns.unit.id)
 
-        {:noreply,
-         socket
-         |> assign(:comments, comments)
-         |> assign(:editing_comment_id, nil)}
+          {:noreply,
+           socket
+           |> assign(:comments, comments)
+           |> assign(:editing_comment_id, nil)}
 
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Failed to update comment")}
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to update comment")}
       end
     end
   end
 
   @impl true
   def handle_event("update_stats", params, socket) do
+    user = socket.assigns.current_user
     unit = socket.assigns.unit
-    
-    # Guard: require authentication
-    if is_nil(socket.assigns.current_user) do
-      {:noreply, put_flash(socket, :error, "You must be logged in to edit units")}
+
+    with {:ok, user} <- require_authentication(user),
+         {:ok, reason} <- validate_reason(params["reason"]),
+         {:ok, final_unit} <- update_unit_stats(unit, params, reason, user.id) do
+      handle_stats_update_success(socket, unit, final_unit)
     else
-      user = socket.assigns.current_user
-      
-      mass = params["mass"]
-    energy = params["energy"]
-    build_time = params["build_time"]
-    reason = params["reason"]
+      {:error, :not_authenticated} ->
+        {:noreply, put_flash(socket, :error, "You must be logged in to edit units")}
 
-    if reason == nil or String.trim(reason) == "" do
-      {:noreply, assign(socket, :edit_error, "Reason is required for all edits")}
-    else
-      case UnitEditLogs.update_unit_stat(unit, "build_cost_mass", mass, reason, user.id) do
-        {:ok, updated_unit} ->
-          case UnitEditLogs.update_unit_stat(
-                 updated_unit,
-                 "build_cost_energy",
-                 energy,
-                 reason,
-                 user.id
-               ) do
-            {:ok, updated_unit2} ->
-              case UnitEditLogs.update_unit_stat(
-                     updated_unit2,
-                     "build_time",
-                     build_time,
-                     reason,
-                     user.id
-                   ) do
-                {:ok, final_unit} ->
-                  edit_logs = UnitEditLogs.list_unit_edit_logs(unit.id)
+      {:error, :missing_reason} ->
+        {:noreply, assign(socket, :edit_error, "Reason is required for all edits")}
 
-                  {:noreply,
-                   socket
-                   |> assign(:unit, final_unit)
-                   |> assign(:edit_logs, edit_logs)
-                   |> assign(:edit_mode, false)
-                   |> assign(
-                     :edit_form,
-                     to_form(%{
-                       "mass" => final_unit.build_cost_mass,
-                       "energy" => final_unit.build_cost_energy,
-                       "build_time" => final_unit.build_time,
-                       "reason" => ""
-                     })
-                   )
-                   |> assign(:edit_error, nil)
-                   |> put_flash(:info, "Unit stats updated")}
+      {:error, "Unauthorized"} ->
+        {:noreply, put_flash(socket, :error, "You are not authorized to edit units")}
 
-                {:error, changeset} ->
-                  {:noreply, assign(socket, :edit_error, error_message(changeset))}
-              end
-
-            {:error, changeset} ->
-              {:noreply, assign(socket, :edit_error, error_message(changeset))}
-          end
-
-        {:error, "Unauthorized"} ->
-          {:noreply, put_flash(socket, :error, "You are not authorized to edit units")}
-
-        {:error, changeset} ->
-          {:noreply, assign(socket, :edit_error, error_message(changeset))}
-        end
-      end
+      {:error, changeset} ->
+        {:noreply, assign(socket, :edit_error, error_message(changeset))}
     end
+  end
+
+  defp require_authentication(nil), do: {:error, :not_authenticated}
+  defp require_authentication(user), do: {:ok, user}
+
+  defp validate_reason(nil), do: {:error, :missing_reason}
+
+  defp validate_reason(reason) do
+    if String.trim(reason) == "" do
+      {:error, :missing_reason}
+    else
+      {:ok, reason}
+    end
+  end
+
+  defp update_unit_stats(unit, params, reason, user_id) do
+    with {:ok, unit1} <-
+           UnitEditLogs.update_unit_stat(unit, "build_cost_mass", params["mass"], reason, user_id),
+         {:ok, unit2} <-
+           UnitEditLogs.update_unit_stat(
+             unit1,
+             "build_cost_energy",
+             params["energy"],
+             reason,
+             user_id
+           ) do
+      UnitEditLogs.update_unit_stat(
+        unit2,
+        "build_time",
+        params["build_time"],
+        reason,
+        user_id
+      )
+    end
+  end
+
+  defp handle_stats_update_success(socket, original_unit, final_unit) do
+    edit_logs = UnitEditLogs.list_unit_edit_logs(original_unit.id)
+
+    {:noreply,
+     socket
+     |> assign(:unit, final_unit)
+     |> assign(:edit_logs, edit_logs)
+     |> assign(:edit_mode, false)
+     |> assign(
+       :edit_form,
+       to_form(%{
+         "mass" => final_unit.build_cost_mass,
+         "energy" => final_unit.build_cost_energy,
+         "build_time" => final_unit.build_time,
+         "reason" => ""
+       })
+     )
+     |> assign(:edit_error, nil)
+     |> put_flash(:info, "Unit stats updated")}
   end
 
   defp error_message(%Ecto.Changeset{} = changeset) do
@@ -235,8 +241,7 @@ defmodule FafCnWeb.UnitLive do
         opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
       end)
     end)
-    |> Enum.map(fn {k, v} -> "#{k}: #{Enum.join(v, ", ")}" end)
-    |> Enum.join("; ")
+    |> Enum.map_join("; ", fn {k, v} -> "#{k}: #{Enum.join(v, ", ")}" end)
   end
 
   defp error_message(msg) when is_binary(msg), do: msg
@@ -260,7 +265,7 @@ defmodule FafCnWeb.UnitLive do
           <div class="flex items-start gap-6">
             <%!-- Large Unit Icon --%>
             <div class={[
-              "w-24 h-24 rounded-xl flex items-center justify-center flex-shrink-0",
+              "w-24 h-24 rounded-xl flex items-center justify-center shrink-0",
               unit_faction_bg_class(@unit.faction)
             ]}>
               <div class={"unit-icon-#{@unit.unit_id} w-20 h-20"}></div>
@@ -495,7 +500,7 @@ defmodule FafCnWeb.UnitLive do
                 <%= for comment <- @comments do %>
                   <div class="flex gap-3 p-4 bg-gray-50 rounded-lg">
                     <%!-- Avatar --%>
-                    <div class="flex-shrink-0">
+                    <div class="shrink-0">
                       <%= if comment.user.avatar_url do %>
                         <img
                           src={comment.user.avatar_url}
@@ -613,8 +618,8 @@ defmodule FafCnWeb.UnitLive do
     cond do
       diff < 60 -> "just now"
       diff < 3600 -> "#{div(diff, 60)}m ago"
-      diff < 86400 -> "#{div(diff, 3600)}h ago"
-      diff < 604_800 -> "#{div(diff, 86400)}d ago"
+      diff < 86_400 -> "#{div(diff, 3600)}h ago"
+      diff < 604_800 -> "#{div(diff, 86_400)}d ago"
       true -> Calendar.strftime(datetime, "%Y-%m-%d")
     end
   end

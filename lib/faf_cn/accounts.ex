@@ -173,9 +173,9 @@ defmodule FafCn.Accounts do
   @doc """
   Checks if a user is the super admin (zwpdbh).
   """
-  def is_super_admin?(%User{email: "zwpdbh@outlook.com"}), do: true
-  def is_super_admin?(%User{provider_uid: "4442806"}), do: true
-  def is_super_admin?(_), do: false
+  def super_admin?(%User{email: "zwpdbh@outlook.com"}), do: true
+  def super_admin?(%User{provider_uid: "4442806"}), do: true
+  def super_admin?(_), do: false
 
   @doc """
   Grants admin role to a user. Only super admin can do this.
@@ -183,7 +183,7 @@ defmodule FafCn.Accounts do
   def grant_admin_role(user_id, granted_by_id) do
     grantor = get_user!(granted_by_id)
 
-    if is_super_admin?(grantor) do
+    if super_admin?(grantor) do
       %UserRole{}
       |> UserRole.changeset(%{
         user_id: user_id,
@@ -203,7 +203,7 @@ defmodule FafCn.Accounts do
   def revoke_admin_role(user_id, revoked_by_id) do
     revoker = get_user!(revoked_by_id)
 
-    if is_super_admin?(revoker) do
+    if super_admin?(revoker) do
       case Repo.get_by(UserRole, user_id: user_id, role: "admin") do
         nil -> {:error, "User does not have admin role"}
         role -> Repo.delete(role)
@@ -216,10 +216,10 @@ defmodule FafCn.Accounts do
   @doc """
   Checks if a user has admin role.
   """
-  def is_admin?(nil), do: false
+  def admin?(nil), do: false
 
-  def is_admin?(user) do
-    is_super_admin?(user) || has_admin_role?(user)
+  def admin?(user) do
+    super_admin?(user) || has_admin_role?(user)
   end
 
   defp has_admin_role?(%User{id: user_id}) do

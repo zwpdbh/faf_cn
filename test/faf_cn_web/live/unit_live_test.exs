@@ -61,7 +61,7 @@ defmodule FafCnWeb.UnitLiveTest do
       assert html =~ "UEL0105"
       assert html =~ "Engineer"
       assert html =~ "T1 Engineer"
-      
+
       # Should see comments section (empty state)
       assert html =~ "Comments"
       assert html =~ "No comments yet"
