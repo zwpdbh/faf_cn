@@ -5,6 +5,19 @@ defmodule FafCn.UnitEditLogsTest do
   alias FafCn.UnitEditLogs
   alias FafCn.Units
 
+  setup do
+    # Set up super admin env vars for tests
+    System.put_env("SUPER_ADMIN_EMAIL", "superadmin@example.com")
+    System.put_env("SUPER_ADMIN_GITHUB_ID", "99999")
+
+    on_exit(fn ->
+      System.delete_env("SUPER_ADMIN_EMAIL")
+      System.delete_env("SUPER_ADMIN_GITHUB_ID")
+    end)
+
+    :ok
+  end
+
   describe "log_unit_edit/6" do
     setup do
       {:ok, admin} =
@@ -18,9 +31,9 @@ defmodule FafCn.UnitEditLogsTest do
       # Grant admin role
       {:ok, super_admin} =
         Accounts.register_oauth_user(%{
-          email: "zwpdbh@outlook.com",
+          email: "superadmin@example.com",
           provider: "github",
-          provider_uid: "4442806",
+          provider_uid: "99999",
           name: "Super Admin"
         })
 
@@ -85,9 +98,9 @@ defmodule FafCn.UnitEditLogsTest do
 
       {:ok, super_admin} =
         Accounts.register_oauth_user(%{
-          email: "zwpdbh@outlook.com",
+          email: "superadmin@example.com",
           provider: "github",
-          provider_uid: "4442806",
+          provider_uid: "99999",
           name: "Super Admin"
         })
 
@@ -149,9 +162,9 @@ defmodule FafCn.UnitEditLogsTest do
 
       {:ok, super_admin} =
         Accounts.register_oauth_user(%{
-          email: "zwpdbh@outlook.com",
+          email: "superadmin@example.com",
           provider: "github",
-          provider_uid: "4442806",
+          provider_uid: "99999",
           name: "Super Admin"
         })
 
@@ -161,7 +174,7 @@ defmodule FafCn.UnitEditLogsTest do
         Accounts.register_oauth_user(%{
           email: "user@example.com",
           provider: "github",
-          provider_uid: "99999",
+          provider_uid: "88888",
           name: "Regular User"
         })
 

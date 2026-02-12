@@ -171,10 +171,20 @@ defmodule FafCn.Accounts do
   alias FafCn.Accounts.UserRole
 
   @doc """
-  Checks if a user is the super admin (zwpdbh).
+  Checks if a user is the super admin.
+  Configured via SUPER_ADMIN_EMAIL and SUPER_ADMIN_GITHUB_ID env vars.
   """
-  def super_admin?(%User{email: "zwpdbh@outlook.com"}), do: true
-  def super_admin?(%User{provider_uid: "4442806"}), do: true
+  def super_admin?(%User{} = user) do
+    admin_email = System.get_env("SUPER_ADMIN_EMAIL")
+    admin_github_id = System.get_env("SUPER_ADMIN_GITHUB_ID")
+
+    cond do
+      admin_email && user.email == admin_email -> true
+      admin_github_id && user.provider_uid == admin_github_id -> true
+      true -> false
+    end
+  end
+
   def super_admin?(_), do: false
 
   @doc """

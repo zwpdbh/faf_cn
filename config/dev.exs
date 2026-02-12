@@ -1,5 +1,21 @@
 import Config
 
+# Load environment variables from .env file for local development
+# Install envvar if not already: mix archive.install hex envvar
+if File.exists?(".env") do
+  File.read!(".env")
+  |> String.split("\n")
+  |> Enum.each(fn line ->
+    line = String.trim(line)
+    if line != "" && !String.starts_with?(line, "#") do
+      case String.split(line, "=", parts: 2) do
+        [key, value] -> System.put_env(key, value)
+        _ -> :ok
+      end
+    end
+  end)
+end
+
 # Configure your database
 config :faf_cn, FafCn.Repo,
   username: "postgres",
