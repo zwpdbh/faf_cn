@@ -301,7 +301,7 @@ defmodule FafCnWeb.EcoPredictionLive do
             phx-value-unit-id={unit.unit_id}
             class={[
               "group relative aspect-square rounded-lg p-1 transition-all duration-150 flex flex-col items-center justify-center text-center overflow-hidden",
-              unit_faction_bg(unit.faction),
+              unit_faction_bg_class(unit.faction),
               border_class
             ]}
             title={"#{unit.unit_id} - #{unit.description || unit.name || "Unknown"}"}
@@ -325,7 +325,7 @@ defmodule FafCnWeb.EcoPredictionLive do
       <%= if @selected_unit do %>
         <%!-- Selected Unit Display --%>
         <div class="text-center mb-4">
-          <div class={["w-16 h-16 rounded-lg mx-auto mb-2", unit_faction_bg(@selected_unit.faction)]}>
+          <div class={["w-16 h-16 rounded-lg mx-auto mb-2", unit_faction_bg_class(@selected_unit.faction)]}>
             <div class={"unit-icon-#{@selected_unit.unit_id} w-full h-full"} />
           </div>
           <h3 class="font-semibold text-gray-900">{@selected_unit.name}</h3>
@@ -463,11 +463,15 @@ defmodule FafCnWeb.EcoPredictionLive do
     |> Enum.into(%{})
   end
 
-  defp unit_faction_bg("UEF"), do: "bg-blue-100"
-  defp unit_faction_bg("CYBRAN"), do: "bg-red-100"
-  defp unit_faction_bg("AEON"), do: "bg-emerald-100"
-  defp unit_faction_bg("SERAPHIM"), do: "bg-violet-100"
-  defp unit_faction_bg(_), do: "bg-gray-100"
+  defp unit_faction_bg_class(faction) do
+    case faction do
+      "UEF" -> "unit-bg-uef"
+      "CYBRAN" -> "unit-bg-cybran"
+      "AEON" -> "unit-bg-aeon"
+      "SERAPHIM" -> "unit-bg-seraphim"
+      _ -> "bg-gray-100"
+    end
+  end
 
   defp format_time(seconds) do
     mins = div(seconds, 60)
