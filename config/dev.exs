@@ -7,6 +7,7 @@ if File.exists?(".env") do
   |> String.split("\n")
   |> Enum.each(fn line ->
     line = String.trim(line)
+
     if line != "" && !String.starts_with?(line, "#") do
       case String.split(line, "=", parts: 2) do
         [key, value] -> System.put_env(key, value)

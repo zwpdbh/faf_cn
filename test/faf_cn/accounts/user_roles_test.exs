@@ -188,6 +188,7 @@ defmodule FafCn.Accounts.UserRolesTest do
     test "returns false for other users" do
       System.put_env("SUPER_ADMIN_EMAIL", "admin@example.com")
       System.put_env("SUPER_ADMIN_GITHUB_ID", "99999")
+
       on_exit(fn ->
         System.delete_env("SUPER_ADMIN_EMAIL")
         System.delete_env("SUPER_ADMIN_GITHUB_ID")
