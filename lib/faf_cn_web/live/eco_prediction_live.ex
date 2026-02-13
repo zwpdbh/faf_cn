@@ -722,24 +722,25 @@ defmodule FafCnWeb.EcoPredictionLive do
     "#{tier_prefix}#{display_name}"
   end
 
+  # List of unit descriptions that should be standardized across factions
+  @standardized_descriptions [
+    "Mass Extractor",
+    "Mass Fabricator",
+    "Energy Generator",
+    "Hydrocarbon Power Plant"
+  ]
+
   # Standardize display names for units that have faction-specific naming
   defp get_standardized_display_name(unit) do
     description = unit.description || "Unknown"
 
     # For units with standard descriptions, use description (ignoring faction-specific names)
     # This ensures "Mass Pump", "Hyalatoh" all show as "Mass Extractor"
-    cond do
-      description in [
-        "Mass Extractor",
-        "Mass Fabricator",
-        "Energy Generator",
-        "Hydrocarbon Power Plant"
-      ] ->
-        description
-
-      true ->
-        # For other units, use nickname if available, otherwise description
-        unit.name || description
+    if description in @standardized_descriptions do
+      description
+    else
+      # For other units, use nickname if available, otherwise description
+      unit.name || description
     end
   end
 
