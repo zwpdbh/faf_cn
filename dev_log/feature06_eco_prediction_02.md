@@ -6,20 +6,20 @@ This section layouts the core concepts the simulation must consider.
 
 ### Resource Production Units
 
-| Resource | Valid Production Units | Notes |
-|----------|----------------------|-------|
-| **Mass** | T1/T2/T3 Mex, T2/T3 Mass Fabricator | Only these contribute to mass income |
-| **Energy** | T1/T2/T3 Power Generators | (List to be completed) |
+| Resource   | Valid Production Units              | Notes                                |
+| ---------- | ----------------------------------- | ------------------------------------ |
+| **Mass**   | T1/T2/T3 Mex, T2/T3 Mass Fabricator | Only these contribute to mass income |
+| **Energy** | T1/T2/T3 Power Generators           | (List to be completed)               |
 
 ### Build Power Rules
 
 #### Engineer Build Power (Base)
 
 | Engineer Tier | Build Power |
-|--------------|-------------|
-| T1 Engineer | 5 BP |
-| T2 Engineer | 10 BP |
-| T3 Engineer | 15 BP |
+| ------------- | ----------- |
+| T1 Engineer   | 5 BP        |
+| T2 Engineer   | 10 BP       |
+| T3 Engineer   | 15 BP       |
 
 **Formula**: `Total Engineer BP = (T1 × 5) + (T2 × 10) + (T3 × 15)`
 
@@ -27,30 +27,30 @@ This section layouts the core concepts the simulation must consider.
 
 #### Factory Build Power (Reference)
 
-| Factory Type | Build Power |
-|--------------|-------------|
-| T1 Land Factory | ~20 BP |
-| T2 Land Factory | ~40 BP |
-| T3 Land Factory | ~90 BP |
-| T1 Air Factory | ~20 BP |
-| T2 Air Factory | ~40 BP |
-| T3 Air Factory | ~90 BP |
-| T1 Naval Factory | ~20 BP |
-| T2 Naval Factory | ~40 BP |
-| T3 Naval Factory | ~90 BP |
+| Factory Type     | Build Power |
+| ---------------- | ----------- |
+| T1 Land Factory  | ~20 BP      |
+| T2 Land Factory  | ~40 BP      |
+| T3 Land Factory  | ~90 BP      |
+| T1 Air Factory   | ~20 BP      |
+| T2 Air Factory   | ~40 BP      |
+| T3 Air Factory   | ~90 BP      |
+| T1 Naval Factory | ~20 BP      |
+| T2 Naval Factory | ~40 BP      |
+| T3 Naval Factory | ~90 BP      |
 
 ---
 
 #### Factory Requirement by Target Unit
 
-| Target Category | Factory Required? | Factory Type Needed | BP Calculation |
-|-----------------|-------------------|---------------------|----------------|
-| **Experimental** | ❌ No | — | Engineers only |
-| **Land (non-EXP)** | ✅ Yes | Matching tier Land Factory | Factory BP + assisting engineers |
-| **Air** | ✅ Yes | Matching tier Air Factory | Factory BP + assisting engineers |
-| **Naval** | ✅ Yes | Matching tier Naval Factory | Factory BP + assisting engineers |
-| **Structure** | ❌ No | — | Engineers only |
-| **Engineer** | ❌ No | — | Engineers only |
+| Target Category     | Factory Required? | Factory Type Needed         | BP Calculation                   |
+| ------------------- | ----------------- | --------------------------- | -------------------------------- |
+| **Experimental**    | ❌ No              | —                           | Engineers only                   |
+| **Land (non-EXP)**  | ✅ Yes             | Matching tier Land Factory  | Factory BP + assisting engineers |
+| **Air (non-EXP)**   | ✅ Yes             | Matching tier Air Factory   | Factory BP + assisting engineers |
+| **Naval (non-EXP)** | ✅ Yes             | Matching tier Naval Factory | Factory BP + assisting engineers |
+| **Structure**       | ❌ No              | —                           | Engineers only                   |
+| **Engineer**        | ✅ Yes             | Matching tier Land Factory  | Factory BP + assisting engineers |
 
 ---
 
@@ -75,6 +75,11 @@ Phase 2: Build Units
   - BP = New_Factory_BP + Assisting_Engineers_BP
 ```
 
+**Scenario D: Building Engineers (from Land Factory)**
+```
+Total BP = Land_Factory_BP + Sum_of_assisting_engineers_BP
+```
+
 ---
 
 #### Examples
@@ -92,6 +97,11 @@ Phase 2: Build Units
   - Time to build factory = Factory_Cost / (5 × 15) = Factory_Cost / 75
 - Phase 2: Build 10 Bricks with factory + 5 T3 Engineers
   - BP = 90 + 75 = **165 BP**
+
+**Example 4: Building 5 T3 Engineers (from Land Factory)**
+- T3 Land Factory + 5 T3 Engineers assisting
+- BP = 90 + (5 × 15) = **165 BP**
+- Note: Engineers are built from Land Factory, require factory BP
 
 ### Resource Flow Characteristics
 
