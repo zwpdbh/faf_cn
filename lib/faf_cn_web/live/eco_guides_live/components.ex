@@ -110,7 +110,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
               <h3 class="font-semibold text-gray-900">{@base_unit.unit_id}</h3>
             </div>
             <p class="text-sm text-gray-600">
-              {@base_unit.description || @base_unit.name || "Engineer"}
+              {format_unit_display_name(@base_unit)}
             </p>
             <div class="mt-1 flex items-center space-x-4 text-xs text-gray-500">
               <span>Mass: {format_number(@base_unit.build_cost_mass)}</span>
@@ -188,7 +188,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
               unit_faction_bg_class(unit.faction),
               border_class
             ]}
-            title={"#{unit.unit_id} - #{unit.description || unit.name || "Unknown"}"}
+            title={"#{format_unit_display_name(unit)}: #{unit.description || "No description"}"}
           >
             <%!-- Unit icon from sprite sheet --%>
             <div class={["unit-icon-#{unit.unit_id} w-12 h-12 shrink-0"]}></div>
@@ -390,7 +390,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
                   href={~p"/units/#{unit.unit_id}"}
                   class="text-xs font-medium text-gray-900 truncate hover:text-indigo-600"
                 >
-                  {unit.description || unit.name || unit.unit_id}
+                  {format_unit_display_name(unit)}
                 </a>
               </div>
               <span class={[
@@ -464,7 +464,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
                     href={~p"/units/#{base_unit.unit_id}"}
                     class="text-xs font-medium text-gray-700 truncate block hover:text-indigo-600"
                   >
-                    {base_unit.description || base_unit.name || base_unit.unit_id}
+                    {format_unit_display_name(base_unit)}
                   </a>
                   <span class="text-[10px] text-gray-500">
                     Mass: {format_number(base_unit.build_cost_mass)}
@@ -491,8 +491,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
                         href={~p"/units/#{target_unit.unit_id}"}
                         class="text-xs text-gray-700 truncate hover:text-indigo-600"
                       >
-                        {target_unit.description || target_unit.name ||
-                          target_unit.unit_id}
+                        {format_unit_display_name(target_unit)}
                       </a>
                     </div>
                     <span class={[
@@ -622,6 +621,80 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
       2 -> "T2"
       3 -> "T3"
       4 -> "EXP"
+    end
+  end
+
+  @doc """
+  Formats unit display name as "Description -- Name" or just "Description" if no name.
+  """
+  def format_unit_display_name(unit) do
+    display_name = get_standardized_display_name(unit)
+    tier_prefix = get_tier_prefix(unit)
+    "#{tier_prefix}#{display_name}"
+  end
+
+  # Standardize display names for units that have faction-specific naming
+  defp get_standardized_display_name(unit) do
+    description = unit.description || "Unknown"
+
+    # For units with standard descriptions, use description (ignoring faction-specific names)
+    # This ensures "Mass Pump", "Hyalatoh" all show as "Mass Extractor"
+    cond do
+      description in [
+        "Mass Extractor",
+        "Mass Fabricator",
+        "Energy Generator",
+        "Hydrocarbon Power Plant"
+      ] ->
+        description
+
+      true ->
+        # For other units, use nickname if available, otherwise description
+        unit.name || description
+    end
+  end
+
+  # Units that exist at multiple tech levels - these need tier prefix
+  @multi_tier_units [
+    "Mass Extractor",
+    "Mass Fabricator",
+    "Power Generator",
+    "Energy Storage",
+    "Mass Storage",
+    "Engineer",
+    "Land Factory",
+    "Land Factory HQ",
+    "Air Factory",
+    "Air Factory HQ",
+    "Naval Factory",
+    "Naval Factory HQ",
+    "Point Defense",
+    "Anti-Air Turret",
+    "Anti-Air Defense",
+    "Anti-Air Flak Artillery",
+    "Anti-Air SAM Launcher",
+    "Artillery Installation",
+    "Torpedo Launcher",
+    "Radar System",
+    "Sonar System"
+  ]
+
+  defp get_tier_prefix(unit) do
+    description = unit.description || ""
+
+    # Only add tier prefix for units that exist at multiple tech levels
+    if description in @multi_tier_units do
+      categories = unit.categories || []
+
+      cond do
+        "TECH1" in categories -> "T1 "
+        "TECH2" in categories -> "T2 "
+        "TECH3" in categories -> "T3 "
+        "EXPERIMENTAL" in categories -> "EXP "
+        true -> ""
+      end
+    else
+      ""
     end
   end
 
