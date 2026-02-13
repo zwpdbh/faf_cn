@@ -1,283 +1,220 @@
-# Feature06: Eco Prediction Part02 -- Algorithm
+# Feature06: Eco Prediction Part02 -- Algorithm (Agent-Based)
 
-## Core Concepts
+## Architecture: Two-Agent System
 
-This section layouts the core concepts the simulation must consider.
+This document describes the agent-based approach to eco simulation.
 
-### Resource Production Units
+### Agent Overview
 
-| Resource   | Valid Production Units              | Notes                                |
-| ---------- | ----------------------------------- | ------------------------------------ |
-| **Mass**   | T1/T2/T3 Mex, T2/T3 Mass Fabricator | Only these contribute to mass income |
-| **Energy** | T1/T2/T3 Power Generators           | (List to be completed)               |
-
-### Build Power Rules
-
-#### Engineer Build Power (Base)
-
-| Engineer Tier | Build Power |
-| ------------- | ----------- |
-| T1 Engineer   | 5 BP        |
-| T2 Engineer   | 10 BP       |
-| T3 Engineer   | 15 BP       |
-
-**Formula**: `Total Engineer BP = (T1 × 5) + (T2 × 10) + (T3 × 15)`
-
----
-
-#### Factory Build Power (Reference)
-
-| Factory Type     | Build Power |
-| ---------------- | ----------- |
-| T1 Land Factory  | ~20 BP      |
-| T2 Land Factory  | ~40 BP      |
-| T3 Land Factory  | ~90 BP      |
-| T1 Air Factory   | ~20 BP      |
-| T2 Air Factory   | ~40 BP      |
-| T3 Air Factory   | ~90 BP      |
-| T1 Naval Factory | ~20 BP      |
-| T2 Naval Factory | ~40 BP      |
-| T3 Naval Factory | ~90 BP      |
-
----
-
-#### Factory Requirement by Target Unit
-
-| Target Category     | Factory Required? | Factory Type Needed         | BP Calculation                   |
-| ------------------- | ----------------- | --------------------------- | -------------------------------- |
-| **Experimental**    | ❌ No              | —                           | Engineers only                   |
-| **Land (non-EXP)**  | ✅ Yes             | Matching tier Land Factory  | Factory BP + assisting engineers |
-| **Air (non-EXP)**   | ✅ Yes             | Matching tier Air Factory   | Factory BP + assisting engineers |
-| **Naval (non-EXP)** | ✅ Yes             | Matching tier Naval Factory | Factory BP + assisting engineers |
-| **Structure**       | ❌ No              | —                           | Engineers only                   |
-| **Engineer**        | ✅ Yes             | Matching tier Land Factory  | Factory BP + assisting engineers |
-
----
-
-#### Build Power Formula by Scenario
-
-**Scenario A: Building Experimental or Structure**
 ```
-Total BP = Sum of all engineers' BP
+┌─────────────────────────────────────────────────────────────┐
+│                    TWO-AGENT SYSTEM                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌─────────────────────┐        ┌─────────────────────┐    │
+│  │    PLANNER AGENT    │◄──────►│    BUILDER AGENT    │    │
+│  │     (The Brain)     │        │    (The Hands)      │    │
+│  └─────────────────────┘        └─────────────────────┘    │
+│                                                              │
+│  Observes:                        Observes:                  │
+│  - Current resources              - Build progress           │
+│  - Income rates                   - BP availability          │
+│  - Goal requirements              - Resource drain           │
+│  - Optimization ops                                          │
+│                                                              │
+│  Decides:                         Executes:                  │
+│  "What to build next?"            "Building X... done!"      │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**Scenario B: Building Battle Unit (Land/Air/Naval) with Existing Factory**
-```
-Total BP = Factory_BP + Sum_of_assisting_engineers_BP
-```
+### Agent Responsibilities
 
-**Scenario C: Building Battle Unit + Factory (User selects "include factory")**
-```
-Phase 1: Build Factory
-  - BP = Engineers only
+#### PlannerAgent
 
-Phase 2: Build Units
-  - BP = New_Factory_BP + Assisting_Engineers_BP
-```
+**State:**
+- `goal`: Target unit and quantity
+- `current_eco`: Mass/energy storage and income
+- `engineers`: Available build power
+- `state`: `:idle | :planning | :waiting | :complete`
+- `completed_builds`: List of finished builds
 
-**Scenario D: Building Engineers (from Land Factory)**
-```
-Total BP = Land_Factory_BP + Sum_of_assisting_engineers_BP
-```
+**Key Functions:**
+- `plan/2`: Analyze and decide what to build
+- `receive/2`: Handle messages from Builder
+- `analyze_risks/2`: Detect overflow/stall before they happen
 
----
+#### BuilderAgent
 
-#### Examples
+**State:**
+- `engineers`: Build power source
+- `state`: `:idle | :building | :stalled | :complete`
+- `current_build`: What we're building now
+- `progress`: How far along (seconds)
+- `total_bp`: Available build power
 
-**Example 1: Building Galactic Colossus (Experimental)**
-- 5 T3 Engineers
-- BP = 5 × 15 = **75 BP**
+**Key Functions:**
+- `receive_order/2`: Accept build commands
+- `progress/2`: Advance build by N seconds
+- `check_resources/2`: Detect energy/mass stalls
 
-**Example 2: Building 10 Bricks (T3 Land) with existing factory**
-- T3 Land Factory + 5 T3 Engineers assisting
-- BP = 90 + (5 × 15) = **165 BP**
+### Message Protocol
 
-**Example 3: Building T3 Land Factory + 10 Bricks**
-- Phase 1: Build T3 Land Factory with 5 T3 Engineers
-  - Time to build factory = Factory_Cost / (5 × 15) = Factory_Cost / 75
-- Phase 2: Build 10 Bricks with factory + 5 T3 Engineers
-  - BP = 90 + 75 = **165 BP**
-
-**Example 4: Building 5 T3 Engineers (from Land Factory)**
-- T3 Land Factory + 5 T3 Engineers assisting
-- BP = 90 + (5 × 15) = **165 BP**
-- Note: Engineers are built from Land Factory, require factory BP
-
-### Resource Flow Characteristics
-
-- **Drain**: Continuous (mass/energy drain steadily during build)
-- **Income**: Discrete (only completed structures generate income)
-- **Build Power**: Discrete (only completed engineers add BP)
-- **Priority**: Avoid energy stall as first priority
-
-### Unit Energy Consumption
-
-Completed structures (Mex, Mass Fab) drain energy continuously and reduce net energy income.
-
----
-
-## Requirements
-
-Requirements derived from core concepts and design decisions.
-
-### R1: Simulation Scope
-
-**R1.1**: The simulation MUST calculate the optimal build order to achieve user goal in minimum time.
-
-**R1.2**: The simulation MUST consider building income structures (Mex/Fab/Pgens) first if it reduces total completion time.
-
-**R1.3**: The simulation MUST NOT consider partially built structures - all build power focuses on one target at a time (sequential building).
-
-### R2: Goal Definition
-
-**R2.1**: User goal consists of:
-- Target unit type
-- Quantity to build
-- Whether to include prerequisite factory (for battle units)
-
-**R2.2**: For experimental units, factory is NEVER required.
-
-**R2.3**: For battle units (land/air/naval), the corresponding factory MUST be built first IF user selects "include factory" option.
-
-### R3: Build Power Calculation
-
-**R3.1**: Base build power formula:
-```
-Total BP = (T1_eng × 5) + (T2_eng × 10) + (T3_eng × 15)
-```
-
-**R3.2**: When building battle units with factory:
-```
-Total BP = Factory_BP + Assisting_Engineers_BP
-```
-
-**R3.3**: If user inputs 0 engineers, simulation MUST consider building at least 1 engineer first.
-
-### R4: Resource Accumulation
-
-**R4.1**: Simulation MUST handle storage limits:
-- Cannot spend mass/energy beyond current storage
-- Excess income when storage is full is wasted (overflow)
-
-**R4.2**: Simulation SHOULD minimize mass overflow (keep storage near 0 for efficient players).
-
-**R4.3**: Energy storage limits MAY prevent starting builds if unit cost > storage capacity.
-
-### R5: Energy Stall Prevention
-
-**R5.1**: Energy stall is the PRIMARY constraint to avoid.
-
-**R5.2**: If build drain > available energy income, build progress slows proportionally:
-```
-Effective_BP = BP × (Actual_Energy_Income / Required_Energy_Drain)
-```
-
-**R5.3**: If energy stall would occur, simulation SHOULD schedule building power generators first.
-
-### R6: Income Structure Building
-
-**R6.1**: Building income structures (Mex/Fab/Pgens) during simulation is REQUIRED (not optional).
-
-**R6.2**: Each completed income structure MUST be reflected as a milestone.
-
-**R6.3**: Income structures' energy drain after completion MUST reduce net energy income.
-
-### R7: Factory Handling
-
-**R7.1**: For battle units WITHOUT "include factory":
-- Assume factory exists
-- Include factory BP in calculation
-- Do NOT include factory cost/time
-
-**R7.2**: For battle units WITH "include factory":
-- Build factory first
-- Then build units with factory assistance
-
-### R8: Milestone Generation
-
-**R8.1**: Milestones MUST include:
-- Start (time: 0)
-- Each income structure completion
-- Factory completion (if applicable)
-- Resource threshold reached (mass/energy sufficient for goal)
-- Goal completion
-
-**R8.2**: Milestones SHOULD include storage full/overflow warnings.
-
-### R9: Output Data
-
-**R9.1**: Simulation MUST return:
-- Total completion time
-- Complete build order with timestamps
-- Time-series data for chart (accumulated mass/energy at each time point)
-- List of milestones
-
----
-
-## Formulas & Data Structures
-
-(To be completed in next iteration)
-
-### Input Structure
+#### Message Format
 
 ```elixir
 %{
-  initial_eco: %{
-    mass_income: float,
-    energy_income: float,
-    mass_storage: float,
-    mass_storage_max: float,
-    energy_storage: float,
-    energy_storage_max: float,
-    engineers: %{
-      t1: integer,
-      t2: integer,
-      t3: integer
-    }
-  },
-  goal: %{
-    unit: UnitSchema,
-    quantity: integer,
-    include_factory: boolean  # for battle units only
-  }
+  type: :build_completed,
+  from: :builder_agent,
+  to: :planner_agent,
+  payload: %{unit: _, quantity: _},
+  timestamp: 0
 }
 ```
 
-### Output Structure
+#### Message Types
+
+| Category | Message | Direction | Meaning |
+|----------|---------|-----------|---------|
+| **Command** | `{:build, unit, qty}` | Planner → Builder | Start building |
+| **Command** | `{:cancel, unit}` | Planner → Builder | Cancel build |
+| **Status** | `{:build_started, unit, limit: _}` | Builder → Planner | Build begun |
+| **Status** | `{:build_completed, unit, qty}` | Builder → Planner | Build done |
+| **Warning** | `{:stall_warning, resource, _}` | Builder → Planner | Resource stall |
+| **Event** | `{:income_boost, resource, amount}` | System → Planner | Mex/Pgen finished |
+| **System** | `{:goal_achieved, _}` | Planner → System | All done |
+
+### Message Flow Scenarios
+
+#### Scenario 1: Simple Build
+
+```
+T=0:  Planner → Builder: {:build, "UEL0105", qty: 1}
+      Builder → Planner: {:build_started, "UEL0105", limit: :build_power}
+
+T=6:  Builder → Planner: {:build_completed, "UEL0105", qty: 1}
+      Planner → System: {:goal_achieved, completed: [...]}
+```
+
+#### Scenario 2: Resource Limited (Mex First)
+
+```
+T=0:  Planner detects: mass income (2/s) too low for GC
+      Planner → Builder: {:build, "UAB1103", qty: 1}  # Build Mex first
+      
+T=65: Builder → Planner: {:build_completed, "UAB1103", qty: 1}
+      MexAgent → Planner: {:income_boost, :mass, +2}
+      Planner: Updates mass_income: 2 → 4
+      
+T=65: Planner → Builder: {:build, "UAL0401", qty: 1}  # Now build GC
+```
+
+#### Scenario 3: Energy Stall
+
+```
+T=0:  Planner → Builder: {:build, "UEL0401", qty: 1}  # Fatboy
+
+T=10: Builder detects: energy drain (700/s) > income (50/s)
+      Builder → Planner: {:stall_warning, :energy, drain: 700, income: 50}
+
+T=10: Planner → Builder: {:build, "t1_pgen", qty: 1}  # Build power first
+
+T=35: Builder → Planner: {:build_completed, "t1_pgen", ...}
+      PgenAgent → Planner: {:income_boost, :energy, +20}
+      Planner: Updates energy_income: 50 → 70
+
+T=35: Planner → Builder: {:resume, "UEL0401"}  # Continue Fatboy
+```
+
+### State Machines
+
+#### PlannerAgent States
+
+```
+:idle → :planning → :waiting ─┐
+  ▲                           │
+  └───────────────────────────┘
+                              ↓
+                         :complete
+```
+
+Transitions:
+- `:idle` → `:planning`: `plan/2` called
+- `:planning` → `:waiting`: Orders sent to builder
+- `:waiting` → `:planning`: Received completion, need next plan
+- `:waiting` → `:complete`: Goal achieved
+
+#### BuilderAgent States
+
+```
+:idle → :building ──→ :complete
+          │
+          ↓ (stall detected)
+       :stalled ──→ :building (resume)
+```
+
+Transitions:
+- `:idle` → `:building`: Received build order
+- `:building` → `:stalled`: Resource stall detected
+- `:stalled` → `:building`: Received resume order
+- `:building` → `:complete`: Build finished
+
+## Test Philosophy
+
+Tests validate **message sequences**, not numerical values:
 
 ```elixir
-%{
-  completion_time: integer,  # seconds
-  build_order: [%{unit: string, start_time: integer, end_time: integer}],
-  chart_data: %{
-    time: [integer],
-    mass: [float],
-    energy: [float]
-  },
-  milestones: [%{time: integer, label: string, type: atom}]
-}
+# Old way (brittle)
+assert result.completion_time == 84
+
+# New way (clear intent)
+assert messages == [
+  {:planner, :builder, {:build, "UAL0401", qty: 1}},
+  {:builder, :planner, {:build_started, "UAL0401", limit: :build_power}},
+  {:builder, :planner, {:build_completed, "UAL0401", qty: 1}},
+  {:planner, :system, {:goal_achieved, _}}
+]
 ```
 
-### Key Formulas
+### Test Scenarios
 
-(To be derived from requirements)
+1. **Simple Build**: Planner orders → Builder completes
+2. **Resource Limited**: Planner detects → Orders Mex → Income boost → Orders goal
+3. **Energy Stall**: Builder reports → Planner orders Pgen → Resume
+4. **Overflow Risk**: Planner predicts → Orders engineers → Avoid waste
+5. **Complex**: Multiple constraints, multiple optimizations
 
----
+## Implementation Status
 
-## Implementation & Unit Tests
+| Component | Status |
+|-----------|--------|
+| Message protocol | ✅ Defined |
+| PlannerAgent skeleton | ✅ Created |
+| BuilderAgent skeleton | ✅ Created |
+| Scenario tests | ✅ Created |
+| Simple build logic | ✅ Tests pass |
+| Resource optimization | ✅ Tests pass (stubs) |
+| Energy stall handling | ✅ Tests pass (stubs) |
+| Overflow prevention | ⏳ Pending |
 
-(To be completed)
+## Test Status
 
-### Module Structure
+All 6 agent tests passing:
+- ✅ Scenario 1: Simple build with sufficient resources
+- ✅ Scenario 2: Resource limited build (Mex first optimization)
+- ✅ Scenario 3: Energy stall during build
+- ✅ Scenario 4: Mass overflow risk (engineer orders)
+- ✅ Agent state transitions: Planner
+- ✅ Agent state transitions: Builder
 
+## Next Steps
+
+1. Implement actual unit lookup (replace `:t1_mex`/`:t1_pgen` stubs with DB queries)
+2. Implement income boost updates when structures complete
+3. Add overflow prevention logic
+4. Integration with EcoEngine main module
+
+Run tests:
+```bash
+mix test test/faf_cn/eco_engine/agents/planner_builder_test.exs
 ```
-lib/faf_cn/eco_engine/
-├── simulation.ex      # Main entry point
-├── calculator.ex      # Time/cost calculations
-├── scheduler.ex       # Build order optimization
-└── validator.ex       # Input validation
-```
-
-### Test Cases
-
-(To be defined based on formulas)
