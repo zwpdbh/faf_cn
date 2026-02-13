@@ -1,220 +1,80 @@
-# Feature06: Eco Prediction Part02 -- Algorithm (Agent-Based)
+# Feature06: Eco Prediction Part02 -- Algorithm
 
-## Architecture: Two-Agent System
 
-This document describes the agent-based approach to eco simulation.
+## Architecture
 
-### Agent Overview
+**Observer-driven tick cycle**: 
+Observer advances time → reports to Manager → Manager decides → Builder executes update eco drain to Observer → repeat.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    TWO-AGENT SYSTEM                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌─────────────────────┐        ┌─────────────────────┐    │
-│  │    PLANNER AGENT    │◄──────►│    BUILDER AGENT    │    │
-│  │     (The Brain)     │        │    (The Hands)      │    │
-│  └─────────────────────┘        └─────────────────────┘    │
-│                                                              │
-│  Observes:                        Observes:                  │
-│  - Current resources              - Build progress           │
-│  - Income rates                   - BP availability          │
-│  - Goal requirements              - Resource drain           │
-│  - Optimization ops                                          │
-│                                                              │
-│  Decides:                         Executes:                  │
-│  "What to build next?"            "Building X... done!"      │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-```
+## Agent Responsibilities
 
-### Agent Responsibilities
+### Observer Agent
+**Role**: World state keeper. Drives the simulation tick.
 
-#### PlannerAgent
+**State**: mass_storage, energy_storage, mass_income, energy_income, mass_drain, energy_drain
 
-**State:**
-- `goal`: Target unit and quantity
-- `current_eco`: Mass/energy storage and income
-- `engineers`: Available build power
-- `state`: `:idle | :planning | :waiting | :complete`
-- `completed_builds`: List of finished builds
+**Actions**:
+- `tick()`: Advance one step, apply income and drain
+- `apply_consumption(drain)`: Builder reports consumption
+- `get_stats()`: Return current eco snapshot
+- Generate warnings: `:mass_overflow`, `:mass_stall`, `:energy_overflow`, `:energy_stall`
 
-**Key Functions:**
-- `plan/2`: Analyze and decide what to build
-- `receive/2`: Handle messages from Builder
-- `analyze_risks/2`: Detect overflow/stall before they happen
+### Manager Agent
+**Role**: Decision maker. Controls simulation lifecycle.
 
-#### BuilderAgent
+**State**: goal (unit + qty), expand_directions (mass/energy/bp priorities), current_builds
 
-**State:**
-- `engineers`: Build power source
-- `state`: `:idle | :building | :stalled | :complete`
-- `current_build`: What we're building now
-- `progress`: How far along (seconds)
-- `total_bp`: Available build power
+**Actions**:
+- `start(goal, initial_eco)`: Initialize simulation
+- `on_tick(eco_stats, warnings)`: Decide next action
+- `stop()`: Terminate simulation when goal achieved
 
-**Key Functions:**
-- `receive_order/2`: Accept build commands
-- `progress/2`: Advance build by N seconds
-- `check_resources/2`: Detect energy/mass stalls
+**Decision Logic**:
+- Goal unit completed? → stop simulation
+- Can afford goal? → order Builder to build it
+- Mass limited? → order mex/fabber
+- Energy limited? → order pgen
+- BP limited? → order engineer
 
-### Message Protocol
+### Builder Agent
+**Role**: Build executor. Tracks construction progress.
 
-#### Message Format
+**State**: current_target, build_power, progress_seconds, total_seconds
 
-```elixir
-%{
-  type: :build_completed,
-  from: :builder_agent,
-  to: :planner_agent,
-  payload: %{unit: _, quantity: _},
-  timestamp: 0
-}
-```
+**Actions**:
+- `receive_order({:build, unit})`: Start new build
+- `tick()`: Advance progress, report consumption
+- `report_consumption()`: Tell Observer upcoming drain
+- `report_complete()`: Notify Manager when done
 
-#### Message Types
+## Message Protocol
 
-| Category | Message | Direction | Meaning |
-|----------|---------|-----------|---------|
-| **Command** | `{:build, unit, qty}` | Planner → Builder | Start building |
-| **Command** | `{:cancel, unit}` | Planner → Builder | Cancel build |
-| **Status** | `{:build_started, unit, limit: _}` | Builder → Planner | Build begun |
-| **Status** | `{:build_completed, unit, qty}` | Builder → Planner | Build done |
-| **Warning** | `{:stall_warning, resource, _}` | Builder → Planner | Resource stall |
-| **Event** | `{:income_boost, resource, amount}` | System → Planner | Mex/Pgen finished |
-| **System** | `{:goal_achieved, _}` | Planner → System | All done |
+| Direction          | Message                           | Purpose              |
+| ------------------ | --------------------------------- | -------------------- |
+| Observer → Manager | `{:tick_report, stats, warnings}` | Current eco + alerts |
+| Manager → Builder  | `{:build, unit}` / `:wait`        | What to do next      |
+| Builder → Observer | `{:will_consume, mass, energy}`   | Upcoming drain       |
+| Builder → Manager  | `{:build_completed, unit}`        | Build finished       |
 
-### Message Flow Scenarios
-
-#### Scenario 1: Simple Build
+## Simulation Lifecycle
 
 ```
-T=0:  Planner → Builder: {:build, "UEL0105", qty: 1}
-      Builder → Planner: {:build_started, "UEL0105", limit: :build_power}
-
-T=6:  Builder → Planner: {:build_completed, "UEL0105", qty: 1}
-      Planner → System: {:goal_achieved, completed: [...]}
+:start → Manager initializes Observer with eco, Builder idle
+   ↓
+:run → Observer.tick() drives loop
+   ↓
+:decide → Manager receives report, sends order
+   ↓
+:execute → Builder updates, reports consumption
+   ↓
+:check → Builder completed? → Manager stops if goal achieved
+   ↓
+:completed → Return {completion_time, milestones, final_eco}
 ```
 
-#### Scenario 2: Resource Limited (Mex First)
+## Notes
 
-```
-T=0:  Planner detects: mass income (2/s) too low for GC
-      Planner → Builder: {:build, "UAB1103", qty: 1}  # Build Mex first
-      
-T=65: Builder → Planner: {:build_completed, "UAB1103", qty: 1}
-      MexAgent → Planner: {:income_boost, :mass, +2}
-      Planner: Updates mass_income: 2 → 4
-      
-T=65: Planner → Builder: {:build, "UAL0401", qty: 1}  # Now build GC
-```
-
-#### Scenario 3: Energy Stall
-
-```
-T=0:  Planner → Builder: {:build, "UEL0401", qty: 1}  # Fatboy
-
-T=10: Builder detects: energy drain (700/s) > income (50/s)
-      Builder → Planner: {:stall_warning, :energy, drain: 700, income: 50}
-
-T=10: Planner → Builder: {:build, "t1_pgen", qty: 1}  # Build power first
-
-T=35: Builder → Planner: {:build_completed, "t1_pgen", ...}
-      PgenAgent → Planner: {:income_boost, :energy, +20}
-      Planner: Updates energy_income: 50 → 70
-
-T=35: Planner → Builder: {:resume, "UEL0401"}  # Continue Fatboy
-```
-
-### State Machines
-
-#### PlannerAgent States
-
-```
-:idle → :planning → :waiting ─┐
-  ▲                           │
-  └───────────────────────────┘
-                              ↓
-                         :complete
-```
-
-Transitions:
-- `:idle` → `:planning`: `plan/2` called
-- `:planning` → `:waiting`: Orders sent to builder
-- `:waiting` → `:planning`: Received completion, need next plan
-- `:waiting` → `:complete`: Goal achieved
-
-#### BuilderAgent States
-
-```
-:idle → :building ──→ :complete
-          │
-          ↓ (stall detected)
-       :stalled ──→ :building (resume)
-```
-
-Transitions:
-- `:idle` → `:building`: Received build order
-- `:building` → `:stalled`: Resource stall detected
-- `:stalled` → `:building`: Received resume order
-- `:building` → `:complete`: Build finished
-
-## Test Philosophy
-
-Tests validate **message sequences**, not numerical values:
-
-```elixir
-# Old way (brittle)
-assert result.completion_time == 84
-
-# New way (clear intent)
-assert messages == [
-  {:planner, :builder, {:build, "UAL0401", qty: 1}},
-  {:builder, :planner, {:build_started, "UAL0401", limit: :build_power}},
-  {:builder, :planner, {:build_completed, "UAL0401", qty: 1}},
-  {:planner, :system, {:goal_achieved, _}}
-]
-```
-
-### Test Scenarios
-
-1. **Simple Build**: Planner orders → Builder completes
-2. **Resource Limited**: Planner detects → Orders Mex → Income boost → Orders goal
-3. **Energy Stall**: Builder reports → Planner orders Pgen → Resume
-4. **Overflow Risk**: Planner predicts → Orders engineers → Avoid waste
-5. **Complex**: Multiple constraints, multiple optimizations
-
-## Implementation Status
-
-| Component | Status |
-|-----------|--------|
-| Message protocol | ✅ Defined |
-| PlannerAgent skeleton | ✅ Created |
-| BuilderAgent skeleton | ✅ Created |
-| Scenario tests | ✅ Created |
-| Simple build logic | ✅ Tests pass |
-| Resource optimization | ✅ Tests pass (stubs) |
-| Energy stall handling | ✅ Tests pass (stubs) |
-| Overflow prevention | ⏳ Pending |
-
-## Test Status
-
-All 6 agent tests passing:
-- ✅ Scenario 1: Simple build with sufficient resources
-- ✅ Scenario 2: Resource limited build (Mex first optimization)
-- ✅ Scenario 3: Energy stall during build
-- ✅ Scenario 4: Mass overflow risk (engineer orders)
-- ✅ Agent state transitions: Planner
-- ✅ Agent state transitions: Builder
-
-## Next Steps
-
-1. Implement actual unit lookup (replace `:t1_mex`/`:t1_pgen` stubs with DB queries)
-2. Implement income boost updates when structures complete
-3. Add overflow prevention logic
-4. Integration with EcoEngine main module
-
-Run tests:
-```bash
-mix test test/faf_cn/eco_engine/agents/planner_builder_test.exs
-```
+- **Observer** is objectively passive. Only records and reports. No decisions.
+- **Manager** is the only decider. Controls when to stop.
+- **Builder** is pure execution. Reports progress and consumption.
+- Warnings are just data. Manager decides whether to act on them.
