@@ -1,6 +1,7 @@
-# Feature06: Eco Prediction
+# Feature06: Eco Prediction Part01 -- UI
 
 Goal-oriented economy simulator that calculates time required to afford target units based on current eco stats.
+This is part one -- which focus on settle down the UI part to determine how user should use this page.
 
 **URL**: http://localhost:4000/eco-prediction
 
@@ -10,15 +11,8 @@ Goal-oriented economy simulator that calculates time required to afford target u
 
 Basic chart with static demo data.
 
----
 
-## Phase 02: Real-Time Simulation ✅ (Deprecated)
-
-Original design with tick-based simulation - replaced by Phase 03.
-
----
-
-## Phase 03: Goal-Oriented Redesign ✅ COMPLETED
+## Phase 02: Goal-Oriented Design ✅ COMPLETED
 
 ### User Flow Implemented
 
@@ -104,135 +98,6 @@ Original design with tick-based simulation - replaced by Phase 03.
 - Value formatter (k/M suffixes)
 
 ---
-
-## Phase 04: Real Calculation Engine 🔄 NEXT STEP
-
-### Current State
-Using dummy data for UI prototyping:
-```elixir
-%{
-  completion_time: 347,  # seconds
-  goal_quantity: 1,
-  goal_mass: 1500,
-  goal_energy: 65000,
-  unit_name: "Broadsword",
-  milestones: [
-    %{time: 0, label: "Start"},
-    %{time: 120, label: "Mass storage full"},
-    %{time: 234, label: "Energy threshold reached"},
-    %{time: 347, label: "Goal Complete"}
-  ]
-}
-```
-
-### Required Implementation
-
-**1. Calculate Total Build Power**
-```
-Total BP = (T1_eng × 5) + (T2_eng × 10) + (T3_eng × 15)
-```
-
-**2. Calculate Build Time for Goal**
-```
-Unit Build Time = unit.build_time / Total BP
-Total Build Time = Unit Build Time × Quantity
-```
-
-**3. Calculate Resource Requirements**
-```
-Total Mass Needed = unit.build_cost_mass × quantity
-Total Energy Needed = unit.build_cost_energy × quantity
-```
-
-**4. Calculate Time to Accumulate Resources**
-
-Simple version (no storage limits):
-```
-Time for Mass = Total Mass Needed / mass_income
-Time for Energy = Total Energy Needed / energy_income
-completion_time = max(Time for Mass, Time for Energy, Total Build Time)
-```
-
-Advanced version (with storage limits):
-- Track storage filling/emptying
-- Handle overflow when storage is full
-- Calculate exact moment when both resources are available
-
-**5. Generate Milestones**
-- **Start** (time: 0)
-- **Storage Full** (if applicable - when mass or energy hits max storage)
-- **Resource Threshold** (when accumulated >= required)
-- **Goal Complete** (max of resource time and build time)
-
-**6. Generate Chart Data**
-```
-For each time point t from 0 to completion_time:
-  accumulated_mass[t] = min(mass_storage + mass_income × t, mass_storage_max)
-  accumulated_energy[t] = min(energy_storage + energy_income × t, energy_storage_max)
-```
-
-### Algorithm Outline
-
-```elixir
-def run_simulation(initial_eco, unit, quantity) do
-  total_mass = unit.build_cost_mass * quantity
-  total_energy = unit.build_cost_energy * quantity
-  total_bp = calculate_build_power(initial_eco)
-  build_time = unit.build_time / total_bp * quantity
-  
-  # Calculate resource accumulation time
-  mass_time = calculate_resource_time(
-    total_mass,
-    initial_eco.mass_income,
-    initial_eco.mass_storage,
-    initial_eco.mass_storage_max
-  )
-  
-  energy_time = calculate_resource_time(
-    total_energy,
-    initial_eco.energy_income,
-    initial_eco.energy_storage,
-    initial_eco.energy_storage_max
-  )
-  
-  completion_time = max(mass_time, energy_time, build_time)
-  
-  # Generate time series data
-  chart_data = generate_chart_data(initial_eco, completion_time)
-  
-  # Generate milestones
-  milestones = generate_milestones(
-    completion_time,
-    mass_time,
-    energy_time,
-    build_time,
-    initial_eco
-  )
-  
-  %{
-    completion_time: completion_time,
-    goal_mass: total_mass,
-    goal_energy: total_energy,
-    chart_data: chart_data,
-    milestones: milestones
-  }
-end
-```
-
----
-
-## Phase 05: Advanced Features (Future)
-
-- Multiple sequential goals
-- Energy generator simulation (income changes over time)
-- Mass extractor upgrades during build
-- Save/load scenarios
-- Share results via URL
-
----
-
-**Status**: ✅ Phase 03 Complete, 🔄 Phase 04 Ready to Implement  
-**Last Updated**: 2026-02-11
 
 ### Quick Test
 

@@ -342,7 +342,7 @@ defmodule FafCnWeb.EcoPredictionLive do
               unit_faction_bg_class(unit.faction),
               border_class
             ]}
-            title={"#{unit.unit_id} - #{unit.description || unit.name || "Unknown"}"}
+            title={"#{format_unit_display_name(unit)}: #{unit.description || "No description"}"}
           >
             <div class={["unit-icon-#{unit.unit_id} w-12 h-12 shrink-0"]}></div>
             <%= if is_selected do %>
@@ -375,11 +375,31 @@ defmodule FafCnWeb.EcoPredictionLive do
           ]}>
             <div class={"unit-icon-#{@selected_unit.unit_id} w-full h-full"} />
           </div>
-          <h3 class="font-semibold text-gray-900">{@selected_unit.name}</h3>
-          <p class="text-sm text-gray-500">{@selected_unit.unit_id}</p>
-          <p class="text-sm text-gray-600 mt-1">
-            {@selected_unit.build_cost_mass}M / {@selected_unit.build_cost_energy}E
-          </p>
+          <h3 class="font-semibold text-gray-900">
+            {format_unit_display_name(@selected_unit)}
+          </h3>
+
+          <%!-- Unit Stats Cards --%>
+          <div class="grid grid-cols-3 gap-2 mt-3">
+            <div class="text-center p-2 bg-blue-50 rounded-lg border border-blue-100">
+              <div class="text-[10px] text-blue-500 uppercase tracking-wide">Mass</div>
+              <div class="text-sm font-bold text-blue-700">
+                {@selected_unit.build_cost_mass}
+              </div>
+            </div>
+            <div class="text-center p-2 bg-yellow-50 rounded-lg border border-yellow-100">
+              <div class="text-[10px] text-yellow-600 uppercase tracking-wide">Energy</div>
+              <div class="text-sm font-bold text-yellow-700">
+                {@selected_unit.build_cost_energy}
+              </div>
+            </div>
+            <div class="text-center p-2 bg-purple-50 rounded-lg border border-purple-100">
+              <div class="text-[10px] text-purple-500 uppercase tracking-wide">Build Time</div>
+              <div class="text-sm font-bold text-purple-700">
+                {@selected_unit.build_time}
+              </div>
+            </div>
+          </div>
         </div>
 
         <%!-- Quantity Input --%>
@@ -693,6 +713,78 @@ defmodule FafCnWeb.EcoPredictionLive do
       "AEON" -> "unit-bg-aeon"
       "SERAPHIM" -> "unit-bg-seraphim"
       _ -> "bg-gray-100"
+    end
+  end
+
+  defp format_unit_display_name(unit) do
+    display_name = get_standardized_display_name(unit)
+    tier_prefix = get_tier_prefix(unit)
+    "#{tier_prefix}#{display_name}"
+  end
+
+  # List of unit descriptions that should be standardized across factions
+  @standardized_descriptions [
+    "Mass Extractor",
+    "Mass Fabricator",
+    "Energy Generator",
+    "Hydrocarbon Power Plant"
+  ]
+
+  # Standardize display names for units that have faction-specific naming
+  defp get_standardized_display_name(unit) do
+    description = unit.description || "Unknown"
+
+    # For units with standard descriptions, use description (ignoring faction-specific names)
+    # This ensures "Mass Pump", "Hyalatoh" all show as "Mass Extractor"
+    if description in @standardized_descriptions do
+      description
+    else
+      # For other units, use nickname if available, otherwise description
+      unit.name || description
+    end
+  end
+
+  # Units that exist at multiple tech levels - these need tier prefix
+  @multi_tier_units [
+    "Mass Extractor",
+    "Mass Fabricator",
+    "Power Generator",
+    "Energy Storage",
+    "Mass Storage",
+    "Engineer",
+    "Land Factory",
+    "Land Factory HQ",
+    "Air Factory",
+    "Air Factory HQ",
+    "Naval Factory",
+    "Naval Factory HQ",
+    "Point Defense",
+    "Anti-Air Turret",
+    "Anti-Air Defense",
+    "Anti-Air Flak Artillery",
+    "Anti-Air SAM Launcher",
+    "Artillery Installation",
+    "Torpedo Launcher",
+    "Radar System",
+    "Sonar System"
+  ]
+
+  defp get_tier_prefix(unit) do
+    description = unit.description || ""
+
+    # Only add tier prefix for units that exist at multiple tech levels
+    if description in @multi_tier_units do
+      categories = unit.categories || []
+
+      cond do
+        "TECH1" in categories -> "T1 "
+        "TECH2" in categories -> "T2 "
+        "TECH3" in categories -> "T3 "
+        "EXPERIMENTAL" in categories -> "EXP "
+        true -> ""
+      end
+    else
+      ""
     end
   end
 
