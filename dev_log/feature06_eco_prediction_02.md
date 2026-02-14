@@ -78,3 +78,5 @@ Observer advances time → reports to Manager → Manager decides → Builder ex
 - **Manager** is the only decider. Controls when to stop.
 - **Builder** is pure execution. Reports progress and consumption.
 - Warnings are just data. Manager decides whether to act on them.
+
+
