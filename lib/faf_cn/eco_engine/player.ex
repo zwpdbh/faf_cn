@@ -67,13 +67,13 @@ defmodule FafCn.EcoEngine.Player do
   @doc """
   Calculate mass drain per second based on target and BP.
 
-  Returns 0 if idle or no target set.
+  Returns 0.0 if idle or no target set.
 
   Formula: (target_mass / target_build_time) * build_power
   """
   def mass_drain_per_sec(player) do
     if player.idle do
-      0
+      0.0
     else
       calculate_drain(player.target_mass, player.target_build_time, player.build_power)
     end
@@ -82,13 +82,13 @@ defmodule FafCn.EcoEngine.Player do
   @doc """
   Calculate energy drain per second based on target and BP.
 
-  Returns 0 if idle or no target set.
+  Returns 0.0 if idle or no target set.
 
   Formula: (target_power / target_build_time) * build_power
   """
   def energy_drain_per_sec(player) do
     if player.idle do
-      0
+      0.0
     else
       calculate_drain(player.target_power, player.target_build_time, player.build_power)
     end
@@ -130,9 +130,9 @@ defmodule FafCn.EcoEngine.Player do
 
   defp calculate_drain(cost, build_time, build_power) do
     if cost && build_time && build_time > 0 do
-      div(cost * build_power, build_time)
+      cost * build_power / build_time
     else
-      0
+      0.0
     end
   end
 end

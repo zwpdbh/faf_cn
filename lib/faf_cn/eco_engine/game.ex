@@ -24,12 +24,12 @@ defmodule FafCn.EcoEngine.Game do
   ]
 
   @type t :: %__MODULE__{
-    mass_storage: integer(),
-    energy_storage: integer(),
+    mass_storage: float(),
+    energy_storage: float(),
     mass_produce_per_sec: integer(),
     energy_produce_per_sec: integer(),
-    mass_drain_per_sec: integer(),
-    energy_drain_per_sec: integer()
+    mass_drain_per_sec: float(),
+    energy_drain_per_sec: float()
   }
 
   @doc """
@@ -37,12 +37,12 @@ defmodule FafCn.EcoEngine.Game do
   """
   def new(opts \\ %{}) do
     %__MODULE__{
-      mass_storage: opts[:mass_storage] || 0,
-      energy_storage: opts[:energy_storage] || 0,
+      mass_storage: opts[:mass_storage] || 0.0,
+      energy_storage: opts[:energy_storage] || 0.0,
       mass_produce_per_sec: opts[:mass_produce_per_sec] || 0,
       energy_produce_per_sec: opts[:energy_produce_per_sec] || 0,
-      mass_drain_per_sec: 0,
-      energy_drain_per_sec: 0
+      mass_drain_per_sec: 0.0,
+      energy_drain_per_sec: 0.0
     }
   end
 
@@ -79,8 +79,8 @@ defmodule FafCn.EcoEngine.Game do
 
     %{
       game
-      | mass_storage: max(new_mass, 0),
-        energy_storage: max(new_energy, 0)
+      | mass_storage: max(new_mass, 0.0),
+        energy_storage: max(new_energy, 0.0)
     }
   end
 

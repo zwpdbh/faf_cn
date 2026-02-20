@@ -72,10 +72,10 @@ defmodule FafCn.EcoEngine.PlayerTest do
         idle: false
       })
 
-      # (52 / 130) * 10 = 4
-      assert Player.mass_drain_per_sec(player) == 4
-      # (260 / 130) * 10 = 20
-      assert Player.energy_drain_per_sec(player) == 20
+      # (52 / 130) * 10 = 4.0
+      assert Player.mass_drain_per_sec(player) == 4.0
+      # (260 / 130) * 10 = 20.0
+      assert Player.energy_drain_per_sec(player) == 20.0
     end
 
     test "returns 0 drain when idle" do
@@ -87,15 +87,15 @@ defmodule FafCn.EcoEngine.PlayerTest do
         idle: true
       })
 
-      assert Player.mass_drain_per_sec(player) == 0
-      assert Player.energy_drain_per_sec(player) == 0
+      assert Player.mass_drain_per_sec(player) == 0.0
+      assert Player.energy_drain_per_sec(player) == 0.0
     end
 
     test "returns 0 drain when no target" do
       player = Player.new(%{build_power: 10, idle: false})
 
-      assert Player.mass_drain_per_sec(player) == 0
-      assert Player.energy_drain_per_sec(player) == 0
+      assert Player.mass_drain_per_sec(player) == 0.0
+      assert Player.energy_drain_per_sec(player) == 0.0
     end
   end
 
@@ -135,8 +135,8 @@ defmodule FafCn.EcoEngine.PlayerTest do
       assert status.idle == false
       assert status.building == true
       assert status.has_target == true
-      assert status.mass_drain_per_sec == 4
-      assert status.energy_drain_per_sec == 20
+      assert status.mass_drain_per_sec == 4.0
+      assert status.energy_drain_per_sec == 20.0
     end
   end
 end

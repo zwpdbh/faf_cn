@@ -10,7 +10,7 @@ defmodule FafCn.EcoEngine.GameTest do
     test "creates with defaults" do
       game = Game.new()
 
-      assert game.mass_storage == 0
+      assert game.mass_storage == 0.0
       assert game.energy_storage == 0
       assert game.mass_produce_per_sec == 0
       assert game.energy_produce_per_sec == 0
@@ -26,8 +26,8 @@ defmodule FafCn.EcoEngine.GameTest do
         energy_produce_per_sec: 100
       })
 
-      assert game.mass_storage == 650
-      assert game.energy_storage == 2500
+      assert game.mass_storage == 650.0
+      assert game.energy_storage == 2500.0
       assert game.mass_produce_per_sec == 10
       assert game.energy_produce_per_sec == 100
     end
@@ -92,7 +92,7 @@ defmodule FafCn.EcoEngine.GameTest do
 
       game = Game.tick(game)
 
-      assert game.mass_storage == 110
+      assert game.mass_storage == 110.0
     end
   end
 
@@ -130,12 +130,12 @@ defmodule FafCn.EcoEngine.GameTest do
 
       status = Game.status(game)
 
-      assert status.mass_storage == 650
-      assert status.energy_storage == 2500
+      assert status.mass_storage == 650.0
+      assert status.energy_storage == 2500.0
       assert status.mass_produce_per_sec == 10
       assert status.energy_produce_per_sec == 100
-      assert status.mass_drain_per_sec == 4
-      assert status.energy_drain_per_sec == 20
+      assert status.mass_drain_per_sec == 4.0
+      assert status.energy_drain_per_sec == 20.0
       assert status.mass_net_per_sec == 6
       assert status.energy_net_per_sec == 80
       assert status.draining == true
