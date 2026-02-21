@@ -19,12 +19,13 @@ defmodule FafCn.EcoEngine.GameTest do
     end
 
     test "accepts custom values" do
-      game = Game.new(%{
-        mass_storage: 650,
-        energy_storage: 2500,
-        mass_produce_per_sec: 10,
-        energy_produce_per_sec: 100
-      })
+      game =
+        Game.new(%{
+          mass_storage: 650,
+          energy_storage: 2500,
+          mass_produce_per_sec: 10,
+          energy_produce_per_sec: 100
+        })
 
       assert game.mass_storage == 650.0
       assert game.energy_storage == 2500.0
@@ -56,12 +57,14 @@ defmodule FafCn.EcoEngine.GameTest do
 
   describe "tick/1" do
     test "applies production and drain" do
-      game = Game.new(%{
-        mass_storage: 100,
-        energy_storage: 500,
-        mass_produce_per_sec: 10,
-        energy_produce_per_sec: 100
-      })
+      game =
+        Game.new(%{
+          mass_storage: 100,
+          energy_storage: 500,
+          mass_produce_per_sec: 10,
+          energy_produce_per_sec: 100
+        })
+
       game = Game.set_drain(game, 4, 20)
 
       game = Game.tick(game)
@@ -73,10 +76,12 @@ defmodule FafCn.EcoEngine.GameTest do
     end
 
     test "storage cannot go below zero" do
-      game = Game.new(%{
-        mass_storage: 5,
-        mass_produce_per_sec: 0
-      })
+      game =
+        Game.new(%{
+          mass_storage: 5,
+          mass_produce_per_sec: 0
+        })
+
       game = Game.set_drain(game, 10, 0)
 
       game = Game.tick(game)
@@ -85,10 +90,11 @@ defmodule FafCn.EcoEngine.GameTest do
     end
 
     test "works with zero drain" do
-      game = Game.new(%{
-        mass_storage: 100,
-        mass_produce_per_sec: 10
-      })
+      game =
+        Game.new(%{
+          mass_storage: 100,
+          mass_produce_per_sec: 10
+        })
 
       game = Game.tick(game)
 
@@ -98,20 +104,24 @@ defmodule FafCn.EcoEngine.GameTest do
 
   describe "can_afford?/1" do
     test "returns true when storage >= drain" do
-      game = Game.new(%{
-        mass_storage: 100,
-        energy_storage: 500
-      })
+      game =
+        Game.new(%{
+          mass_storage: 100,
+          energy_storage: 500
+        })
+
       game = Game.set_drain(game, 10, 50)
 
       assert Game.can_afford?(game)
     end
 
     test "returns false when storage < drain" do
-      game = Game.new(%{
-        mass_storage: 5,
-        energy_storage: 500
-      })
+      game =
+        Game.new(%{
+          mass_storage: 5,
+          energy_storage: 500
+        })
+
       game = Game.set_drain(game, 10, 50)
 
       refute Game.can_afford?(game)
@@ -120,12 +130,14 @@ defmodule FafCn.EcoEngine.GameTest do
 
   describe "status/1" do
     test "returns current status" do
-      game = Game.new(%{
-        mass_storage: 650,
-        energy_storage: 2500,
-        mass_produce_per_sec: 10,
-        energy_produce_per_sec: 100
-      })
+      game =
+        Game.new(%{
+          mass_storage: 650,
+          energy_storage: 2500,
+          mass_produce_per_sec: 10,
+          energy_produce_per_sec: 100
+        })
+
       game = Game.set_drain(game, 4, 20)
 
       status = Game.status(game)

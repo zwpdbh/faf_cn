@@ -23,12 +23,12 @@ defmodule FafCn.EcoEngine.Player do
   ]
 
   @type t :: %__MODULE__{
-    target_mass: integer() | nil,
-    target_power: integer() | nil,
-    target_build_time: integer() | nil,
-    build_power: integer(),
-    idle: boolean()
-  }
+          target_mass: integer() | nil,
+          target_power: integer() | nil,
+          target_build_time: integer() | nil,
+          build_power: integer(),
+          idle: boolean()
+        }
 
   @doc """
   Create new Player.

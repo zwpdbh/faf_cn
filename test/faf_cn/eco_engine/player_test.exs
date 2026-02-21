@@ -23,13 +23,14 @@ defmodule FafCn.EcoEngine.PlayerTest do
     end
 
     test "accepts target stats" do
-      player = Player.new(%{
-        target_mass: @t1_eng_mass,
-        target_power: @t1_eng_power,
-        target_build_time: @t1_eng_time,
-        build_power: 10,
-        idle: false
-      })
+      player =
+        Player.new(%{
+          target_mass: @t1_eng_mass,
+          target_power: @t1_eng_power,
+          target_build_time: @t1_eng_time,
+          build_power: 10,
+          idle: false
+        })
 
       assert player.target_mass == @t1_eng_mass
       assert player.target_power == @t1_eng_power
@@ -64,13 +65,14 @@ defmodule FafCn.EcoEngine.PlayerTest do
 
   describe "drain calculations" do
     test "calculates drain when building" do
-      player = Player.new(%{
-        target_mass: @t1_eng_mass,
-        target_power: @t1_eng_power,
-        target_build_time: @t1_eng_time,
-        build_power: 10,
-        idle: false
-      })
+      player =
+        Player.new(%{
+          target_mass: @t1_eng_mass,
+          target_power: @t1_eng_power,
+          target_build_time: @t1_eng_time,
+          build_power: 10,
+          idle: false
+        })
 
       # (52 / 130) * 10 = 4.0
       assert Player.mass_drain_per_sec(player) == 4.0
@@ -79,13 +81,14 @@ defmodule FafCn.EcoEngine.PlayerTest do
     end
 
     test "returns 0 drain when idle" do
-      player = Player.new(%{
-        target_mass: @t1_eng_mass,
-        target_power: @t1_eng_power,
-        target_build_time: @t1_eng_time,
-        build_power: 10,
-        idle: true
-      })
+      player =
+        Player.new(%{
+          target_mass: @t1_eng_mass,
+          target_power: @t1_eng_power,
+          target_build_time: @t1_eng_time,
+          build_power: 10,
+          idle: true
+        })
 
       assert Player.mass_drain_per_sec(player) == 0.0
       assert Player.energy_drain_per_sec(player) == 0.0
@@ -101,11 +104,12 @@ defmodule FafCn.EcoEngine.PlayerTest do
 
   describe "has_target?/1" do
     test "returns true when all target stats set" do
-      player = Player.new(%{
-        target_mass: @t1_eng_mass,
-        target_power: @t1_eng_power,
-        target_build_time: @t1_eng_time
-      })
+      player =
+        Player.new(%{
+          target_mass: @t1_eng_mass,
+          target_power: @t1_eng_power,
+          target_build_time: @t1_eng_time
+        })
 
       assert Player.has_target?(player)
     end
@@ -118,13 +122,14 @@ defmodule FafCn.EcoEngine.PlayerTest do
 
   describe "status/1" do
     test "returns full status" do
-      player = Player.new(%{
-        target_mass: @t1_eng_mass,
-        target_power: @t1_eng_power,
-        target_build_time: @t1_eng_time,
-        build_power: 10,
-        idle: false
-      })
+      player =
+        Player.new(%{
+          target_mass: @t1_eng_mass,
+          target_power: @t1_eng_power,
+          target_build_time: @t1_eng_time,
+          build_power: 10,
+          idle: false
+        })
 
       status = Player.status(player)
 

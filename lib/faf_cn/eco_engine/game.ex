@@ -24,13 +24,13 @@ defmodule FafCn.EcoEngine.Game do
   ]
 
   @type t :: %__MODULE__{
-    mass_storage: float(),
-    energy_storage: float(),
-    mass_produce_per_sec: integer(),
-    energy_produce_per_sec: integer(),
-    mass_drain_per_sec: float(),
-    energy_drain_per_sec: float()
-  }
+          mass_storage: float(),
+          energy_storage: float(),
+          mass_produce_per_sec: integer(),
+          energy_produce_per_sec: integer(),
+          mass_drain_per_sec: float(),
+          energy_drain_per_sec: float()
+        }
 
   @doc """
   Create new game state.
@@ -103,10 +103,8 @@ defmodule FafCn.EcoEngine.Game do
       energy_produce_per_sec: game.energy_produce_per_sec,
       mass_drain_per_sec: game.mass_drain_per_sec,
       energy_drain_per_sec: game.energy_drain_per_sec,
-      mass_net_per_sec:
-        game.mass_produce_per_sec - game.mass_drain_per_sec,
-      energy_net_per_sec:
-        game.energy_produce_per_sec - game.energy_drain_per_sec,
+      mass_net_per_sec: game.mass_produce_per_sec - game.mass_drain_per_sec,
+      energy_net_per_sec: game.energy_produce_per_sec - game.energy_drain_per_sec,
       draining: game.mass_drain_per_sec > 0
     }
   end
