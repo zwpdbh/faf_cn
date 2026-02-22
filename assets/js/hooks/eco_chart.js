@@ -66,6 +66,10 @@ export default {
 
   setupMassChart(income, completionTime, goalMass, goalEnergy) {
     const { timeData, valueData } = this.generateData(income, completionTime);
+    
+    // Ensure Y-axis includes the goal value
+    const maxDataValue = Math.max(...valueData, goalMass);
+    const yAxisMax = Math.ceil(maxDataValue * 1.1); // Add 10% padding
 
     const option = {
       title: {
@@ -122,6 +126,8 @@ export default {
         nameLocation: 'middle',
         nameGap: 45,
         nameTextStyle: { color: '#6b7280' },
+        min: 0,
+        max: yAxisMax,
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: {
@@ -168,6 +174,10 @@ export default {
 
   setupEnergyChart(income, completionTime, goalEnergy, goalMass) {
     const { timeData, valueData } = this.generateData(income, completionTime);
+    
+    // Ensure Y-axis includes the goal value
+    const maxDataValue = Math.max(...valueData, goalEnergy);
+    const yAxisMax = Math.ceil(maxDataValue * 1.1); // Add 10% padding
 
     const option = {
       title: {
@@ -224,6 +234,8 @@ export default {
         nameLocation: 'middle',
         nameGap: 50,
         nameTextStyle: { color: '#6b7280' },
+        min: 0,
+        max: yAxisMax,
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: {

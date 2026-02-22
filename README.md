@@ -82,11 +82,11 @@ Ready to run in production? Please [check our deployment guides](https://hexdocs
 - Eco Guide (Done)
   - List units with icons and filters. User could cross compare units by selecting multiple ones.
 
-- Static Eco prediction (In progress)
+- Static Eco Schedule (In progress)
   - User given initial mass and energy, and static build power.
   - Draw mass and energy on chart.
 
-- Dynamic Eco prediction (In progress)
+- Dynamic Eco Schedule (In progress)
   - User given initial mass and energy, allow build more engineer.
   - Draw mass, energy and build power on chart.
 
