@@ -1,3 +1,4 @@
+pub mod eco_comparison;
 pub mod faction_tabs;
 pub mod filter_bar;
 pub mod unit_grid;

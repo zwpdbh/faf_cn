@@ -17,6 +17,11 @@ pub struct AppState {
     pub selected_faction: Signal<Option<Faction>>,
     pub selected_unit: Signal<Option<Unit>>,
     pub active_filters: Signal<FilterState>,
+    
+    // Eco Guides - Selected units for comparison
+    pub eco_selected_unit_ids: Signal<Vec<String>>,
+    pub eco_base_unit_id: Signal<Option<String>>,
+    pub eco_active_filters: Signal<Vec<String>>,  // List of active category filters like Phoenix
 }
 
 #[derive(Clone, Serialize, Deserialize, Default, PartialEq)]
@@ -39,7 +44,32 @@ impl AppState {
             selected_faction: use_signal(|| None),
             selected_unit: use_signal(|| None),
             active_filters: use_signal(FilterState::default),
+            
+            // Eco Guides - Initialize with empty selections
+            eco_selected_unit_ids: use_signal(Vec::new),
+            eco_base_unit_id: use_signal(|| None),
+            eco_active_filters: use_signal(Vec::new),
         }
+    }
+    
+    // Toggle unit selection (add if not present, remove if present)
+    pub fn toggle_unit_selection(&mut self, unit_id: String) {
+        let mut selected = self.eco_selected_unit_ids.write();
+        if let Some(pos) = selected.iter().position(|id| id == &unit_id) {
+            selected.remove(pos);
+        } else {
+            selected.push(unit_id);
+        }
+    }
+    
+    // Clear all unit selections
+    pub fn clear_unit_selections(&mut self) {
+        self.eco_selected_unit_ids.write().clear();
+    }
+    
+    // Set the base unit for comparison
+    pub fn set_base_unit(&mut self, unit_id: Option<String>) {
+        self.eco_base_unit_id.set(unit_id);
     }
 }
 

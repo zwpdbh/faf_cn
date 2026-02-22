@@ -53,8 +53,10 @@ pub fn UnitCard(props: UnitCardProps) -> Element {
             },
             disabled: props.is_disabled && !props.is_selected && !is_base,
             
-            // Unit icon from sprite sheet
-            div { class: "{unit_icon_class} w-12 h-12 shrink-0" }
+            // Unit icon from sprite sheet - using CSS class for sizing (64px)
+            div { 
+                class: "unit-icon {unit_icon_class} w-16 h-16 shrink-0"
+            }
             
             // Yellow star for base unit
             if is_base {
