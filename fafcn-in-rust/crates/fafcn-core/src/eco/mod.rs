@@ -1,7 +1,5 @@
-pub mod state;
-pub mod build_item;
-pub mod simulator;
+//! Economy calculation module for FAF eco guides
 
-pub use state::*;
-pub use build_item::*;
-pub use simulator::*;
+pub mod calculator;
+
+pub use calculator::*;

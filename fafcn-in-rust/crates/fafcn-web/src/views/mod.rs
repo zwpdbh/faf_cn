@@ -16,3 +16,6 @@ pub use blog::Blog;
 
 mod navbar;
 pub use navbar::Navbar;
+
+mod eco_guide;
+pub use eco_guide::EcoGuide;

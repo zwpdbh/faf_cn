@@ -2,8 +2,7 @@
 // need dioxus
 use dioxus::prelude::*;
 
-use components::Hero;
-use views::{Blog, Home, Navbar};
+use views::{Blog, EcoGuide, Home, Navbar};
 
 /// Define a components module that contains all shared components for our app.
 mod components;
@@ -31,6 +30,9 @@ enum Route {
         // Fields of the route variant will be passed to the component as props. In this case, the blog component must accept
         // an `id` prop of type `i32`.
         Blog { id: i32 },
+        // Eco Guide route for unit economy comparison
+        #[route("/eco-guide")]
+        EcoGuide {},
 }
 
 // We can import assets in dioxus with the `asset!` macro. This macro takes a path to an asset relative to the crate root.
@@ -39,6 +41,7 @@ const FAVICON: Asset = asset!("/assets/favicon.ico");
 // The asset macro also minifies some assets like CSS and JS to make bundled smaller
 const MAIN_CSS: Asset = asset!("/assets/styling/main.css");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
+const ECO_GUIDE_CSS: Asset = asset!("/assets/styling/eco_guide.css");
 
 fn main() {
     // The `launch` function is the main entry point for a dioxus app. It takes a component and renders it with the platform feature
@@ -59,6 +62,7 @@ fn App() -> Element {
         document::Link { rel: "icon", href: FAVICON }
         document::Link { rel: "stylesheet", href: MAIN_CSS }
         document::Link { rel: "stylesheet", href: TAILWIND_CSS }
+        document::Link { rel: "stylesheet", href: ECO_GUIDE_CSS }
 
         // The router component renders the route enum we defined above. It will handle synchronization of the URL and render
         // the layouts and components for the active route.

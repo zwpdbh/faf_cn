@@ -1456,6 +1456,7 @@ name = "fafcn-web"
 version = "0.1.0"
 dependencies = [
  "dioxus",
+ "fafcn-core",
 ]
 
 [[package]]
