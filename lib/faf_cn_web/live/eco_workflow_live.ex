@@ -1,9 +1,8 @@
 defmodule FafCnWeb.EcoWorkflowLive do
   @moduledoc """
-  Eco Workflow - Visual workflow builder for economy analysis.
+  Eco Workflow - Visual economy simulation builder for FAF (Forged Alliance Forever).
 
-  Inspired by LiveFlow's Pipeline Builder, this provides a canvas-based interface
-  where users can build computation graphs using drag-and-drop nodes.
+  Build and simulate economy flows with mass, energy, and build power nodes.
   """
   use FafCnWeb, :live_view
 
@@ -19,10 +18,11 @@ defmodule FafCnWeb.EcoWorkflowLive do
        page_title: "Eco Workflow",
        flow: flow,
        node_types: %{
-         fetch: FafCnWeb.EcoWorkflow.FetchNode,
-         filter: FafCnWeb.EcoWorkflow.FilterNode,
-         compute: FafCnWeb.EcoWorkflow.ComputeNode,
-         output: FafCnWeb.EcoWorkflow.OutputNode
+         mass_storage: FafCnWeb.EcoWorkflow.MassStorageNode,
+         power_storage: FafCnWeb.EcoWorkflow.PowerStorageNode,
+         mass_rate: FafCnWeb.EcoWorkflow.MassRateNode,
+         power_rate: FafCnWeb.EcoWorkflow.PowerRateNode,
+         build_power: FafCnWeb.EcoWorkflow.BuildPowerNode
        }
      )}
   end
@@ -34,27 +34,38 @@ defmodule FafCnWeb.EcoWorkflowLive do
       <div class="h-[calc(100vh-64px)] flex flex-col">
         <%!-- Toolbar Header --%>
         <div class="p-4 bg-base-200 border-b border-base-300">
-          <div class="flex items-center justify-between">
-            <div>
+          <div class="flex items-center">
+            <%!-- Left: Title --%>
+            <div class="w-64 shrink-0">
               <h1 class="text-2xl font-bold">Eco Workflow</h1>
               <p class="text-sm text-base-content/70">
-                Build visual workflows for economy analysis
+                Economy simulation for FAF
               </p>
             </div>
-            <div class="flex items-center gap-2">
-              <button class="btn btn-sm btn-primary" phx-click="add_fetch_node">
-                <.icon name="hero-cloud-arrow-down" class="w-4 h-4 mr-1" /> Fetch
-              </button>
-              <button class="btn btn-sm btn-secondary" phx-click="add_filter_node">
-                <.icon name="hero-funnel" class="w-4 h-4 mr-1" /> Filter
-              </button>
-              <button class="btn btn-sm btn-accent" phx-click="add_compute_node">
-                <.icon name="hero-calculator" class="w-4 h-4 mr-1" /> Compute
-              </button>
-              <button class="btn btn-sm btn-success" phx-click="add_output_node">
-                <.icon name="hero-document-text" class="w-4 h-4 mr-1" /> Output
-              </button>
-              <div class="divider divider-horizontal mx-1"></div>
+
+            <%!-- Center: Eco Parameter Buttons --%>
+            <div class="flex-1 flex justify-center">
+              <div class="flex items-center gap-2 bg-base-300/50 px-4 py-2 rounded-xl">
+                <button class="btn btn-sm btn-primary" phx-click="add_mass_storage">
+                  <.icon name="hero-cube" class="w-4 h-4 mr-1" /> Mass Storage
+                </button>
+                <button class="btn btn-sm btn-secondary" phx-click="add_power_storage">
+                  <.icon name="hero-bolt" class="w-4 h-4 mr-1" /> Power Storage
+                </button>
+                <button class="btn btn-sm btn-accent" phx-click="add_mass_rate">
+                  <.icon name="hero-arrow-trending-up" class="w-4 h-4 mr-1" /> Mass/sec
+                </button>
+                <button class="btn btn-sm btn-info" phx-click="add_power_rate">
+                  <.icon name="hero-arrow-trending-down" class="w-4 h-4 mr-1" /> Power/sec
+                </button>
+                <button class="btn btn-sm btn-warning" phx-click="add_build_power">
+                  <.icon name="hero-wrench" class="w-4 h-4 mr-1" /> Build Power
+                </button>
+              </div>
+            </div>
+
+            <%!-- Right: Action Buttons --%>
+            <div class="w-64 shrink-0 flex justify-end items-center gap-2">
               <button class="btn btn-sm" phx-click="reset_flow">
                 Reset
               </button>
@@ -62,7 +73,7 @@ defmodule FafCnWeb.EcoWorkflowLive do
                 Fit View
               </button>
               <button
-                class="btn btn-sm btn-info"
+                class="btn btn-sm btn-success"
                 phx-click={JS.dispatch("lf:auto-layout", to: "#eco-workflow-flow")}
               >
                 Auto Layout
@@ -111,39 +122,20 @@ defmodule FafCnWeb.EcoWorkflowLive do
   # ===== Event Handlers =====
 
   @impl true
-  def handle_event("add_fetch_node", _params, socket) do
+  def handle_event("add_mass_storage", _params, socket) do
     n = System.unique_integer([:positive])
 
     node =
       Node.new(
-        "fetch-#{n}",
+        "mass-storage-#{n}",
         %{x: 100 + rem(n, 3) * 250, y: 100 + div(n, 3) * 150},
         %{
-          label: "Fetch Data",
-          source: "Yahoo Finance",
-          symbol: "AAPL"
+          label: "Mass Storage",
+          value: 650,
+          max: 650,
+          unit: "mass"
         },
-        type: :fetch,
-        handles: [Handle.source(:right)]
-      )
-
-    flow = State.add_node(socket.assigns.flow, node)
-    {:noreply, assign(socket, flow: flow)}
-  end
-
-  @impl true
-  def handle_event("add_filter_node", _params, socket) do
-    n = System.unique_integer([:positive])
-
-    node =
-      Node.new(
-        "filter-#{n}",
-        %{x: 100 + rem(n, 3) * 250, y: 100 + div(n, 3) * 150},
-        %{
-          label: "Filter",
-          condition: "RSI < 30 (Oversold)"
-        },
-        type: :filter,
+        type: :mass_storage,
         handles: [Handle.target(:left), Handle.source(:right)]
       )
 
@@ -152,18 +144,20 @@ defmodule FafCnWeb.EcoWorkflowLive do
   end
 
   @impl true
-  def handle_event("add_compute_node", _params, socket) do
+  def handle_event("add_power_storage", _params, socket) do
     n = System.unique_integer([:positive])
 
     node =
       Node.new(
-        "compute-#{n}",
+        "power-storage-#{n}",
         %{x: 100 + rem(n, 3) * 250, y: 100 + div(n, 3) * 150},
         %{
-          label: "Compute",
-          operation: "Bollinger Bands"
+          label: "Power Storage",
+          value: 5000,
+          max: 5000,
+          unit: "energy"
         },
-        type: :compute,
+        type: :power_storage,
         handles: [Handle.target(:left), Handle.source(:right)]
       )
 
@@ -172,19 +166,66 @@ defmodule FafCnWeb.EcoWorkflowLive do
   end
 
   @impl true
-  def handle_event("add_output_node", _params, socket) do
+  def handle_event("add_mass_rate", _params, socket) do
     n = System.unique_integer([:positive])
 
     node =
       Node.new(
-        "output-#{n}",
+        "mass-rate-#{n}",
         %{x: 100 + rem(n, 3) * 250, y: 100 + div(n, 3) * 150},
         %{
-          label: "Output",
-          format: "PDF Report"
+          label: "Mass Rate",
+          income: 1.0,
+          drain: 0.0,
+          net: 1.0,
+          unit: "mass/sec"
         },
-        type: :output,
-        handles: [Handle.target(:left)]
+        type: :mass_rate,
+        handles: [Handle.target(:left), Handle.source(:right)]
+      )
+
+    flow = State.add_node(socket.assigns.flow, node)
+    {:noreply, assign(socket, flow: flow)}
+  end
+
+  @impl true
+  def handle_event("add_power_rate", _params, socket) do
+    n = System.unique_integer([:positive])
+
+    node =
+      Node.new(
+        "power-rate-#{n}",
+        %{x: 100 + rem(n, 3) * 250, y: 100 + div(n, 3) * 150},
+        %{
+          label: "Power Rate",
+          income: 20.0,
+          drain: 10.0,
+          net: 10.0,
+          unit: "energy/sec"
+        },
+        type: :power_rate,
+        handles: [Handle.target(:left), Handle.source(:right)]
+      )
+
+    flow = State.add_node(socket.assigns.flow, node)
+    {:noreply, assign(socket, flow: flow)}
+  end
+
+  @impl true
+  def handle_event("add_build_power", _params, socket) do
+    n = System.unique_integer([:positive])
+
+    node =
+      Node.new(
+        "build-power-#{n}",
+        %{x: 100 + rem(n, 3) * 250, y: 100 + div(n, 3) * 150},
+        %{
+          label: "Build Power",
+          value: 10,
+          unit: "BP"
+        },
+        type: :build_power,
+        handles: [Handle.target(:left), Handle.source(:right)]
       )
 
     flow = State.add_node(socket.assigns.flow, node)
@@ -311,54 +352,79 @@ defmodule FafCnWeb.EcoWorkflowLive do
   defp create_demo_flow do
     nodes = [
       Node.new(
-        "fetch-1",
-        %{x: 50, y: 150},
+        "mass-storage-1",
+        %{x: 50, y: 100},
         %{
-          label: "Fetch Data",
-          source: "Yahoo Finance",
-          symbol: "AAPL"
+          label: "Mass Storage",
+          value: 650,
+          max: 650,
+          unit: "mass"
         },
-        type: :fetch,
-        handles: [Handle.source(:right)]
-      ),
-      Node.new(
-        "filter-1",
-        %{x: 350, y: 150},
-        %{
-          label: "Filter",
-          condition: "RSI < 30"
-        },
-        type: :filter,
+        type: :mass_storage,
         handles: [Handle.target(:left), Handle.source(:right)]
       ),
       Node.new(
-        "compute-1",
-        %{x: 650, y: 150},
+        "power-storage-1",
+        %{x: 50, y: 250},
         %{
-          label: "Compute",
-          operation: "Bollinger Bands"
+          label: "Power Storage",
+          value: 5000,
+          max: 5000,
+          unit: "energy"
         },
-        type: :compute,
+        type: :power_storage,
         handles: [Handle.target(:left), Handle.source(:right)]
       ),
       Node.new(
-        "output-1",
-        %{x: 950, y: 150},
+        "mass-rate-1",
+        %{x: 350, y: 100},
         %{
-          label: "Output",
-          format: "PDF Report"
+          label: "Mass Rate",
+          income: 1.0,
+          drain: 0.5,
+          net: 0.5,
+          unit: "mass/sec"
         },
-        type: :output,
-        handles: [Handle.target(:left)]
+        type: :mass_rate,
+        handles: [Handle.target(:left), Handle.source(:right)]
+      ),
+      Node.new(
+        "power-rate-1",
+        %{x: 350, y: 250},
+        %{
+          label: "Power Rate",
+          income: 20.0,
+          drain: 15.0,
+          net: 5.0,
+          unit: "energy/sec"
+        },
+        type: :power_rate,
+        handles: [Handle.target(:left), Handle.source(:right)]
+      ),
+      Node.new(
+        "build-power-1",
+        %{x: 650, y: 175},
+        %{
+          label: "Build Power",
+          value: 10,
+          unit: "BP"
+        },
+        type: :build_power,
+        handles: [Handle.target(:left), Handle.source(:right)]
       )
     ]
 
     edges = [
-      Edge.new("e1", "fetch-1", "filter-1", marker_end: %{type: :arrow_closed, color: "#64748b"}),
-      Edge.new("e2", "filter-1", "compute-1",
+      Edge.new("e1", "mass-storage-1", "mass-rate-1",
         marker_end: %{type: :arrow_closed, color: "#64748b"}
       ),
-      Edge.new("e3", "compute-1", "output-1",
+      Edge.new("e2", "power-storage-1", "power-rate-1",
+        marker_end: %{type: :arrow_closed, color: "#64748b"}
+      ),
+      Edge.new("e3", "mass-rate-1", "build-power-1",
+        marker_end: %{type: :arrow_closed, color: "#64748b"}
+      ),
+      Edge.new("e4", "power-rate-1", "build-power-1",
         marker_end: %{type: :arrow_closed, color: "#64748b"}
       )
     ]

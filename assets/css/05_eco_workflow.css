@@ -1,0 +1,152 @@
+/* ============================================
+   05 - Eco Workflow Styles
+   ============================================
+   Styles for the Eco Workflow visual editor.
+   
+   Modify this file to:
+   - Change node appearances
+   - Add new node types
+   - Adjust colors and layout
+   ============================================ */
+
+/* ===== Base Node Styles ===== */
+.workflow-node {
+  background: var(--color-base-100);
+  border: 1px solid var(--color-base-300);
+  border-radius: var(--radius-field);
+  overflow: hidden;
+  font-size: 12px;
+  width: 180px;
+}
+
+.workflow-node-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  color: white;
+  font-weight: 600;
+}
+
+.workflow-node-body {
+  padding: 10px 12px;
+  background: var(--color-base-100);
+}
+
+/* ===== Eco Simulation Node Types ===== */
+
+/* Mass - Cyan/Blue */
+.workflow-node-mass {
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+}
+
+/* Power - Yellow/Gold */
+.workflow-node-power {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+/* Build Power - Orange/Red */
+.workflow-node-build {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+/* ===== Legacy Node Types (kept for compatibility) ===== */
+.workflow-node-fetch {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.workflow-node-filter {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.workflow-node-compute {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.workflow-node-output {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+/* ===== Eco Node Value Colors ===== */
+.text-mass {
+  color: #06b6d4;
+}
+
+.text-power {
+  color: #f59e0b;
+}
+
+.text-build {
+  color: #ef4444;
+}
+
+.bg-mass {
+  background-color: #06b6d4;
+}
+
+.bg-power {
+  background-color: #f59e0b;
+}
+
+/* ===== Node Body Elements ===== */
+
+.workflow-node-field {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.workflow-node-field:last-child {
+  margin-bottom: 0;
+}
+
+.workflow-node-label {
+  color: var(--color-base-content);
+  opacity: 0.6;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.workflow-node-value {
+  color: var(--color-base-content);
+  font-weight: 500;
+}
+
+.workflow-node-unit {
+  font-size: 10px;
+  color: var(--color-base-content);
+  opacity: 0.5;
+  text-transform: uppercase;
+}
+
+.workflow-node-code {
+  color: var(--color-base-content);
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  background: var(--color-base-200);
+  padding: 4px 6px;
+  border-radius: 4px;
+  margin-top: 2px;
+}
+
+/* ===== Progress Bar ===== */
+.workflow-node-progress {
+  height: 6px;
+  background: var(--color-base-300);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 6px 0;
+}
+
+.workflow-node-progress-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* ===== Selection State ===== */
+.lf-node.selected .workflow-node {
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
