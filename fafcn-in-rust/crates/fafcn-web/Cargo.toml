@@ -1,0 +1,33 @@
+[package]
+name = "fafcn-web"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "fafcn-web"
+path = "src/main.rs"
+
+[dependencies]
+# Core
+fafcn-core = { path = "../fafcn-core" }
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+lazy_static = "1.4"
+
+# Dioxus 0.7 - all-in-one crate
+dioxus = { version = "0.7", features = ["web", "router"] }
+
+# WASM
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = ["Document", "Element", "HtmlElement", "HtmlHeadElement", "Window"] }
+js-sys = "0.3"
+
+# Utilities
+log = "0.4"
+wasm-logger = "0.2"
+console_error_panic_hook = "0.1"
+gloo-timers = { version = "0.3", features = ["futures"] }

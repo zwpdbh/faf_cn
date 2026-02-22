@@ -1,0 +1,13 @@
+[application]
+name = "fafcn-web"
+default_platform = "web"
+out_dir = "dist"
+asset_dir = "assets"
+
+[web.app]
+title = "FAF CN - Eco Tools"
+base_path = "/"
+index_path = "public/index.html"
+
+[web.wasm]
+# WASM-specific settings
