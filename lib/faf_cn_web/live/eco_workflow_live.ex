@@ -1,15 +1,13 @@
 defmodule FafCnWeb.EcoWorkflowLive do
   @moduledoc """
   Eco Workflow - Visual workflow builder for economy analysis.
-  
+
   Inspired by LiveFlow's Pipeline Builder, this provides a canvas-based interface
   where users can build computation graphs using drag-and-drop nodes.
   """
   use FafCnWeb, :live_view
 
-  alias LiveFlow.{State, Node, Edge, History, Clipboard}
-  alias LiveFlow.Handle
-  alias LiveFlow.Validation
+  alias LiveFlow.{State, Node, Edge, Handle}
   on_mount {FafCnWeb.UserAuth, :mount_current_user}
 
   @impl true
@@ -20,15 +18,12 @@ defmodule FafCnWeb.EcoWorkflowLive do
      assign(socket,
        page_title: "Eco Workflow",
        flow: flow,
-       history: History.new(),
-       clipboard: Clipboard.new(),
        node_types: %{
-         fetch: &fetch_node/1,
-         filter: &filter_node/1,
-         compute: &compute_node/1,
-         output: &output_node/1
-       },
-       lf_theme: nil
+         fetch: FafCnWeb.EcoWorkflow.FetchNode,
+         filter: FafCnWeb.EcoWorkflow.FilterNode,
+         compute: FafCnWeb.EcoWorkflow.ComputeNode,
+         output: FafCnWeb.EcoWorkflow.OutputNode
+       }
      )}
   end
 
@@ -48,16 +43,16 @@ defmodule FafCnWeb.EcoWorkflowLive do
             </div>
             <div class="flex items-center gap-2">
               <button class="btn btn-sm btn-primary" phx-click="add_fetch_node">
-                <.icon name="hero-cloud-arrow-down" class="w-4 h-4 mr-1" />
-                Fetch
+                <.icon name="hero-cloud-arrow-down" class="w-4 h-4 mr-1" /> Fetch
               </button>
               <button class="btn btn-sm btn-secondary" phx-click="add_filter_node">
-                <.icon name="hero-funnel" class="w-4 h-4 mr-1" />
-                Filter
+                <.icon name="hero-funnel" class="w-4 h-4 mr-1" /> Filter
               </button>
               <button class="btn btn-sm btn-accent" phx-click="add_compute_node">
-                <.icon name="hero-calculator" class="w-4 h-4 mr-1" />
-                Compute
+                <.icon name="hero-calculator" class="w-4 h-4 mr-1" /> Compute
+              </button>
+              <button class="btn btn-sm btn-success" phx-click="add_output_node">
+                <.icon name="hero-document-text" class="w-4 h-4 mr-1" /> Output
               </button>
               <div class="divider divider-horizontal mx-1"></div>
               <button class="btn btn-sm" phx-click="reset_flow">
@@ -66,26 +61,12 @@ defmodule FafCnWeb.EcoWorkflowLive do
               <button class="btn btn-sm" phx-click="fit_view">
                 Fit View
               </button>
-              <button class="btn btn-sm btn-info" phx-click={JS.dispatch("lf:auto-layout", to: "#eco-workflow-flow")}>
+              <button
+                class="btn btn-sm btn-info"
+                phx-click={JS.dispatch("lf:auto-layout", to: "#eco-workflow-flow")}
+              >
                 Auto Layout
               </button>
-              <div class="divider divider-horizontal mx-1"></div>
-              <button class="btn btn-sm btn-outline" phx-click="export_json">
-                Export
-              </button>
-              <button
-                class="btn btn-sm btn-outline"
-                onclick="document.getElementById('import-file-input').click()"
-              >
-                Import
-              </button>
-              <input
-                type="file"
-                id="import-file-input"
-                accept=".json"
-                class="hidden"
-                phx-hook="FileImport"
-              />
             </div>
           </div>
         </div>
@@ -96,16 +77,16 @@ defmodule FafCnWeb.EcoWorkflowLive do
             module={LiveFlow.Components.Flow}
             id="eco-workflow-flow"
             flow={@flow}
-            opts={%{
-              controls: true,
-              minimap: true,
-              background: :dots,
-              fit_view_on_init: true,
-              snap_to_grid: true,
-              snap_grid: {20, 20},
-              theme: @lf_theme,
-              helper_lines: true
-            }}
+            opts={
+              %{
+                controls: true,
+                minimap: true,
+                background: :dots,
+                fit_view_on_init: true,
+                snap_to_grid: true,
+                snap_grid: {20, 20}
+              }
+            }
             node_types={@node_types}
           />
         </div>
@@ -115,12 +96,10 @@ defmodule FafCnWeb.EcoWorkflowLive do
           <div class="flex items-center justify-between text-sm">
             <div>
               <span class="font-medium">Nodes:</span> {map_size(@flow.nodes)} |
-              <span class="font-medium">Edges:</span> {map_size(@flow.edges)} |
-              <span class="font-medium">Undo:</span> {History.undo_count(@history)} |
-              <span class="font-medium">Redo:</span> {History.redo_count(@history)}
+              <span class="font-medium">Edges:</span> {map_size(@flow.edges)}
             </div>
             <div class="text-xs text-base-content/60">
-              Ctrl+C copy | Ctrl+V paste | Ctrl+Z undo | Ctrl+Shift+Z redo | ? for help
+              Drag to connect nodes | Click node to select | Delete to remove
             </div>
           </div>
         </div>
@@ -129,155 +108,92 @@ defmodule FafCnWeb.EcoWorkflowLive do
     """
   end
 
-  # ===== Custom Node Function Components =====
-
-  defp fetch_node(assigns) do
-    source = Map.get(assigns.node.data, :source, "Stock API")
-    symbol = Map.get(assigns.node.data, :symbol, "AAPL")
-
-    assigns =
-      assigns
-      |> assign(:source, source)
-      |> assign(:symbol, symbol)
-
-    ~H"""
-    <div class="min-w-[180px] bg-blue-50 border-t-4 border-blue-500 rounded-lg p-3 shadow-sm">
-      <div class="flex items-center gap-2 text-blue-700 font-semibold text-sm">
-        <.icon name="hero-cloud-arrow-down" class="w-4 h-4" />
-        Fetch Data
-      </div>
-      <div class="text-xs text-gray-600 mt-1">
-        {@source} · {@symbol}
-      </div>
-    </div>
-    """
-  end
-
-  defp filter_node(assigns) do
-    condition = Map.get(assigns.node.data, :condition, "Price > 100")
-
-    assigns = assign(assigns, :condition, condition)
-
-    ~H"""
-    <div class="min-w-[180px] bg-purple-50 border-t-4 border-purple-500 rounded-lg p-3 shadow-sm">
-      <div class="flex items-center gap-2 text-purple-700 font-semibold text-sm">
-        <.icon name="hero-funnel" class="w-4 h-4" />
-        Filter
-      </div>
-      <div class="text-xs text-gray-600 mt-1">
-        {@condition}
-      </div>
-    </div>
-    """
-  end
-
-  defp compute_node(assigns) do
-    operation = Map.get(assigns.node.data, :operation, "MA(20)")
-
-    assigns = assign(assigns, :operation, operation)
-
-    ~H"""
-    <div class="min-w-[180px] bg-amber-50 border-t-4 border-amber-500 rounded-lg p-3 shadow-sm">
-      <div class="flex items-center gap-2 text-amber-700 font-semibold text-sm">
-        <.icon name="hero-calculator" class="w-4 h-4" />
-        Compute
-      </div>
-      <div class="text-xs text-gray-600 mt-1">
-        {@operation}
-      </div>
-    </div>
-    """
-  end
-
-  defp output_node(assigns) do
-    format = Map.get(assigns.node.data, :format, "PDF Report")
-
-    assigns = assign(assigns, :format, format)
-
-    ~H"""
-    <div class="min-w-[180px] bg-green-50 border-t-4 border-green-500 rounded-lg p-3 shadow-sm">
-      <div class="flex items-center gap-2 text-green-700 font-semibold text-sm">
-        <.icon name="hero-document-text" class="w-4 h-4" />
-        Output
-      </div>
-      <div class="text-xs text-gray-600 mt-1">
-        {@format}
-      </div>
-    </div>
-    """
-  end
-
   # ===== Event Handlers =====
 
   @impl true
   def handle_event("add_fetch_node", _params, socket) do
-    n = map_size(socket.assigns.flow.nodes) + 1
+    n = System.unique_integer([:positive])
 
     node =
-      Node.new("fetch-#{n}", %{x: 100 + rem(n, 4) * 200, y: 100 + div(n, 4) * 120},
-        %{source: "Yahoo Finance", symbol: "AAPL"},
+      Node.new(
+        "fetch-#{n}",
+        %{x: 100 + rem(n, 3) * 250, y: 100 + div(n, 3) * 150},
+        %{
+          label: "Fetch Data",
+          source: "Yahoo Finance",
+          symbol: "AAPL"
+        },
         type: :fetch,
         handles: [Handle.source(:right)]
       )
 
-    history = History.push(socket.assigns.history, socket.assigns.flow)
     flow = State.add_node(socket.assigns.flow, node)
-    {:noreply, assign(socket, flow: flow, history: history)}
+    {:noreply, assign(socket, flow: flow)}
   end
 
   @impl true
   def handle_event("add_filter_node", _params, socket) do
-    n = map_size(socket.assigns.flow.nodes) + 1
+    n = System.unique_integer([:positive])
 
     node =
-      Node.new("filter-#{n}", %{x: 100 + rem(n, 4) * 200, y: 100 + div(n, 4) * 120},
-        %{condition: "RSI < 30 (Oversold)"},
+      Node.new(
+        "filter-#{n}",
+        %{x: 100 + rem(n, 3) * 250, y: 100 + div(n, 3) * 150},
+        %{
+          label: "Filter",
+          condition: "RSI < 30 (Oversold)"
+        },
         type: :filter,
         handles: [Handle.target(:left), Handle.source(:right)]
       )
 
-    history = History.push(socket.assigns.history, socket.assigns.flow)
     flow = State.add_node(socket.assigns.flow, node)
-    {:noreply, assign(socket, flow: flow, history: history)}
+    {:noreply, assign(socket, flow: flow)}
   end
 
   @impl true
   def handle_event("add_compute_node", _params, socket) do
-    n = map_size(socket.assigns.flow.nodes) + 1
+    n = System.unique_integer([:positive])
 
     node =
-      Node.new("compute-#{n}", %{x: 100 + rem(n, 4) * 200, y: 100 + div(n, 4) * 120},
-        %{operation: "Bollinger Bands"},
+      Node.new(
+        "compute-#{n}",
+        %{x: 100 + rem(n, 3) * 250, y: 100 + div(n, 3) * 150},
+        %{
+          label: "Compute",
+          operation: "Bollinger Bands"
+        },
         type: :compute,
         handles: [Handle.target(:left), Handle.source(:right)]
       )
 
-    history = History.push(socket.assigns.history, socket.assigns.flow)
     flow = State.add_node(socket.assigns.flow, node)
-    {:noreply, assign(socket, flow: flow, history: history)}
+    {:noreply, assign(socket, flow: flow)}
+  end
+
+  @impl true
+  def handle_event("add_output_node", _params, socket) do
+    n = System.unique_integer([:positive])
+
+    node =
+      Node.new(
+        "output-#{n}",
+        %{x: 100 + rem(n, 3) * 250, y: 100 + div(n, 3) * 150},
+        %{
+          label: "Output",
+          format: "PDF Report"
+        },
+        type: :output,
+        handles: [Handle.target(:left)]
+      )
+
+    flow = State.add_node(socket.assigns.flow, node)
+    {:noreply, assign(socket, flow: flow)}
   end
 
   @impl true
   def handle_event("reset_flow", _params, socket) do
-    {:noreply, assign(socket, flow: create_demo_flow(), history: History.new(), clipboard: Clipboard.new())}
-  end
-
-  @impl true
-  def handle_event("export_json", _params, socket) do
-    json = LiveFlow.Serializer.to_json(socket.assigns.flow)
-    {:noreply, push_event(socket, "lf:download_file", %{content: json, filename: "eco_workflow.json", type: "application/json"})}
-  end
-
-  @impl true
-  def handle_event("import_json", %{"content" => content}, socket) do
-    case LiveFlow.Serializer.from_json(content) do
-      {:ok, flow} ->
-        history = History.push(socket.assigns.history, socket.assigns.flow)
-        {:noreply, assign(socket, flow: flow, history: history)}
-
-      {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Import failed: #{reason}")}
-    end
+    {:noreply, assign(socket, flow: create_demo_flow())}
   end
 
   @impl true
@@ -289,29 +205,44 @@ defmodule FafCnWeb.EcoWorkflowLive do
 
   @impl true
   def handle_event("lf:node_change", %{"changes" => changes}, socket) do
-    history =
-      Enum.reduce(changes, socket.assigns.history, fn change, acc ->
-        maybe_push_history_for_drag(acc, socket.assigns.flow, change)
-      end)
-
     flow =
       Enum.reduce(changes, socket.assigns.flow, fn change, acc ->
         apply_node_change(acc, change)
       end)
 
-    {:noreply, assign(socket, flow: flow, history: history)}
+    {:noreply, assign(socket, flow: flow)}
+  end
+
+  @impl true
+  def handle_event("lf:edge_change", %{"changes" => changes}, socket) do
+    flow =
+      Enum.reduce(changes, socket.assigns.flow, fn
+        %{"type" => "remove", "id" => id}, acc -> State.remove_edge(acc, id)
+        _change, acc -> acc
+      end)
+
+    {:noreply, assign(socket, flow: flow)}
   end
 
   @impl true
   def handle_event("lf:connect_end", params, socket) do
-    case Validation.Connection.validate_and_create(socket.assigns.flow, params) do
-      {:ok, edge} ->
-        history = History.push(socket.assigns.history, socket.assigns.flow)
-        flow = State.add_edge(socket.assigns.flow, edge)
-        {:noreply, assign(socket, flow: flow, history: history)}
+    source = params["source"]
+    target = params["target"]
 
-      {:error, _reason} ->
-        {:noreply, socket}
+    if source && target && source != target do
+      edge_id = "e-#{System.unique_integer([:positive])}"
+
+      edge =
+        Edge.new(edge_id, source, target,
+          source_handle: params["source_handle"],
+          target_handle: params["target_handle"],
+          marker_end: %{type: :arrow_closed, color: "#64748b"}
+        )
+
+      flow = State.add_edge(socket.assigns.flow, edge)
+      {:noreply, assign(socket, flow: flow)}
+    else
+      {:noreply, socket}
     end
   end
 
@@ -338,88 +269,14 @@ defmodule FafCnWeb.EcoWorkflowLive do
 
   @impl true
   def handle_event("lf:delete_selected", _params, socket) do
-    history = History.push(socket.assigns.history, socket.assigns.flow)
     flow = State.delete_selected(socket.assigns.flow)
-    {:noreply, assign(socket, flow: flow, history: history)}
-  end
-
-  @impl true
-  def handle_event("lf:edge_change", %{"changes" => changes}, socket) do
-    has_removes = Enum.any?(changes, &(&1["type"] == "remove"))
-
-    history =
-      if has_removes,
-        do: History.push(socket.assigns.history, socket.assigns.flow),
-        else: socket.assigns.history
-
-    flow =
-      Enum.reduce(changes, socket.assigns.flow, fn
-        %{"type" => "remove", "id" => id}, acc -> State.remove_edge(acc, id)
-        _change, acc -> acc
-      end)
-
-    {:noreply, assign(socket, flow: flow, history: history)}
+    {:noreply, assign(socket, flow: flow)}
   end
 
   @impl true
   def handle_event("lf:viewport_change", params, socket) do
     flow = State.update_viewport(socket.assigns.flow, params)
     {:noreply, assign(socket, flow: flow)}
-  end
-
-  @impl true
-  def handle_event("lf:copy", _params, socket) do
-    clipboard = Clipboard.copy(socket.assigns.clipboard, socket.assigns.flow)
-    {:noreply, assign(socket, clipboard: clipboard)}
-  end
-
-  @impl true
-  def handle_event("lf:cut", _params, socket) do
-    history = History.push(socket.assigns.history, socket.assigns.flow)
-    {clipboard, flow} = Clipboard.cut(socket.assigns.clipboard, socket.assigns.flow)
-    {:noreply, assign(socket, flow: flow, clipboard: clipboard, history: history)}
-  end
-
-  @impl true
-  def handle_event("lf:paste", _params, socket) do
-    case Clipboard.paste(socket.assigns.clipboard, socket.assigns.flow) do
-      {:ok, flow, clipboard} ->
-        history = History.push(socket.assigns.history, socket.assigns.flow)
-        {:noreply, assign(socket, flow: flow, clipboard: clipboard, history: history)}
-
-      :empty ->
-        {:noreply, socket}
-    end
-  end
-
-  @impl true
-  def handle_event("lf:duplicate", _params, socket) do
-    clipboard = Clipboard.copy(socket.assigns.clipboard, socket.assigns.flow)
-
-    case Clipboard.paste(clipboard, socket.assigns.flow) do
-      {:ok, flow, clipboard} ->
-        history = History.push(socket.assigns.history, socket.assigns.flow)
-        {:noreply, assign(socket, flow: flow, clipboard: clipboard, history: history)}
-
-      :empty ->
-        {:noreply, socket}
-    end
-  end
-
-  @impl true
-  def handle_event("lf:undo", _params, socket) do
-    case History.undo(socket.assigns.history, socket.assigns.flow) do
-      {:ok, flow, history} -> {:noreply, assign(socket, flow: flow, history: history)}
-      :empty -> {:noreply, socket}
-    end
-  end
-
-  @impl true
-  def handle_event("lf:redo", _params, socket) do
-    case History.redo(socket.assigns.history, socket.assigns.flow) do
-      {:ok, flow, history} -> {:noreply, assign(socket, flow: flow, history: history)}
-      :empty -> {:noreply, socket}
-    end
   end
 
   @impl true
@@ -451,71 +308,59 @@ defmodule FafCnWeb.EcoWorkflowLive do
 
   defp apply_node_change(flow, _change), do: flow
 
-  defp maybe_push_history_for_drag(history, flow, %{"type" => "position", "id" => id} = change) do
-    dragging = Map.get(change, "dragging", false)
-
-    was_dragging =
-      case Map.get(flow.nodes, id) do
-        nil -> false
-        node -> node.dragging
-      end
-
-    if dragging and not was_dragging do
-      History.push(history, flow)
-    else
-      history
-    end
-  end
-
-  defp maybe_push_history_for_drag(history, _flow, _change), do: history
-
   defp create_demo_flow do
     nodes = [
-      # Fetch nodes
-      Node.new("fetch-1", %{x: 50, y: 100},
-        %{source: "Yahoo Finance", symbol: "AAPL"},
+      Node.new(
+        "fetch-1",
+        %{x: 50, y: 150},
+        %{
+          label: "Fetch Data",
+          source: "Yahoo Finance",
+          symbol: "AAPL"
+        },
         type: :fetch,
         handles: [Handle.source(:right)]
       ),
-      Node.new("fetch-2", %{x: 50, y: 250},
-        %{source: "Alpha Vantage", symbol: "MSFT"},
-        type: :fetch,
-        handles: [Handle.source(:right)]
-      ),
-
-      # Filter nodes
-      Node.new("filter-1", %{x: 300, y: 100},
-        %{condition: "Volume > 1M"},
+      Node.new(
+        "filter-1",
+        %{x: 350, y: 150},
+        %{
+          label: "Filter",
+          condition: "RSI < 30"
+        },
         type: :filter,
         handles: [Handle.target(:left), Handle.source(:right)]
       ),
-      Node.new("filter-2", %{x: 300, y: 250},
-        %{condition: "RSI < 30"},
-        type: :filter,
-        handles: [Handle.target(:left), Handle.source(:right)]
-      ),
-
-      # Compute node
-      Node.new("compute-1", %{x: 550, y: 175},
-        %{operation: "Correlation Analysis"},
+      Node.new(
+        "compute-1",
+        %{x: 650, y: 150},
+        %{
+          label: "Compute",
+          operation: "Bollinger Bands"
+        },
         type: :compute,
         handles: [Handle.target(:left), Handle.source(:right)]
       ),
-
-      # Output node
-      Node.new("output-1", %{x: 800, y: 175},
-        %{format: "PDF Report"},
+      Node.new(
+        "output-1",
+        %{x: 950, y: 150},
+        %{
+          label: "Output",
+          format: "PDF Report"
+        },
         type: :output,
         handles: [Handle.target(:left)]
       )
     ]
 
     edges = [
-      Edge.new("e1", "fetch-1", "filter-1"),
-      Edge.new("e2", "fetch-2", "filter-2"),
-      Edge.new("e3", "filter-1", "compute-1"),
-      Edge.new("e4", "filter-2", "compute-1"),
-      Edge.new("e5", "compute-1", "output-1")
+      Edge.new("e1", "fetch-1", "filter-1", marker_end: %{type: :arrow_closed, color: "#64748b"}),
+      Edge.new("e2", "filter-1", "compute-1",
+        marker_end: %{type: :arrow_closed, color: "#64748b"}
+      ),
+      Edge.new("e3", "compute-1", "output-1",
+        marker_end: %{type: :arrow_closed, color: "#64748b"}
+      )
     ]
 
     State.new(nodes: nodes, edges: edges)
