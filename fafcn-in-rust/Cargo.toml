@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*"]
+members = ["crates/*", "crates/fafcn-web"]
 resolver = "2"
 
 [workspace.package]
