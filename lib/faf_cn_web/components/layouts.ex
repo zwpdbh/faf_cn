@@ -49,8 +49,8 @@ defmodule FafCnWeb.Layouts do
           <a href={~p"/eco-guides"} class="btn btn-ghost">
             <.icon name="hero-calculator" class="w-5 h-5 mr-1" /> Eco Guide
           </a>
-          <a href={~p"/eco-prediction"} class="btn btn-ghost">
-            <.icon name="hero-chart-line" class="w-5 h-5 mr-1" /> Eco Prediction
+          <a href={~p"/eco-workflow"} class="btn btn-ghost">
+            <.icon name="hero-chart-line" class="w-5 h-5 mr-1" /> Eco Workflow
           </a>
           <.settings_link current_user={@current_user} />
           <.user_menu current_user={@current_user} />

@@ -6,6 +6,9 @@
 @source "../js";
 @source "../../lib/faf_cn_web";
 
+/* LiveFlow styles */
+@import "../../tmp/live_flow/assets/css/live_flow.css";
+
 /* A Tailwind plugin that makes "hero-#{ICON}" classes available.
    The heroicons installation itself is managed by your mix.exs */
 @plugin "../vendor/heroicons";
@@ -89,6 +92,16 @@
   --border: 1.5px;
   --depth: 1;
   --noise: 0;
+}
+
+/* LiveFlow themes */
+@plugin "../vendor/liveflow-theme" {
+  name: "light";
+  default: true;
+}
+@plugin "../vendor/liveflow-theme" {
+  name: "dark";
+  prefersdark: true;
 }
 
 /* Add variants based on LiveView classes */

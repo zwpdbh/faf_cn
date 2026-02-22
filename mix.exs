@@ -88,7 +88,8 @@ defmodule FafCn.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
-      {:assent, "~> 0.2"}
+      {:assent, "~> 0.2"},
+      {:live_flow, path: "tmp/live_flow"}
     ]
   end
 
