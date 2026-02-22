@@ -36,6 +36,8 @@ const FAVICON: Asset = asset!("/assets/favicon.ico");
 const MAIN_CSS: Asset = asset!("/assets/styling/main.css");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 const ECO_GUIDE_CSS: Asset = asset!("/assets/styling/eco_guide.css");
+const UNIT_ICONS_CSS: Asset = asset!("/assets/styling/unit_icons.css");
+// Images are loaded from public folder via CSS
 
 fn main() {
     // The `launch` function is the main entry point for a dioxus app. It takes a component and renders it with the platform feature
@@ -57,6 +59,7 @@ fn App() -> Element {
         document::Link { rel: "stylesheet", href: MAIN_CSS }
         document::Link { rel: "stylesheet", href: TAILWIND_CSS }
         document::Link { rel: "stylesheet", href: ECO_GUIDE_CSS }
+        document::Link { rel: "stylesheet", href: UNIT_ICONS_CSS }
 
         // The router component renders the route enum we defined above. It will handle synchronization of the URL and render
         // the layouts and components for the active route.

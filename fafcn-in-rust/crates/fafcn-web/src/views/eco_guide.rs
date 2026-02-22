@@ -152,17 +152,36 @@ fn FactionTabs(
     selected_faction: Faction,
     on_select: EventHandler<Faction>,
 ) -> Element {
-    let factions = Faction::all();
-
     rsx! {
         div { class: "border-b border-gray-200",
             nav { class: "-mb-px flex space-x-8", aria_label: "Tabs",
-                for faction in factions {
-                    FactionTab {
-                        faction,
-                        is_active: selected_faction == faction,
-                        on_click: move |_| on_select.call(faction),
-                    }
+                FactionTab {
+                    faction: Faction::Uef,
+                    label: "UEF",
+                    is_active: selected_faction == Faction::Uef,
+                    active_class: "border-blue-500 text-blue-600",
+                    on_click: on_select,
+                }
+                FactionTab {
+                    faction: Faction::Cybran,
+                    label: "CYBRAN",
+                    is_active: selected_faction == Faction::Cybran,
+                    active_class: "border-red-500 text-red-600",
+                    on_click: on_select,
+                }
+                FactionTab {
+                    faction: Faction::Aeon,
+                    label: "AEON",
+                    is_active: selected_faction == Faction::Aeon,
+                    active_class: "border-emerald-500 text-emerald-600",
+                    on_click: on_select,
+                }
+                FactionTab {
+                    faction: Faction::Seraphim,
+                    label: "SERAPHIM",
+                    is_active: selected_faction == Faction::Seraphim,
+                    active_class: "border-violet-500 text-violet-600",
+                    on_click: on_select,
                 }
             }
         }
@@ -173,35 +192,19 @@ fn FactionTabs(
 #[component]
 fn FactionTab(
     faction: Faction,
+    label: &'static str,
     is_active: bool,
-    on_click: EventHandler<()>,
+    active_class: &'static str,
+    on_click: EventHandler<Faction>,
 ) -> Element {
-    let (active_classes, inactive_classes) = match faction {
-        Faction::Uef => (
-            "border-blue-500 text-blue-600",
-            "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-        ),
-        Faction::Cybran => (
-            "border-red-500 text-red-600",
-            "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-        ),
-        Faction::Aeon => (
-            "border-emerald-500 text-emerald-600",
-            "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-        ),
-        Faction::Seraphim => (
-            "border-violet-500 text-violet-600",
-            "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-        ),
-    };
-
-    let classes = if is_active { active_classes } else { inactive_classes };
-
+    let inactive_class = "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300";
+    let class = if is_active { active_class } else { inactive_class };
+    
     rsx! {
         button {
-            class: "whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors {classes}",
-            onclick: move |_| on_click.call(()),
-            { faction.as_str() }
+            class: "whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors {class}",
+            onclick: move |_| on_click.call(faction),
+            { label }
         }
     }
 }
@@ -219,10 +222,11 @@ fn BaseUnitCard(base_unit: Unit) -> Element {
                 }
             }
             div { class: "flex items-center space-x-4",
-                // Engineer Icon placeholder
+                // Engineer Icon
                 div { 
-                    class: "w-16 h-16 rounded-lg flex items-center justify-center shadow-inner {base_unit.faction_bg_class()}",
-                    span { class: "text-white text-xs", "ENG" }
+                    class: "w-16 h-16 rounded-lg flex items-center justify-center shadow-inner overflow-hidden {base_unit.faction_bg_class()}",
+                    // Unit icon from sprite sheet
+                    div { class: "unit-icon-{base_unit.unit_id} w-14 h-14" }
                 }
                 div { class: "flex-1",
                     div { class: "flex items-center space-x-2",
@@ -231,7 +235,7 @@ fn BaseUnitCard(base_unit: Unit) -> Element {
                         }
                         h3 { class: "font-semibold text-gray-900", { base_unit.unit_id.clone() } }
                     }
-                    p { class: "text-sm text-gray-600", { base_unit.description.clone() } }
+                    p { class: "text-sm text-gray-600", { base_unit.display_name() } }
                     div { class: "mt-1 flex items-center space-x-4 text-xs text-gray-500",
                         span { "Mass: {format_number(base_unit.build_cost_mass)}" }
                         span { "Energy: {format_number(base_unit.build_cost_energy)}" }
@@ -261,8 +265,7 @@ fn UnitSelectionGrid(
 
     rsx! {
         div { 
-            class: "rounded-lg shadow-sm border border-gray-200 p-4",
-            style: "background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('/images/units/background.jpg'); background-size: cover; background-position: center;",
+            class: "unit-selection-grid rounded-lg shadow-sm border border-gray-200 p-4",
             
             div { class: "flex items-center justify-between mb-4",
                 h2 { class: "text-lg font-semibold text-white drop-shadow-md", "Select Units to Compare" }
@@ -365,10 +368,8 @@ fn UnitGridItem(
             disabled: is_engineer,
             title: "{unit.display_name()}: {unit.description}",
             
-            // Unit icon placeholder
-            div { class: "w-10 h-10 shrink-0 flex items-center justify-center text-white text-xs font-bold",
-                { unit.unit_id.chars().skip(3).take(4).collect::<String>() }
-            }
+            // Unit icon from sprite sheet
+            div { class: "unit-icon-{unit.unit_id} w-12 h-12 shrink-0" }
             
             if is_engineer {
                 span { class: "absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center z-10",
@@ -377,6 +378,7 @@ fn UnitGridItem(
             }
             if is_selected {
                 span { class: "absolute -top-1 -right-1 w-4 h-4 bg-indigo-500 rounded-full flex items-center justify-center z-10",
+                    // Checkmark icon
                     svg {
                         class: "w-3 h-3 text-white",
                         fill: "currentColor",
@@ -429,16 +431,17 @@ fn EcoComparison(
 fn EmptyComparisonState() -> Element {
     rsx! {
         div { class: "text-center py-8 text-gray-500",
+            // Calculator icon
             svg {
                 class: "mx-auto h-10 w-10 text-gray-300 mb-3",
                 fill: "none",
                 view_box: "0 0 24 24",
                 stroke: "currentColor",
+                stroke_width: "1.5",
                 path {
                     stroke_linecap: "round",
                     stroke_linejoin: "round",
-                    stroke_width: "2",
-                    d: "M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                    d: "M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 }
             }
             p { class: "text-sm", "Select units to see comparisons against the Engineer." }
@@ -460,9 +463,8 @@ fn BaseUnitComparison(
             div { class: "bg-gray-100 rounded-lg p-2 mb-3 border border-gray-200",
                 div { class: "flex items-center gap-2 mb-2",
                     div { class: "w-8 h-8 rounded shrink-0 overflow-hidden relative {base_unit.faction_bg_class()}",
-                        div { class: "absolute text-white text-[8px] flex items-center justify-center w-full h-full",
-                            { base_unit.unit_id.chars().skip(3).take(4).collect::<String>() }
-                        }
+                        div { class: "unit-icon-{base_unit.unit_id} absolute",
+                              style: "width: 64px; height: 64px; transform: scale(0.5); transform-origin: top left;" }
                     }
                     div { class: "flex-1 min-w-0",
                         span { class: "text-xs font-semibold text-gray-900 truncate",
@@ -506,9 +508,8 @@ fn ComparisonCard(unit: Unit, ratio: fafcn_core::EcoRatio) -> Element {
             div { class: "flex items-center gap-2 mb-2",
                 // Unit Icon
                 div { class: "w-8 h-8 rounded shrink-0 overflow-hidden relative {unit.faction_bg_class()}",
-                    div { class: "absolute text-white text-[7px] flex items-center justify-center w-full h-full",
-                        { unit.unit_id.chars().skip(3).take(4).collect::<String>() }
-                    }
+                    div { class: "unit-icon-{unit.unit_id} absolute",
+                          style: "width: 64px; height: 64px; transform: scale(0.5); transform-origin: top left;" }
                 }
                 div { class: "flex-1 min-w-0",
                     span { class: "text-xs font-medium text-gray-900 truncate",
@@ -567,9 +568,8 @@ fn CrossComparisonCard(comparison: fafcn_core::CrossComparison) -> Element {
             // Base unit header
             div { class: "flex items-center gap-2 mb-2 pb-2 border-b border-gray-200",
                 div { class: "w-6 h-6 rounded shrink-0 overflow-hidden relative {comparison.base_unit.faction_bg_class()}",
-                    div { class: "absolute text-white text-[6px] flex items-center justify-center w-full h-full",
-                        { comparison.base_unit.unit_id.chars().skip(3).take(4).collect::<String>() }
-                    }
+                    div { class: "unit-icon-{comparison.base_unit.unit_id} absolute",
+                          style: "width: 64px; height: 64px; transform: scale(0.375); transform-origin: top left;" }
                 }
                 div { class: "flex-1 min-w-0",
                     span { class: "text-xs font-medium text-gray-700 truncate block",
@@ -587,9 +587,8 @@ fn CrossComparisonCard(comparison: fafcn_core::CrossComparison) -> Element {
                         div { class: "flex items-center gap-2",
                             // To Unit
                             div { class: "w-8 h-8 rounded shrink-0 overflow-hidden relative {target_unit.faction_bg_class()}",
-                                div { class: "absolute text-white text-[7px] flex items-center justify-center w-full h-full",
-                                    { target_unit.unit_id.chars().skip(3).take(4).collect::<String>() }
-                                }
+                                div { class: "unit-icon-{target_unit.unit_id} absolute",
+                                      style: "width: 64px; height: 64px; transform: scale(0.5); transform-origin: top left;" }
                             }
                             span { class: "text-xs text-gray-700 truncate",
                                 { target_unit.display_name() }
