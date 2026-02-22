@@ -2,7 +2,7 @@
 // need dioxus
 use dioxus::prelude::*;
 
-use views::{EcoGuide, Home, Navbar};
+use views::{EcoGuide, Home, Navbar, UnitDetail};
 
 /// Define a components module that contains all shared components for our app.
 mod components;
@@ -27,6 +27,9 @@ enum Route {
         // Eco Guide route for unit economy comparison
         #[route("/eco-guide")]
         EcoGuide {},
+        // Unit detail page
+        #[route("/units/:unit_id")]
+        UnitDetail { unit_id: String },
 }
 
 // We can import assets in dioxus with the `asset!` macro. This macro takes a path to an asset relative to the crate root.

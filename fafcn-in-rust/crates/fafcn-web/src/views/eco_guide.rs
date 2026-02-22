@@ -512,7 +512,9 @@ fn ComparisonCard(unit: Unit, ratio: fafcn_core::EcoRatio) -> Element {
                           style: "width: 64px; height: 64px; transform: scale(0.5); transform-origin: top left;" }
                 }
                 div { class: "flex-1 min-w-0",
-                    span { class: "text-xs font-medium text-gray-900 truncate",
+                    Link {
+                        to: "/units/{unit.unit_id}",
+                        class: "text-xs font-medium text-gray-900 truncate hover:text-indigo-600",
                         { unit.display_name() }
                     }
                 }
@@ -572,7 +574,9 @@ fn CrossComparisonCard(comparison: fafcn_core::CrossComparison) -> Element {
                           style: "width: 64px; height: 64px; transform: scale(0.375); transform-origin: top left;" }
                 }
                 div { class: "flex-1 min-w-0",
-                    span { class: "text-xs font-medium text-gray-700 truncate block",
+                    Link {
+                        to: "/units/{comparison.base_unit.unit_id}",
+                        class: "text-xs font-medium text-gray-700 truncate block hover:text-indigo-600",
                         { comparison.base_unit.display_name() }
                     }
                     span { class: "text-[10px] text-gray-500",
@@ -590,7 +594,9 @@ fn CrossComparisonCard(comparison: fafcn_core::CrossComparison) -> Element {
                                 div { class: "unit-icon-{target_unit.unit_id} absolute",
                                       style: "width: 64px; height: 64px; transform: scale(0.5); transform-origin: top left;" }
                             }
-                            span { class: "text-xs text-gray-700 truncate",
+                            Link {
+                                to: "/units/{target_unit.unit_id}",
+                                class: "text-xs text-gray-700 truncate hover:text-indigo-600",
                                 { target_unit.display_name() }
                             }
                         }

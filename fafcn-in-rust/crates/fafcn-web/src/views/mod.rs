@@ -16,3 +16,6 @@ pub use navbar::Navbar;
 
 mod eco_guide;
 pub use eco_guide::EcoGuide;
+
+mod unit_detail;
+pub use unit_detail::UnitDetail;
