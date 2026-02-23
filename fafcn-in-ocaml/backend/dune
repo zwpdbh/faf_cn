@@ -1,0 +1,7 @@
+;; Backend placeholder - to be expanded later
+
+; (executable
+;  (name server)
+;  (public_name fafcn-server)
+;  (libraries)
+; )

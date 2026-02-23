@@ -1,0 +1,38 @@
+# OCaml/Melange build artifacts
+_build/
+*.cmi
+*.cmo
+*.cma
+*.cmx
+*.cmxa
+*.cmxs
+*.o
+*.a
+*.so
+
+# OPAM
+_opam/
+*.install
+
+# Dune
+.dune
+*.merlin
+
+# Node.js (if used for serving)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Production build
+dist/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

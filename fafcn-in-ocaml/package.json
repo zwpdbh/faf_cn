@@ -1,0 +1,25 @@
+{
+  "name": "fafcn-melange",
+  "version": "1.0.0",
+  "description": "FAF CN Eco Guide - OCaml/Melange implementation",
+  "scripts": {
+    "install:opam": "opam install -y . --deps-only",
+    "install:npm-opam": "npm install && npm run install:opam",
+    "dune": "opam exec --switch=fafcn -- dune",
+    "build": "npm run dune -- build @melange",
+    "watch": "npm run build -- --watch",
+    "serve": "vite serve --open",
+    "bundle": "npm run build && vite build",
+    "clean": "npm run dune -- clean",
+    "fmt": "npm run dune -- build @fmt --auto-promote",
+    "fmt:check": "npm run dune -- build @fmt"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "vite": "^5.0.11"
+  }
+}

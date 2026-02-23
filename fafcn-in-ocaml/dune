@@ -1,0 +1,4 @@
+(dirs :standard \ node_modules _opam)
+
+; Root melange.emit removed - each app has its own dune file
+; See src/eco-guide/dune for the main app

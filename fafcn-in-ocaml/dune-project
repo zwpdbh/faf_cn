@@ -1,0 +1,29 @@
+(lang dune 3.20)
+
+(using melange 1.0)
+
+(name fafcn)
+
+(generate_opam_files true)
+
+(source
+ (github username/fafcn))
+
+(authors "Author Name")
+
+(maintainers "Author Name")
+
+(license MIT)
+
+(package
+ (name fafcn)
+ (synopsis "FAF CN - OCaml/Melange implementation")
+ (depends
+  (ocaml
+   (= 5.4.0))
+  (melange
+   (= 6.0.1-54))
+  (reason-react
+   (>= 0.17.0))
+  (dune
+   (>= 3.20))))
