@@ -21,7 +21,7 @@ let make = (~units: list(UnitModel.t), ~base_unit: UnitModel.t, ~selected_ids: l
             onClick={_ => !is_engineer ? on_toggle(unit) : ()}
             disabled=is_engineer
             title={unit.description}>
-            <div className={"unit-icon-" ++ unit.unit_id ++ " w-12 h-12 shrink-0"} />
+            <div className={"unit-icon-" ++ unit.unit_id} />
             {is_engineer
                ? <span className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center z-10">
                    <span className="text-[8px] font-bold text-yellow-900"> {string("★")} </span>

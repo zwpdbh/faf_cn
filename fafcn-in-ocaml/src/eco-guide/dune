@@ -3,7 +3,7 @@
 (melange.emit
  (target output)
  (alias melange)
- (libraries reason-react)
+ (libraries reason-react melange-webapi)
  (preprocess
   (pps melange.ppx reason-react-ppx))
  (module_systems es6))

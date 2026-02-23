@@ -34,6 +34,13 @@ let bg_class =
   | Aeon => "unit-bg-aeon"
   | Seraphim => "unit-bg-seraphim";
 
+let to_css_string =
+  fun
+  | Uef => "UEF"
+  | Cybran => "CYBRAN"
+  | Aeon => "AEON"
+  | Seraphim => "SERAPHIM";
+
 let tab_active_class =
   fun
   | Uef => "border-blue-500 text-blue-600"
