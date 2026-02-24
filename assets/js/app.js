@@ -26,16 +26,151 @@ import topbar from "../vendor/topbar"
 import EcoChart from "./hooks/eco_chart"
 import { LiveFlowHook, FileImportHook, setupDownloadHandler } from "live_flow"
 
+// Get the simulation state from the workflow container
+const getSimulationState = (element) => {
+  const container = element.closest('#eco-workflow-container')
+  return container && container.dataset.simulationRun === "true"
+}
+
+// Hook to handle hover tooltip and double-click on edges during simulation
+const EdgeInfoHook = {
+  mounted() {
+    // Parse edge tooltips from data attribute
+    this.parseEdgeTooltips()
+    
+    // Create tooltip element
+    this.tooltip = document.createElement('div')
+    this.tooltip.className = 'edge-hover-tooltip'
+    this.tooltip.style.cssText = `
+      position: fixed;
+      background: hsl(var(--b1));
+      border: 1px solid hsl(var(--b3));
+      border-radius: 6px;
+      padding: 6px 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      font-size: 11px;
+      pointer-events: none;
+      z-index: 1000;
+      display: none;
+      white-space: nowrap;
+      color: hsl(var(--bc));
+    `
+    document.body.appendChild(this.tooltip)
+    
+    // Mouse over - show tooltip (use mouseover for SVG elements)
+    this.handleMouseOver = (e) => {
+      if (!getSimulationState(this.el)) return
+      
+      const edgeEl = e.target.closest('.lf-edge-interaction, .lf-edge')
+      if (!edgeEl) return
+      
+      const edgeId = edgeEl.dataset.edgeId
+      if (!edgeId) return
+      
+      // Get tooltip text from parsed data
+      const tooltipText = this.edgeTooltips[edgeId]
+      if (tooltipText) {
+        this.tooltip.textContent = tooltipText
+        this.tooltip.style.display = 'block'
+        this.updateTooltipPosition(e)
+      }
+    }
+    
+    // Mouse move - update position
+    this.handleMouseMove = (e) => {
+      if (this.tooltip.style.display === 'block') {
+        this.updateTooltipPosition(e)
+      }
+    }
+    
+    // Mouse out - hide tooltip
+    this.handleMouseOut = (e) => {
+      // Only hide if leaving the edge entirely
+      const relatedTarget = e.relatedTarget
+      if (!relatedTarget || !relatedTarget.closest('.lf-edge-group')) {
+        this.tooltip.style.display = 'none'
+      }
+    }
+    
+    // Double-click - open modal
+    this.handleDoubleClick = (e) => {
+      if (!getSimulationState(this.el)) return
+      
+      const edgeEl = e.target.closest('.lf-edge-interaction, .lf-edge')
+      if (!edgeEl) return
+      
+      const edgeId = edgeEl.dataset.edgeId
+      if (edgeId) {
+        e.preventDefault()
+        e.stopPropagation()
+        this.pushEvent("show_edge_info", { "edge_id": edgeId })
+      }
+    }
+    
+    // Add event listeners - use bubble phase for mouse events, capture for dblclick
+    this.el.addEventListener('mouseover', this.handleMouseOver)
+    this.el.addEventListener('mousemove', this.handleMouseMove)
+    this.el.addEventListener('mouseout', this.handleMouseOut)
+    this.el.addEventListener('dblclick', this.handleDoubleClick, true)
+  },
+  
+  updated() {
+    // Re-parse tooltips after DOM update
+    this.parseEdgeTooltips()
+  },
+  
+  parseEdgeTooltips() {
+    try {
+      const tooltipsJson = this.el.dataset.edgeTooltips || '{}'
+      this.edgeTooltips = JSON.parse(tooltipsJson)
+    } catch (e) {
+      this.edgeTooltips = {}
+    }
+  },
+  
+  updateTooltipPosition(e) {
+    const x = e.clientX + 10
+    const y = e.clientY - 30
+    this.tooltip.style.left = x + 'px'
+    this.tooltip.style.top = y + 'px'
+  },
+  
+  destroyed() {
+    this.el.removeEventListener('mouseover', this.handleMouseOver)
+    this.el.removeEventListener('mousemove', this.handleMouseMove)
+    this.el.removeEventListener('mouseout', this.handleMouseOut)
+    this.el.removeEventListener('dblclick', this.handleDoubleClick, true)
+    if (this.tooltip && this.tooltip.parentNode) {
+      this.tooltip.parentNode.removeChild(this.tooltip)
+    }
+  }
+}
+
 // Hook to handle edit button clicks in workflow nodes
 const EditButtonHook = {
   mounted() {
     this.handleMouseDown = (e) => {
+      // Check if simulation is running - if so, prevent editing
+      if (getSimulationState(this.el)) {
+        e.preventDefault()
+        e.stopPropagation()
+        return false
+      }
+      
       // Prevent default and stop propagation
       e.preventDefault()
       e.stopPropagation()
     }
     
     this.handleClick = (e) => {
+      // Check if simulation is running - if so, prevent editing
+      if (getSimulationState(this.el)) {
+        e.preventDefault()
+        e.stopPropagation()
+        e.stopImmediatePropagation()
+        return false
+      }
+      
       // Prevent default and stop propagation immediately
       e.preventDefault()
       e.stopPropagation()
@@ -69,12 +204,27 @@ const EditButtonHook = {
 const QuantityButtonHook = {
   mounted() {
     this.handleMouseDown = (e) => {
+      // Check if simulation is running - if so, prevent changes
+      if (getSimulationState(this.el)) {
+        e.preventDefault()
+        e.stopPropagation()
+        return false
+      }
+      
       // Prevent default and stop propagation
       e.preventDefault()
       e.stopPropagation()
     }
     
     this.handleClick = (e) => {
+      // Check if simulation is running - if so, prevent changes
+      if (getSimulationState(this.el)) {
+        e.preventDefault()
+        e.stopPropagation()
+        e.stopImmediatePropagation()
+        return false
+      }
+      
       // Prevent default and stop propagation immediately
       e.preventDefault()
       e.stopPropagation()
@@ -112,7 +262,8 @@ const liveSocket = new LiveSocket("/live", Socket, {
     LiveFlow: LiveFlowHook,
     FileImport: FileImportHook,
     EditButton: EditButtonHook,
-    QuantityButton: QuantityButtonHook
+    QuantityButton: QuantityButtonHook,
+    EdgeInfo: EdgeInfoHook
   },
 })
 

@@ -62,7 +62,10 @@ defmodule FafCnWeb.EcoWorkflowLive do
          "build_power" => 10
        },
        # Simulation state
-       simulation_run: false
+       simulation_run: false,
+       # Edge info modal state
+       show_edge_info: false,
+       selected_edge_id: nil
      )}
   end
 
@@ -119,7 +122,13 @@ defmodule FafCnWeb.EcoWorkflowLive do
         </div>
 
         <%!-- Workflow Canvas --%>
-        <div class="flex-1 relative">
+        <div
+          class="flex-1 relative"
+          id="eco-workflow-container"
+          data-simulation-run={to_string(@simulation_run)}
+          data-edge-tooltips={build_edge_tooltips(@flow.edges, @simulation_run)}
+          phx-hook="EdgeInfo"
+        >
           <.live_component
             module={LiveFlow.Components.Flow}
             id="eco-workflow-flow"
@@ -131,7 +140,10 @@ defmodule FafCnWeb.EcoWorkflowLive do
                 background: :dots,
                 fit_view_on_init: true,
                 snap_to_grid: true,
-                snap_grid: {20, 20}
+                snap_grid: {20, 20},
+                nodes_draggable: not @simulation_run,
+                nodes_connectable: not @simulation_run,
+                elements_selectable: true
               }
             }
             node_types={@node_types}
@@ -166,6 +178,11 @@ defmodule FafCnWeb.EcoWorkflowLive do
       <%!-- Initial Node Settings Modal --%>
       <%= if @show_initial_settings do %>
         <.initial_settings_modal form={@initial_settings_form} />
+      <% end %>
+
+      <%!-- Edge Info Modal (Read-only eco stats) --%>
+      <%= if @show_edge_info do %>
+        <.edge_info_modal edge={@flow.edges[@selected_edge_id]} />
       <% end %>
     </Layouts.app>
     """
@@ -304,6 +321,120 @@ defmodule FafCnWeb.EcoWorkflowLive do
     """
   end
 
+  defp edge_info_modal(assigns) do
+    edge = assigns.edge
+    edge_data = edge && edge.data
+
+    assigns =
+      assigns
+      |> assign(:mass_in_storage, edge_data[:mass_in_storage] || 650)
+      |> assign(:energy_in_storage, edge_data[:energy_in_storage] || 5000)
+      |> assign(:mass_per_sec, edge_data[:mass_per_sec] || 1.0)
+      |> assign(:energy_per_sec, edge_data[:energy_per_sec] || 20.0)
+      |> assign(:build_power, edge_data[:build_power] || 10)
+      |> assign(:elapsed_time, edge_data[:elapsed_time] || 0)
+
+    ~H"""
+    <div
+      id="edge-info-modal-backdrop"
+      class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      phx-click-away="close_edge_info"
+    >
+      <div class="bg-base-100 rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+        <%!-- Modal Header --%>
+        <div class="p-4 border-b border-base-300 flex items-center justify-between bg-gradient-to-r from-info/10 to-transparent">
+          <div class="flex items-center gap-2">
+            <.icon name="hero-information-circle" class="w-5 h-5 text-info" />
+            <h2 class="text-lg font-semibold">Eco Statistics</h2>
+          </div>
+          <button
+            class="btn btn-sm btn-ghost"
+            phx-click="close_edge_info"
+          >
+            <.icon name="hero-x-mark" class="w-5 h-5" />
+          </button>
+        </div>
+
+        <%!-- Eco Stats Table (Read-only) --%>
+        <div class="p-0">
+          <table class="table table-zebra w-full">
+            <thead>
+              <tr class="bg-base-200">
+                <th class="text-left py-3 px-4 text-sm font-medium text-base-content/70">Metric</th>
+                <th class="text-right py-3 px-4 text-sm font-medium text-base-content/70">Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="py-3 px-4 flex items-center gap-2">
+                  <.icon name="hero-clock" class="w-4 h-4 text-info" />
+                  <span class="text-sm">Elapsed Time</span>
+                </td>
+                <td class="py-3 px-4 text-right font-mono text-sm">{@elapsed_time}s</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 flex items-center gap-2">
+                  <.icon name="hero-cube" class="w-4 h-4 text-mass" />
+                  <span class="text-sm">Mass in Storage</span>
+                </td>
+                <td class="py-3 px-4 text-right font-mono text-sm text-mass">{@mass_in_storage}</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 flex items-center gap-2">
+                  <.icon name="hero-bolt" class="w-4 h-4 text-energy" />
+                  <span class="text-sm">Energy in Storage</span>
+                </td>
+                <td class="py-3 px-4 text-right font-mono text-sm text-energy">
+                  {@energy_in_storage}
+                </td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 flex items-center gap-2">
+                  <.icon name="hero-arrow-trending-up" class="w-4 h-4 text-mass" />
+                  <span class="text-sm">Mass Income</span>
+                </td>
+                <td class="py-3 px-4 text-right font-mono text-sm text-mass">+{@mass_per_sec}/s</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 flex items-center gap-2">
+                  <.icon name="hero-arrow-trending-down" class="w-4 h-4 text-energy" />
+                  <span class="text-sm">Energy Income</span>
+                </td>
+                <td class="py-3 px-4 text-right font-mono text-sm text-energy">
+                  +{@energy_per_sec}/s
+                </td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 flex items-center gap-2">
+                  <.icon name="hero-wrench" class="w-4 h-4 text-build" />
+                  <span class="text-sm">Build Power</span>
+                </td>
+                <td class="py-3 px-4 text-right font-mono text-sm">{@build_power} BP</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <%!-- Modal Footer --%>
+        <div class="p-4 border-t border-base-300 bg-base-200/50">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-base-content/60">
+              <.icon name="hero-lock-closed" class="w-3 h-3 inline" /> Read-only during simulation
+            </span>
+            <button
+              type="button"
+              class="btn btn-sm btn-primary"
+              phx-click="close_edge_info"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   # ===== Event Handlers =====
 
   @impl true
@@ -338,7 +469,7 @@ defmodule FafCnWeb.EcoWorkflowLive do
     # Generate dummy simulation results
     flow = socket.assigns.flow
 
-    # Update nodes with finished times
+    # Update nodes with finished times and read-only flag
     updated_nodes =
       Enum.reduce(flow.nodes, %{}, fn {id, node}, acc ->
         updated_node =
@@ -348,29 +479,38 @@ defmodule FafCnWeb.EcoWorkflowLive do
             random_offset = :rand.uniform(60)
             finished_time = base_time + random_offset
 
-            %{node | data: Map.put(node.data, :finished_time, finished_time)}
+            %{node | data: Map.put(node.data, :finished_time, finished_time), deletable: false}
           else
-            node
+            # Initial node - also mark as non-deletable during simulation
+            %{node | deletable: false}
           end
 
         Map.put(acc, id, updated_node)
       end)
 
-    # Update edges with dummy eco status
+    # Update edges with dummy eco status and read-only flag
     updated_edges =
       Enum.reduce(flow.edges, %{}, fn {id, edge}, acc ->
         elapsed_time = :rand.uniform(120)
+        mass_per_sec = 1.0 + elapsed_time * 0.05
+        energy_per_sec = 20.0 + elapsed_time * 0.2
 
         edge_data = %{
           mass_in_storage: 650 + trunc(elapsed_time * 0.5),
           energy_in_storage: max(0, 5000 - trunc(elapsed_time * 10)),
-          mass_per_sec: 1.0 + elapsed_time * 0.05,
-          energy_per_sec: 20.0 + elapsed_time * 0.2,
+          mass_per_sec: mass_per_sec,
+          energy_per_sec: energy_per_sec,
           build_power: 10 + trunc(elapsed_time * 0.1),
-          elapsed_time: elapsed_time
+          elapsed_time: elapsed_time,
+          simulation_run: true,
+          # Store formatted tooltip text for CSS display
+          tooltip_text:
+            "Mass: -#{format_tooltip_value(mass_per_sec)}/s  |  Energy: -#{format_tooltip_value(energy_per_sec)}/s"
         }
 
-        Map.put(acc, id, %{edge | data: edge_data})
+        # No label - hover shows tooltip with mass/energy drain
+        # Double-click opens modal with full details
+        Map.put(acc, id, %{edge | data: edge_data, deletable: false, label: nil})
       end)
 
     flow = %{flow | nodes: updated_nodes, edges: updated_edges}
@@ -382,15 +522,42 @@ defmodule FafCnWeb.EcoWorkflowLive do
   def handle_event("clear_simulation", _params, socket) do
     flow = socket.assigns.flow
 
-    # Clear finished times from all nodes
+    # Clear finished times and restore deletable flag on all nodes
     updated_nodes =
       Enum.reduce(flow.nodes, %{}, fn {id, node}, acc ->
-        updated_node = %{node | data: Map.put(node.data, :finished_time, nil)}
-        Map.put(acc, id, updated_node)
+        updated_data = Map.put(node.data, :finished_time, nil)
+        # Only non-initial nodes are deletable
+        deletable = node.id != "initial"
+        Map.put(acc, id, %{node | data: updated_data, deletable: deletable})
       end)
 
-    flow = %{flow | nodes: updated_nodes}
+    # Clear simulation flag and restore deletable on edges
+    updated_edges =
+      Enum.reduce(flow.edges, %{}, fn {id, edge}, acc ->
+        updated_data = Map.put(edge.data, :simulation_run, false)
+        Map.put(acc, id, %{edge | data: updated_data, deletable: true, label: nil})
+      end)
+
+    flow = %{flow | nodes: updated_nodes, edges: updated_edges}
     {:noreply, assign(socket, flow: flow, simulation_run: false)}
+  end
+
+  @impl true
+  def handle_event("show_edge_info", %{"edge_id" => edge_id}, socket) do
+    {:noreply,
+     assign(socket,
+       show_edge_info: true,
+       selected_edge_id: edge_id
+     )}
+  end
+
+  @impl true
+  def handle_event("close_edge_info", _params, socket) do
+    {:noreply,
+     assign(socket,
+       show_edge_info: false,
+       selected_edge_id: nil
+     )}
   end
 
   @impl true
@@ -743,6 +910,42 @@ defmodule FafCnWeb.EcoWorkflowLive do
   defp parse_float(value) when is_float(value), do: value
   defp parse_float(value) when is_integer(value), do: value * 1.0
   defp parse_float(_), do: 0.0
+
+  # Format value for tooltip display (1 decimal place max)
+  defp format_tooltip_value(value) when is_float(value) do
+    if trunc(value) == value do
+      "#{trunc(value)}"
+    else
+      "#{Float.round(value, 1)}"
+    end
+  end
+
+  defp format_tooltip_value(value) when is_integer(value), do: "#{value}"
+  defp format_tooltip_value(_), do: "0"
+
+  # Build JSON map of edge IDs to tooltip text for JS hook
+  defp build_edge_tooltips(edges, true = _simulation_run) do
+    tooltips =
+      Enum.reduce(edges, %{}, fn {id, edge}, acc ->
+        data = edge.data || %{}
+
+        if data[:simulation_run] do
+          mass = data[:mass_per_sec] || 0
+          energy = data[:energy_per_sec] || 0
+
+          text =
+            "Mass: -#{format_tooltip_value(mass)}/s  |  Energy: -#{format_tooltip_value(energy)}/s"
+
+          Map.put(acc, id, text)
+        else
+          acc
+        end
+      end)
+
+    Jason.encode!(tooltips)
+  end
+
+  defp build_edge_tooltips(_edges, false = _simulation_run), do: "{}"
 
   defp create_initial_flow(default_unit) do
     initial_node =
