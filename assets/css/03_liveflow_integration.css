@@ -9,7 +9,7 @@
    ============================================ */
 
 /* LiveFlow core styles */
-@import "../../tmp/live_flow/assets/css/live_flow.css";
+@import "../../deps/live_flow/assets/css/live_flow.css";
 
 /* LiveFlow themes */
 @plugin "../vendor/liveflow-theme" {

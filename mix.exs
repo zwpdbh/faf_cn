@@ -59,6 +59,7 @@ defmodule FafCn.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:live_flow, github: "zwpdbh/live_flow", branch: "main"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:tidewave, "~> 0.5", only: :dev},
@@ -88,8 +89,7 @@ defmodule FafCn.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
-      {:assent, "~> 0.2"},
-      {:live_flow, path: "tmp/live_flow"}
+      {:assent, "~> 0.2"}
     ]
   end
 
