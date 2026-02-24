@@ -10,7 +10,7 @@ defmodule FafCnWeb.EcoWorkflow.InitialNode do
 
   @impl true
   def update(assigns, socket) do
-    data = assigns.node.data
+    data = assigns.node.data || %{}
 
     socket =
       socket

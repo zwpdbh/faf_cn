@@ -184,12 +184,12 @@ defmodule FafCnWeb.EcoWorkflowLive do
     <div
       id="initial-settings-modal-backdrop"
       class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-      phx-click="close_initial_settings"
+      phx-click-away="close_initial_settings"
     >
-      <div
+      <.form
+        for={@form}
+        phx-submit="save_initial_settings"
         class="bg-base-100 rounded-xl shadow-2xl w-full max-w-md"
-        phx-click-away="close_initial_settings"
-        phx-stop
       >
         <%!-- Modal Header --%>
         <div class="p-4 border-b border-base-300 flex items-center justify-between">
@@ -218,8 +218,6 @@ defmodule FafCnWeb.EcoWorkflowLive do
                 value={@form["mass_in_storage"]}
                 class="input input-bordered w-full"
                 min="0"
-                phx-change="update_initial_setting"
-                phx-debounce="300"
               />
             </div>
             <div>
@@ -234,8 +232,6 @@ defmodule FafCnWeb.EcoWorkflowLive do
                 value={@form["energy_in_storage"]}
                 class="input input-bordered w-full"
                 min="0"
-                phx-change="update_initial_setting"
-                phx-debounce="300"
               />
             </div>
           </div>
@@ -255,8 +251,6 @@ defmodule FafCnWeb.EcoWorkflowLive do
                 class="input input-bordered w-full"
                 min="0"
                 step="0.1"
-                phx-change="update_initial_setting"
-                phx-debounce="300"
               />
             </div>
             <div>
@@ -272,8 +266,6 @@ defmodule FafCnWeb.EcoWorkflowLive do
                 class="input input-bordered w-full"
                 min="0"
                 step="0.1"
-                phx-change="update_initial_setting"
-                phx-debounce="300"
               />
             </div>
           </div>
@@ -291,8 +283,6 @@ defmodule FafCnWeb.EcoWorkflowLive do
               value={@form["build_power"]}
               class="input input-bordered w-full"
               min="0"
-              phx-change="update_initial_setting"
-              phx-debounce="300"
             />
           </div>
         </div>
@@ -300,19 +290,20 @@ defmodule FafCnWeb.EcoWorkflowLive do
         <%!-- Modal Footer --%>
         <div class="p-4 border-t border-base-300 flex justify-end gap-2">
           <button
+            type="button"
             class="btn btn-ghost"
             phx-click="close_initial_settings"
           >
             Cancel
           </button>
           <button
+            type="submit"
             class="btn btn-primary"
-            phx-click="save_initial_settings"
           >
             Save Changes
           </button>
         </div>
-      </div>
+      </.form>
     </div>
     """
   end
@@ -521,35 +512,26 @@ defmodule FafCnWeb.EcoWorkflowLive do
   end
 
   @impl true
-  def handle_event("update_initial_setting", %{"name" => name, "value" => value}, socket) do
-    form = socket.assigns.initial_settings_form
-
-    # Parse value based on field
-    parsed_value =
-      case name do
-        "mass_in_storage" -> String.to_integer(value)
-        "energy_in_storage" -> String.to_integer(value)
-        "build_power" -> String.to_integer(value)
-        _ -> String.to_float(value)
-      end
-
-    updated_form = Map.put(form, name, parsed_value)
-    {:noreply, assign(socket, initial_settings_form: updated_form)}
+  def handle_event("close_unit_selector", _params, socket) do
+    {:noreply,
+     assign(socket,
+       show_unit_selector: false,
+       selected_node_id: nil,
+       unit_search: ""
+     )}
   end
 
   @impl true
-  def handle_event("save_initial_settings", _params, socket) do
-    form = socket.assigns.initial_settings_form
-
+  def handle_event("save_initial_settings", params, socket) do
     flow =
       update_node_data(socket.assigns.flow, "initial", fn data ->
         %{
           data
-          | mass_in_storage: form["mass_in_storage"],
-            energy_in_storage: form["energy_in_storage"],
-            mass_per_sec: form["mass_per_sec"],
-            energy_per_sec: form["energy_per_sec"],
-            build_power: form["build_power"]
+          | mass_in_storage: parse_int(params["mass_in_storage"]),
+            energy_in_storage: parse_int(params["energy_in_storage"]),
+            mass_per_sec: parse_float(params["mass_per_sec"]),
+            energy_per_sec: parse_float(params["energy_per_sec"]),
+            build_power: parse_int(params["build_power"])
         }
       end)
 
@@ -558,16 +540,6 @@ defmodule FafCnWeb.EcoWorkflowLive do
        flow: flow,
        show_initial_settings: false,
        simulation_run: false
-     )}
-  end
-
-  @impl true
-  def handle_event("close_unit_selector", _params, socket) do
-    {:noreply,
-     assign(socket,
-       show_unit_selector: false,
-       selected_node_id: nil,
-       unit_search: ""
      )}
   end
 
@@ -693,6 +665,21 @@ defmodule FafCnWeb.EcoWorkflowLive do
   end
 
   # ===== Private Helpers =====
+
+  defp parse_int(value) when is_binary(value), do: String.to_integer(value)
+  defp parse_int(value) when is_integer(value), do: value
+  defp parse_int(_), do: 0
+
+  defp parse_float(value) when is_binary(value) do
+    case Float.parse(value) do
+      {f, _} -> f
+      :error -> 0.0
+    end
+  end
+
+  defp parse_float(value) when is_float(value), do: value
+  defp parse_float(value) when is_integer(value), do: value * 1.0
+  defp parse_float(_), do: 0.0
 
   defp create_initial_flow(default_unit) do
     initial_node =
