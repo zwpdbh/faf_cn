@@ -150,3 +150,304 @@
 .lf-node.selected .workflow-node {
   box-shadow: 0 0 0 2px var(--color-primary);
 }
+
+/* ===== Initial Node Styles - Compact Rectangle ===== */
+.workflow-node-initial-compact {
+  width: 140px;
+  background: var(--color-base-100);
+  border: 2px solid var(--color-success);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 11px;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+
+.workflow-node-initial-compact:hover {
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.workflow-node-initial-compact-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  position: relative;
+}
+
+.workflow-node-initial-edit-btn {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: 0.7;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.workflow-node-initial-edit-btn:hover {
+  background: rgba(255, 255, 255, 0.4);
+  opacity: 1;
+}
+
+.workflow-node-initial-compact:hover .workflow-node-initial-edit-btn {
+  opacity: 1;
+}
+
+.workflow-node-initial-compact-body {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ===== Unit Node Styles - Compact ===== */
+.workflow-node-unit-compact {
+  width: 140px;
+  background: var(--color-base-100);
+  border: 1px solid var(--color-base-300);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 10px;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+  position: relative;
+}
+
+.workflow-node-unit-compact:hover {
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+}
+
+.workflow-node-unit-compact-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: white;
+  position: relative;
+  min-height: 24px;
+}
+
+.workflow-node-unit-name {
+  flex: 1;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.workflow-node-unit-compact-body {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Resource Costs */
+.workflow-node-unit-costs {
+  display: flex;
+  justify-content: space-between;
+  gap: 2px;
+}
+
+.workflow-node-unit-cost {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  background: var(--color-base-200);
+  border-radius: 3px;
+}
+
+/* Quantity Selector */
+.workflow-node-unit-quantity {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid var(--color-base-300);
+}
+
+.workflow-node-unit-qty-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: var(--color-base-200);
+  border: none;
+  border-radius: 3px;
+  color: var(--color-base-content);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.workflow-node-unit-qty-btn:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: white;
+}
+
+.workflow-node-unit-qty-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.workflow-node-unit-qty-value {
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Finished Time Badge */
+.workflow-node-unit-finished-badge {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-success);
+  color: white;
+  font-size: 8px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 8px;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Edit Button - Top Right of Body */
+.workflow-node-unit-edit-btn {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  background: var(--color-base-300);
+  border: none;
+  border-radius: 3px;
+  color: var(--color-base-content);
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: 0.6;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.workflow-node-unit-edit-btn:hover {
+  background: var(--color-primary);
+  color: white;
+  opacity: 1;
+}
+
+.workflow-node-unit-compact:hover .workflow-node-unit-edit-btn {
+  opacity: 0.8;
+}
+
+/* Finished time badge */
+.workflow-node-finished-time {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--color-success);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+/* ===== Edge Card Styles ===== */
+.workflow-edge-card {
+  background: var(--color-base-100);
+  border: 1px solid var(--color-base-300);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 11px;
+  min-width: 140px;
+  pointer-events: none;
+}
+
+.workflow-edge-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: white;
+  font-weight: 600;
+  border-radius: 8px 8px 0 0;
+}
+
+.workflow-edge-card-time {
+  margin-left: auto;
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.workflow-edge-card-body {
+  padding: 8px 10px;
+}
+
+.workflow-edge-card-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.workflow-edge-card-row:last-child {
+  margin-bottom: 0;
+}
+
+.workflow-edge-card-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.workflow-edge-card-value {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.workflow-edge-card-divider {
+  height: 1px;
+  background: var(--color-base-300);
+  margin: 6px 0;
+}
+
+/* Edge hover state in LiveFlow */
+.lf-edge:hover .workflow-edge-card {
+  display: block;
+}
+
+/* ===== Edge Label Styles ===== */
+.workflow-edge-label {
+  background: var(--color-base-100);
+  border: 1px solid var(--color-base-300);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-base-content);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}

@@ -2,28 +2,76 @@ defmodule FafCnWeb.EcoWorkflowLive do
   @moduledoc """
   Eco Workflow - Visual economy simulation builder for FAF (Forged Alliance Forever).
 
-  Build and simulate economy flows with mass, energy, and build power nodes.
+  Build and simulate economy expansion by creating a workflow from an Initial Node
+  to Unit Nodes representing FAF units to build.
   """
   use FafCnWeb, :live_view
 
   alias LiveFlow.{State, Node, Edge, Handle}
+  alias FafCn.Units
   on_mount {FafCnWeb.UserAuth, :mount_current_user}
+
+  @default_engineer_id "UEL0105"
+
+  # Available filters with their category mappings
+  @filters [
+    %{key: "TECH1", label: "T1", category: "TECH1", group: :tech},
+    %{key: "TECH2", label: "T2", category: "TECH2", group: :tech},
+    %{key: "TECH3", label: "T3", category: "TECH3", group: :tech},
+    %{key: "EXPERIMENTAL", label: "EXP", category: "EXPERIMENTAL", group: :tech},
+    %{key: "ENGINEER", label: "Engineer", category: "ENGINEER", group: :type},
+    %{key: "STRUCTURE", label: "Structure", category: "STRUCTURE", group: :type},
+    %{key: "LAND", label: "Land", category: "LAND", group: :type},
+    %{key: "AIR", label: "Air", category: "AIR", group: :type},
+    %{key: "NAVAL", label: "Naval", category: "NAVAL", group: :type}
+  ]
+
+  @usage_filters ["ENGINEER", "STRUCTURE", "LAND", "AIR", "NAVAL"]
+  @tech_filters ["TECH1", "TECH2", "TECH3", "EXPERIMENTAL"]
 
   @impl true
   def mount(_params, _session, socket) do
-    flow = create_demo_flow()
+    # Load default T1 engineer unit
+    default_unit = Units.get_unit_by_unit_id(@default_engineer_id)
+
+    # Load available units for selection modal
+    units = Units.list_units_for_eco_guides()
+    units_by_faction = Enum.group_by(units, & &1.faction)
+
+    flow = create_initial_flow(default_unit)
 
     {:ok,
      assign(socket,
        page_title: "Eco Workflow",
        flow: flow,
+       units: units,
+       units_by_faction: units_by_faction,
+       default_unit: default_unit,
        node_types: %{
-         mass_storage: FafCnWeb.EcoWorkflow.MassStorageNode,
-         power_storage: FafCnWeb.EcoWorkflow.PowerStorageNode,
-         mass_rate: FafCnWeb.EcoWorkflow.MassRateNode,
-         power_rate: FafCnWeb.EcoWorkflow.PowerRateNode,
-         build_power: FafCnWeb.EcoWorkflow.BuildPowerNode
-       }
+         initial: FafCnWeb.EcoWorkflow.InitialNode,
+         unit: FafCnWeb.EcoWorkflow.UnitNode
+       },
+       edge_types: %{
+         default: FafCnWeb.EcoWorkflow.EdgeCard
+       },
+       # Modal state
+       show_unit_selector: false,
+       show_initial_settings: false,
+       selected_node_id: nil,
+       selected_faction: "UEF",
+       current_unit_id: nil,
+       unit_search: "",
+       active_filters: [],
+       # Initial node settings form
+       initial_settings_form: %{
+         "mass_in_storage" => 650,
+         "energy_in_storage" => 5000,
+         "mass_per_sec" => 1.0,
+         "energy_per_sec" => 20.0,
+         "build_power" => 10
+       },
+       # Simulation state
+       simulation_run: false
      )}
   end
 
@@ -39,27 +87,23 @@ defmodule FafCnWeb.EcoWorkflowLive do
             <div class="w-64 shrink-0">
               <h1 class="text-2xl font-bold">Eco Workflow</h1>
               <p class="text-sm text-base-content/70">
-                Economy simulation for FAF
+                Build order simulation for FAF
               </p>
             </div>
 
-            <%!-- Center: Eco Parameter Buttons --%>
+            <%!-- Center: Action Buttons --%>
             <div class="flex-1 flex justify-center">
               <div class="flex items-center gap-2 bg-base-300/50 px-4 py-2 rounded-xl">
-                <button class="btn btn-sm btn-primary" phx-click="add_mass_storage">
-                  <.icon name="hero-cube" class="w-4 h-4 mr-1" /> Mass Storage
+                <button class="btn btn-sm btn-primary" phx-click="add_unit_node">
+                  <.icon name="hero-plus" class="w-4 h-4 mr-1" /> Add Unit
                 </button>
-                <button class="btn btn-sm btn-secondary" phx-click="add_power_storage">
-                  <.icon name="hero-bolt" class="w-4 h-4 mr-1" /> Power Storage
-                </button>
-                <button class="btn btn-sm btn-accent" phx-click="add_mass_rate">
-                  <.icon name="hero-arrow-trending-up" class="w-4 h-4 mr-1" /> Mass/sec
-                </button>
-                <button class="btn btn-sm btn-info" phx-click="add_power_rate">
-                  <.icon name="hero-arrow-trending-down" class="w-4 h-4 mr-1" /> Power/sec
-                </button>
-                <button class="btn btn-sm btn-warning" phx-click="add_build_power">
-                  <.icon name="hero-wrench" class="w-4 h-4 mr-1" /> Build Power
+                <button 
+                  class="btn btn-sm btn-success" 
+                  phx-click="run_simulation"
+                  disabled={@simulation_run}
+                >
+                  <.icon name="hero-play" class="w-4 h-4 mr-1" />
+                  <%= if @simulation_run do %>Ran<% else %>Run<% end %> Simulation
                 </button>
               </div>
             </div>
@@ -67,16 +111,16 @@ defmodule FafCnWeb.EcoWorkflowLive do
             <%!-- Right: Action Buttons --%>
             <div class="w-64 shrink-0 flex justify-end items-center gap-2">
               <button class="btn btn-sm" phx-click="reset_flow">
-                Reset
+                <.icon name="hero-arrow-path" class="w-4 h-4 mr-1" /> Reset
               </button>
               <button class="btn btn-sm" phx-click="fit_view">
-                Fit View
+                <.icon name="hero-arrows-pointing-out" class="w-4 h-4 mr-1" /> Fit
               </button>
               <button
-                class="btn btn-sm btn-success"
+                class="btn btn-sm btn-info"
                 phx-click={JS.dispatch("lf:auto-layout", to: "#eco-workflow-flow")}
               >
-                Auto Layout
+                <.icon name="hero-sparkles" class="w-4 h-4 mr-1" /> Auto
               </button>
             </div>
           </div>
@@ -99,6 +143,7 @@ defmodule FafCnWeb.EcoWorkflowLive do
               }
             }
             node_types={@node_types}
+            edge_types={@edge_types}
           />
         </div>
 
@@ -106,135 +151,630 @@ defmodule FafCnWeb.EcoWorkflowLive do
         <div class="p-3 bg-base-200 border-t border-base-300">
           <div class="flex items-center justify-between text-sm">
             <div>
-              <span class="font-medium">Nodes:</span> {map_size(@flow.nodes)} |
-              <span class="font-medium">Edges:</span> {map_size(@flow.edges)}
+              <span class="font-medium">Units:</span> {count_unit_nodes(@flow)} |
+              <span class="font-medium">Connections:</span> {map_size(@flow.edges)}
             </div>
             <div class="text-xs text-base-content/60">
-              Drag to connect nodes | Click node to select | Delete to remove
+              Drag from right handle to left handle to connect | Double-click unit to change | Delete to remove
             </div>
           </div>
         </div>
       </div>
+
+      <%!-- Unit Selector Modal --%>
+      <%= if @show_unit_selector do %>
+        <.unit_selector_modal
+          units={@units}
+          units_by_faction={@units_by_faction}
+          selected_faction={@selected_faction}
+          search={@unit_search}
+          selected_node_id={@selected_node_id}
+          current_unit_id={@current_unit_id}
+          active_filters={@active_filters}
+        />
+      <% end %>
+
+      <%!-- Initial Node Settings Modal --%>
+      <%= if @show_initial_settings do %>
+        <.initial_settings_modal
+          form={@initial_settings_form}
+        />
+      <% end %>
     </Layouts.app>
+    """
+  end
+
+  # ===== Components =====
+
+  defp unit_selector_modal(assigns) do
+    factions = ["UEF", "CYBRAN", "AEON", "SERAPHIM"]
+
+    # Get units for selected faction
+    faction_units = assigns.units_by_faction[assigns.selected_faction] || []
+
+    # Apply category filters
+    filtered_units =
+      if assigns.active_filters == [] do
+        faction_units
+      else
+        Enum.filter(faction_units, fn unit ->
+          categories = unit.categories || []
+          # Unit must match at least one active filter
+          Enum.any?(assigns.active_filters, &(&1 in categories))
+        end)
+      end
+
+    assigns =
+      assigns
+      |> assign(:factions, factions)
+      |> assign(:filters, @filters)
+      |> assign(:filtered_units, filtered_units)
+
+    ~H"""
+    <div 
+      class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      phx-click="close_unit_selector"
+    >
+      <div 
+        class="bg-base-100 rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col"
+        phx-click-away="close_unit_selector"
+        phx-stop
+      >
+        <%!-- Modal Header --%>
+        <div class="p-4 border-b border-base-300 flex items-center justify-between bg-base-200">
+          <h2 class="text-lg font-semibold">Select Unit</h2>
+          <button 
+            class="btn btn-sm btn-ghost"
+            phx-click="close_unit_selector"
+          >
+            <.icon name="hero-x-mark" class="w-5 h-5" />
+          </button>
+        </div>
+
+        <%!-- Faction Tabs --%>
+        <div class="flex border-b border-base-300 bg-base-200">
+          <%= for faction <- @factions do %>
+            <% is_active = @selected_faction == faction
+            active_classes =
+              case faction do
+                "UEF" -> if is_active, do: "border-blue-500 text-blue-600 bg-blue-50", else: "border-transparent text-gray-500 hover:text-gray-700"
+                "CYBRAN" -> if is_active, do: "border-red-500 text-red-600 bg-red-50", else: "border-transparent text-gray-500 hover:text-gray-700"
+                "AEON" -> if is_active, do: "border-emerald-500 text-emerald-600 bg-emerald-50", else: "border-transparent text-gray-500 hover:text-gray-700"
+                "SERAPHIM" -> if is_active, do: "border-violet-500 text-violet-600 bg-violet-50", else: "border-transparent text-gray-500 hover:text-gray-700"
+              end %>
+            <button
+              phx-click="select_faction"
+              phx-value-faction={faction}
+              class={[
+                "flex-1 py-2 px-4 text-sm font-medium border-b-2 transition-colors",
+                active_classes
+              ]}
+            >
+              {faction}
+            </button>
+          <% end %>
+        </div>
+
+        <%!-- Filter Bar --%>
+        <div class="p-3 border-b border-base-300 bg-base-100">
+          <div class="flex flex-wrap gap-2 items-center">
+            <span class="text-xs text-base-content/60 mr-1">Tech:</span>
+            <%= for filter <- Enum.filter(@filters, &(&1.group == :tech)) do %>
+              <% is_active = filter.key in @active_filters %>
+              <button
+                phx-click="toggle_filter"
+                phx-value-filter={filter.key}
+                class={[
+                  "px-2 py-1 rounded text-xs font-medium transition-all",
+                  if is_active do
+                    "bg-indigo-500 text-white shadow-md"
+                  else
+                    "bg-base-200 text-base-content hover:bg-base-300"
+                  end
+                ]}
+              >
+                {filter.label}
+              </button>
+            <% end %>
+            <div class="w-px h-4 bg-base-300 mx-1"></div>
+            <span class="text-xs text-base-content/60 mr-1">Type:</span>
+            <%= for filter <- Enum.filter(@filters, &(&1.group == :type)) do %>
+              <% is_active = filter.key in @active_filters %>
+              <button
+                phx-click="toggle_filter"
+                phx-value-filter={filter.key}
+                class={[
+                  "px-2 py-1 rounded text-xs font-medium transition-all",
+                  if is_active do
+                    "bg-indigo-500 text-white shadow-md"
+                  else
+                    "bg-base-200 text-base-content hover:bg-base-300"
+                  end
+                ]}
+              >
+                {filter.label}
+              </button>
+            <% end %>
+            <%= if @active_filters != [] do %>
+              <button
+                phx-click="clear_filters"
+                class="ml-auto px-2 py-1 rounded text-xs font-medium bg-gray-500/50 text-white hover:bg-gray-500/70 transition-all"
+              >
+                Clear
+              </button>
+            <% end %>
+          </div>
+        </div>
+
+        <%!-- Unit Grid with Background --%>
+        <div 
+          class="flex-1 overflow-y-auto p-4"
+          style="background-image: url('/images/units/background.jpg'); background-size: cover; background-position: center;"
+        >
+          <%= if @filtered_units == [] do %>
+            <div class="text-center py-12 text-white/80">
+              <.icon name="hero-squares-2x2" class="w-12 h-12 mx-auto mb-2" />
+              <p>No units match the selected filters.</p>
+              <button
+                phx-click="clear_filters"
+                class="mt-2 text-sm underline hover:text-white"
+              >
+                Clear filters
+              </button>
+            </div>
+          <% else %>
+            <div class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
+              <%= for unit <- @filtered_units do %>
+                <% is_selected = unit.unit_id == @current_unit_id %>
+                <button
+                  class={[
+                    "group relative aspect-square rounded-lg p-1 transition-all duration-150 flex flex-col items-center justify-center text-center overflow-hidden",
+                    faction_bg_class(unit.faction),
+                    if is_selected do
+                      "ring-2 ring-yellow-400 ring-offset-1 shadow-lg scale-105"
+                    else
+                      "hover:ring-2 hover:ring-white/50 hover:ring-offset-1 hover:scale-105"
+                    end
+                  ]}
+                  phx-click="select_unit_for_node"
+                  phx-value-unit_id={unit.unit_id}
+                  title={"#{unit.description || unit.name} (#{unit.unit_id})"}
+                >
+                  <div class={["unit-icon-#{unit.unit_id} w-12 h-12 shrink-0"]}></div>
+                  <%= if is_selected do %>
+                    <span class="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center z-10 shadow-md">
+                      <.icon name="hero-check" class="w-3 h-3 text-yellow-900" />
+                    </span>
+                  <% end %>
+                </button>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+
+        <%!-- Modal Footer --%>
+        <div class="p-3 border-t border-base-300 text-sm text-base-content/60 text-center bg-base-200">
+          Click a unit to select it • Yellow checkmark = current selection
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp initial_settings_modal(assigns) do
+    ~H"""
+    <div 
+      class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      phx-click="close_initial_settings"
+    >
+      <div 
+        class="bg-base-100 rounded-xl shadow-2xl w-full max-w-md"
+        phx-click-away="close_initial_settings"
+        phx-stop
+      >
+        <%!-- Modal Header --%>
+        <div class="p-4 border-b border-base-300 flex items-center justify-between">
+          <h2 class="text-lg font-semibold">Initial Eco Settings</h2>
+          <button 
+            class="btn btn-sm btn-ghost"
+            phx-click="close_initial_settings"
+          >
+            <.icon name="hero-x-mark" class="w-5 h-5" />
+          </button>
+        </div>
+
+        <%!-- Settings Form --%>
+        <div class="p-6 space-y-4">
+          <%!-- Storage Section --%>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="label">
+                <span class="label-text flex items-center gap-1">
+                  <.icon name="hero-cube" class="w-4 h-4 text-mass" /> Mass Storage
+                </span>
+              </label>
+              <input
+                type="number"
+                name="mass_in_storage"
+                value={@form["mass_in_storage"]}
+                class="input input-bordered w-full"
+                min="0"
+                phx-change="update_initial_setting"
+                phx-debounce="300"
+              />
+            </div>
+            <div>
+              <label class="label">
+                <span class="label-text flex items-center gap-1">
+                  <.icon name="hero-bolt" class="w-4 h-4 text-energy" /> Energy Storage
+                </span>
+              </label>
+              <input
+                type="number"
+                name="energy_in_storage"
+                value={@form["energy_in_storage"]}
+                class="input input-bordered w-full"
+                min="0"
+                phx-change="update_initial_setting"
+                phx-debounce="300"
+              />
+            </div>
+          </div>
+
+          <%!-- Income Section --%>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="label">
+                <span class="label-text flex items-center gap-1">
+                  <.icon name="hero-arrow-trending-up" class="w-4 h-4 text-mass" /> Mass/sec
+                </span>
+              </label>
+              <input
+                type="number"
+                name="mass_per_sec"
+                value={@form["mass_per_sec"]}
+                class="input input-bordered w-full"
+                min="0"
+                step="0.1"
+                phx-change="update_initial_setting"
+                phx-debounce="300"
+              />
+            </div>
+            <div>
+              <label class="label">
+                <span class="label-text flex items-center gap-1">
+                  <.icon name="hero-arrow-trending-down" class="w-4 h-4 text-energy" /> Energy/sec
+                </span>
+              </label>
+              <input
+                type="number"
+                name="energy_per_sec"
+                value={@form["energy_per_sec"]}
+                class="input input-bordered w-full"
+                min="0"
+                step="0.1"
+                phx-change="update_initial_setting"
+                phx-debounce="300"
+              />
+            </div>
+          </div>
+
+          <%!-- Build Power --%>
+          <div>
+            <label class="label">
+              <span class="label-text flex items-center gap-1">
+                <.icon name="hero-wrench" class="w-4 h-4 text-build" /> Build Power
+              </span>
+            </label>
+            <input
+              type="number"
+              name="build_power"
+              value={@form["build_power"]}
+              class="input input-bordered w-full"
+              min="0"
+              phx-change="update_initial_setting"
+              phx-debounce="300"
+            />
+          </div>
+        </div>
+
+        <%!-- Modal Footer --%>
+        <div class="p-4 border-t border-base-300 flex justify-end gap-2">
+          <button 
+            class="btn btn-ghost"
+            phx-click="close_initial_settings"
+          >
+            Cancel
+          </button>
+          <button 
+            class="btn btn-primary"
+            phx-click="save_initial_settings"
+          >
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
     """
   end
 
   # ===== Event Handlers =====
 
   @impl true
-  def handle_event("add_mass_storage", _params, socket) do
+  def handle_event("add_unit_node", _params, socket) do
     n = System.unique_integer([:positive])
+    flow = socket.assigns.flow
+
+    # Calculate position based on existing nodes
+    unit_count = count_unit_nodes(flow)
+    x_pos = 250 + unit_count * 180
+    y_pos = 100 + rem(unit_count, 3) * 150
 
     node =
       Node.new(
-        "mass-storage-#{n}",
-        %{x: 100 + rem(n, 3) * 250, y: 100 + div(n, 3) * 150},
+        "unit-#{n}",
+        %{x: x_pos, y: y_pos},
         %{
-          label: "Mass Storage",
-          value: 650,
-          max: 650,
-          unit: "mass"
+          unit: socket.assigns.default_unit,
+          quantity: 1,
+          finished_time: nil
         },
-        type: :mass_storage,
+        type: :unit,
         handles: [Handle.target(:left), Handle.source(:right)]
       )
 
-    flow = State.add_node(socket.assigns.flow, node)
-    {:noreply, assign(socket, flow: flow)}
+    flow = State.add_node(flow, node)
+    {:noreply, assign(socket, flow: flow, simulation_run: false)}
   end
 
   @impl true
-  def handle_event("add_power_storage", _params, socket) do
-    n = System.unique_integer([:positive])
+  def handle_event("run_simulation", _params, socket) do
+    # Generate dummy simulation results
+    flow = socket.assigns.flow
 
-    node =
-      Node.new(
-        "power-storage-#{n}",
-        %{x: 100 + rem(n, 3) * 250, y: 100 + div(n, 3) * 150},
-        %{
-          label: "Power Storage",
-          value: 5000,
-          max: 5000,
-          unit: "energy"
-        },
-        type: :power_storage,
-        handles: [Handle.target(:left), Handle.source(:right)]
-      )
+    # Update nodes with finished times
+    updated_nodes =
+      Enum.reduce(flow.nodes, %{}, fn {id, node}, acc ->
+        updated_node =
+          if node.type == :unit do
+            # Generate dummy finished time based on position
+            base_time = 30
+            random_offset = :rand.uniform(60)
+            finished_time = base_time + random_offset
 
-    flow = State.add_node(socket.assigns.flow, node)
-    {:noreply, assign(socket, flow: flow)}
+            %{node | data: Map.put(node.data, :finished_time, finished_time)}
+          else
+            node
+          end
+
+        Map.put(acc, id, updated_node)
+      end)
+
+    # Update edges with dummy eco status
+    updated_edges =
+      Enum.reduce(flow.edges, %{}, fn {id, edge}, acc ->
+        elapsed_time = :rand.uniform(120)
+
+        edge_data = %{
+          mass_in_storage: 650 + trunc(elapsed_time * 0.5),
+          energy_in_storage: max(0, 5000 - trunc(elapsed_time * 10)),
+          mass_per_sec: 1.0 + elapsed_time * 0.05,
+          energy_per_sec: 20.0 + elapsed_time * 0.2,
+          build_power: 10 + trunc(elapsed_time * 0.1),
+          elapsed_time: elapsed_time
+        }
+
+        Map.put(acc, id, %{edge | data: edge_data})
+      end)
+
+    flow = %{flow | nodes: updated_nodes, edges: updated_edges}
+
+    {:noreply, assign(socket, flow: flow, simulation_run: true)}
   end
 
   @impl true
-  def handle_event("add_mass_rate", _params, socket) do
-    n = System.unique_integer([:positive])
-
-    node =
-      Node.new(
-        "mass-rate-#{n}",
-        %{x: 100 + rem(n, 3) * 250, y: 100 + div(n, 3) * 150},
-        %{
-          label: "Mass Rate",
-          income: 1.0,
-          drain: 0.0,
-          net: 1.0,
-          unit: "mass/sec"
-        },
-        type: :mass_rate,
-        handles: [Handle.target(:left), Handle.source(:right)]
-      )
-
-    flow = State.add_node(socket.assigns.flow, node)
-    {:noreply, assign(socket, flow: flow)}
+  def handle_event("select_node", _params, socket) do
+    # Node selection is handled by LiveFlow's lf:selection_change event
+    {:noreply, socket}
   end
 
   @impl true
-  def handle_event("add_power_rate", _params, socket) do
-    n = System.unique_integer([:positive])
-
-    node =
-      Node.new(
-        "power-rate-#{n}",
-        %{x: 100 + rem(n, 3) * 250, y: 100 + div(n, 3) * 150},
-        %{
-          label: "Power Rate",
-          income: 20.0,
-          drain: 10.0,
-          net: 10.0,
-          unit: "energy/sec"
-        },
-        type: :power_rate,
-        handles: [Handle.target(:left), Handle.source(:right)]
-      )
-
-    flow = State.add_node(socket.assigns.flow, node)
-    {:noreply, assign(socket, flow: flow)}
+  def handle_event("select_unit", _params, socket) do
+    # Unit node click - just let LiveFlow handle the selection
+    {:noreply, socket}
   end
 
   @impl true
-  def handle_event("add_build_power", _params, socket) do
-    n = System.unique_integer([:positive])
+  def handle_event("increase_quantity", %{"node-id" => node_id}, socket) do
+    flow =
+      update_node_data(socket.assigns.flow, node_id, fn data ->
+        current_qty = data[:quantity] || 1
+        %{data | quantity: current_qty + 1}
+      end)
 
-    node =
-      Node.new(
-        "build-power-#{n}",
-        %{x: 100 + rem(n, 3) * 250, y: 100 + div(n, 3) * 150},
+    {:noreply, assign(socket, flow: flow, simulation_run: false)}
+  end
+
+  @impl true
+  def handle_event("decrease_quantity", %{"node-id" => node_id}, socket) do
+    flow =
+      update_node_data(socket.assigns.flow, node_id, fn data ->
+        current_qty = data[:quantity] || 1
+        # Don't go below 1
+        new_qty = max(1, current_qty - 1)
+        %{data | quantity: new_qty}
+      end)
+
+    {:noreply, assign(socket, flow: flow, simulation_run: false)}
+  end
+
+  @impl true
+  def handle_event("open_unit_selector", %{"node-id" => node_id}, socket) do
+    # Get current unit for this node
+    node = socket.assigns.flow.nodes[node_id]
+    current_unit_id = node && node.data[:unit] && node.data[:unit].unit_id
+
+    {:noreply,
+     assign(socket,
+       show_unit_selector: true,
+       selected_node_id: node_id,
+       current_unit_id: current_unit_id,
+       selected_faction: "UEF",
+       unit_search: "",
+       active_filters: []
+     )}
+  end
+
+  @impl true
+  def handle_event("select_faction", %{"faction" => faction}, socket) do
+    {:noreply, assign(socket, selected_faction: faction)}
+  end
+
+  @impl true
+  def handle_event("toggle_filter", %{"filter" => filter_key}, socket) do
+    active_filters = socket.assigns.active_filters
+
+    new_filters =
+      cond do
+        # Remove if already active
+        filter_key in active_filters ->
+          List.delete(active_filters, filter_key)
+
+        # Add new filter, removing others from same group
+        true ->
+          # Determine which group this filter belongs to
+          group_filters =
+            cond do
+              filter_key in @usage_filters -> @usage_filters
+              filter_key in @tech_filters -> @tech_filters
+              true -> []
+            end
+
+          # Remove any filters from the same group, then add new one
+          active_filters
+          |> Enum.reject(&(&1 in group_filters))
+          |> Kernel.++([filter_key])
+      end
+
+    {:noreply, assign(socket, active_filters: new_filters)}
+  end
+
+  @impl true
+  def handle_event("clear_filters", _params, socket) do
+    {:noreply, assign(socket, active_filters: [])}
+  end
+
+  @impl true
+  def handle_event("open_initial_settings", %{"node-id" => _node_id}, socket) do
+    # Get current initial node values
+    initial_node = socket.assigns.flow.nodes["initial"]
+    data = initial_node && initial_node.data
+
+    form =
+      if data do
         %{
-          label: "Build Power",
-          value: 10,
-          unit: "BP"
-        },
-        type: :build_power,
-        handles: [Handle.target(:left), Handle.source(:right)]
-      )
+          "mass_in_storage" => data[:mass_in_storage] || 650,
+          "energy_in_storage" => data[:energy_in_storage] || 5000,
+          "mass_per_sec" => data[:mass_per_sec] || 1.0,
+          "energy_per_sec" => data[:energy_per_sec] || 20.0,
+          "build_power" => data[:build_power] || 10
+        }
+      else
+        socket.assigns.initial_settings_form
+      end
 
-    flow = State.add_node(socket.assigns.flow, node)
-    {:noreply, assign(socket, flow: flow)}
+    {:noreply,
+     assign(socket,
+       show_initial_settings: true,
+       initial_settings_form: form
+     )}
+  end
+
+  @impl true
+  def handle_event("close_initial_settings", _params, socket) do
+    {:noreply, assign(socket, show_initial_settings: false)}
+  end
+
+  @impl true
+  def handle_event("update_initial_setting", %{"name" => name, "value" => value}, socket) do
+    form = socket.assigns.initial_settings_form
+
+    # Parse value based on field
+    parsed_value =
+      case name do
+        "mass_in_storage" -> String.to_integer(value)
+        "energy_in_storage" -> String.to_integer(value)
+        "build_power" -> String.to_integer(value)
+        _ -> String.to_float(value)
+      end
+
+    updated_form = Map.put(form, name, parsed_value)
+    {:noreply, assign(socket, initial_settings_form: updated_form)}
+  end
+
+  @impl true
+  def handle_event("save_initial_settings", _params, socket) do
+    form = socket.assigns.initial_settings_form
+
+    flow =
+      update_node_data(socket.assigns.flow, "initial", fn data ->
+        %{
+          data
+          | mass_in_storage: form["mass_in_storage"],
+            energy_in_storage: form["energy_in_storage"],
+            mass_per_sec: form["mass_per_sec"],
+            energy_per_sec: form["energy_per_sec"],
+            build_power: form["build_power"]
+        }
+      end)
+
+    {:noreply,
+     assign(socket,
+       flow: flow,
+       show_initial_settings: false,
+       simulation_run: false
+     )}
+  end
+
+  @impl true
+  def handle_event("close_unit_selector", _params, socket) do
+    {:noreply,
+     assign(socket,
+       show_unit_selector: false,
+       selected_node_id: nil,
+       unit_search: ""
+     )}
+  end
+
+  @impl true
+  def handle_event("search_units", %{"value" => search}, socket) do
+    {:noreply, assign(socket, unit_search: search)}
+  end
+
+  @impl true
+  def handle_event("select_unit_for_node", %{"unit_id" => unit_id}, socket) do
+    node_id = socket.assigns.selected_node_id
+    unit = Enum.find(socket.assigns.units, &(&1.unit_id == unit_id))
+
+    flow =
+      update_node_data(socket.assigns.flow, node_id, fn data ->
+        %{data | unit: unit, finished_time: nil}
+      end)
+
+    {:noreply,
+     assign(socket,
+       flow: flow,
+       show_unit_selector: false,
+       selected_node_id: nil,
+       unit_search: "",
+       simulation_run: false
+     )}
   end
 
   @impl true
   def handle_event("reset_flow", _params, socket) do
-    {:noreply, assign(socket, flow: create_demo_flow())}
+    flow = create_initial_flow(socket.assigns.default_unit)
+    {:noreply, assign(socket, flow: flow, simulation_run: false)}
   end
 
   @impl true
@@ -311,6 +851,8 @@ defmodule FafCnWeb.EcoWorkflowLive do
   @impl true
   def handle_event("lf:delete_selected", _params, socket) do
     flow = State.delete_selected(socket.assigns.flow)
+    # Prevent deletion of initial node
+    flow = ensure_initial_node(flow, socket.assigns.default_unit)
     {:noreply, assign(socket, flow: flow)}
   end
 
@@ -326,6 +868,97 @@ defmodule FafCnWeb.EcoWorkflowLive do
   end
 
   # ===== Private Helpers =====
+
+  defp create_initial_flow(default_unit) do
+    initial_node =
+      Node.new(
+        "initial",
+        %{x: 50, y: 150},
+        %{
+          mass_in_storage: 650,
+          energy_in_storage: 5000,
+          mass_per_sec: 1.0,
+          energy_per_sec: 20.0,
+          build_power: 10
+        },
+        type: :initial,
+        handles: [Handle.source(:right)],
+        deletable: false
+      )
+
+    # Add one default unit node connected to initial
+    unit_node =
+      Node.new(
+        "unit-default",
+        %{x: 280, y: 150},
+        %{
+          unit: default_unit,
+          quantity: 1,
+          finished_time: nil
+        },
+        type: :unit,
+        handles: [Handle.target(:left), Handle.source(:right)]
+      )
+
+    edge =
+      Edge.new("e-initial", "initial", "unit-default",
+        source_handle: "right",
+        target_handle: "left",
+        marker_end: %{type: :arrow_closed, color: "#64748b"},
+        data: %{
+          mass_in_storage: 650,
+          energy_in_storage: 5000,
+          mass_per_sec: 1.0,
+          energy_per_sec: 20.0,
+          build_power: 10,
+          elapsed_time: 0
+        }
+      )
+
+    State.new(nodes: [initial_node, unit_node], edges: [edge])
+  end
+
+  defp ensure_initial_node(flow, _default_unit) do
+    if Map.has_key?(flow.nodes, "initial") do
+      flow
+    else
+      # Recreate initial node if it was deleted
+      initial_node =
+        Node.new(
+          "initial",
+          %{x: 50, y: 150},
+          %{
+            mass_in_storage: 650,
+            energy_in_storage: 5000,
+            mass_per_sec: 1.0,
+            energy_per_sec: 20.0,
+            build_power: 10
+          },
+          type: :initial,
+          handles: [Handle.source(:right)],
+          deletable: false
+        )
+
+      State.add_node(flow, initial_node)
+    end
+  end
+
+  defp count_unit_nodes(flow) do
+    flow.nodes
+    |> Map.values()
+    |> Enum.count(&(&1.type == :unit))
+  end
+
+  defp update_node_data(flow, node_id, update_fn) do
+    case Map.get(flow.nodes, node_id) do
+      nil ->
+        flow
+
+      node ->
+        updated_node = %{node | data: update_fn.(node.data)}
+        %{flow | nodes: Map.put(flow.nodes, node_id, updated_node)}
+    end
+  end
 
   defp apply_node_change(flow, %{"type" => "position", "id" => id, "position" => pos} = change) do
     case Map.get(flow.nodes, id) do
@@ -344,91 +977,23 @@ defmodule FafCnWeb.EcoWorkflowLive do
   end
 
   defp apply_node_change(flow, %{"type" => "remove", "id" => id}) do
-    State.remove_node(flow, id)
+    # Prevent removal of initial node
+    if id == "initial" do
+      flow
+    else
+      State.remove_node(flow, id)
+    end
   end
 
   defp apply_node_change(flow, _change), do: flow
 
-  defp create_demo_flow do
-    nodes = [
-      Node.new(
-        "mass-storage-1",
-        %{x: 50, y: 100},
-        %{
-          label: "Mass Storage",
-          value: 650,
-          max: 650,
-          unit: "mass"
-        },
-        type: :mass_storage,
-        handles: [Handle.target(:left), Handle.source(:right)]
-      ),
-      Node.new(
-        "power-storage-1",
-        %{x: 50, y: 250},
-        %{
-          label: "Power Storage",
-          value: 5000,
-          max: 5000,
-          unit: "energy"
-        },
-        type: :power_storage,
-        handles: [Handle.target(:left), Handle.source(:right)]
-      ),
-      Node.new(
-        "mass-rate-1",
-        %{x: 350, y: 100},
-        %{
-          label: "Mass Rate",
-          income: 1.0,
-          drain: 0.5,
-          net: 0.5,
-          unit: "mass/sec"
-        },
-        type: :mass_rate,
-        handles: [Handle.target(:left), Handle.source(:right)]
-      ),
-      Node.new(
-        "power-rate-1",
-        %{x: 350, y: 250},
-        %{
-          label: "Power Rate",
-          income: 20.0,
-          drain: 15.0,
-          net: 5.0,
-          unit: "energy/sec"
-        },
-        type: :power_rate,
-        handles: [Handle.target(:left), Handle.source(:right)]
-      ),
-      Node.new(
-        "build-power-1",
-        %{x: 650, y: 175},
-        %{
-          label: "Build Power",
-          value: 10,
-          unit: "BP"
-        },
-        type: :build_power,
-        handles: [Handle.target(:left), Handle.source(:right)]
-      )
-    ]
-
-    edges = [
-      Edge.new("e1", "mass-storage-1", "mass-rate-1",
-        marker_end: %{type: :arrow_closed, color: "#64748b"}
-      ),
-      Edge.new("e2", "power-storage-1", "power-rate-1",
-        marker_end: %{type: :arrow_closed, color: "#64748b"}
-      ),
-      Edge.new("e3", "mass-rate-1", "build-power-1",
-        marker_end: %{type: :arrow_closed, color: "#64748b"}
-      ),
-      Edge.new("e4", "power-rate-1", "build-power-1",
-        marker_end: %{type: :arrow_closed, color: "#64748b"}
-      )
-    ]
-
-    State.new(nodes: nodes, edges: edges)
+  defp faction_bg_class(faction) do
+    case faction do
+      "UEF" -> "unit-bg-uef"
+      "CYBRAN" -> "unit-bg-cybran"
+      "AEON" -> "unit-bg-aeon"
+      "SERAPHIM" -> "unit-bg-seraphim"
+      _ -> "bg-base-300"
+    end
   end
 end
