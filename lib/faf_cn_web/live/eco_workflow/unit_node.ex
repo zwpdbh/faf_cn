@@ -86,14 +86,17 @@ defmodule FafCnWeb.EcoWorkflow.UnitNode do
         <%!-- Body with Costs and Quantity --%>
         <div class="workflow-node-unit-compact-body">
           <%!-- Edit Button - Top Right of Body --%>
-          <div
+          <button
+            type="button"
             class="workflow-node-unit-edit-btn"
-            phx-click="open_unit_selector"
-            phx-value-node-id={@node.id}
+            id={"unit-edit-btn-#{@node.id}"}
+            phx-hook="EditButton"
+            data-event="open_unit_selector"
+            data-node-id={@node.id}
             title="Change unit"
           >
             <.icon name="hero-pencil-square" class="w-3 h-3" />
-          </div>
+          </button>
           <%!-- Resource Costs Row --%>
           <div class="workflow-node-unit-costs">
             <div class="workflow-node-unit-cost" title="Mass: #{@build_cost_mass}">

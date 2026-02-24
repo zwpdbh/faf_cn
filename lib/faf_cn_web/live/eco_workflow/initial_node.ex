@@ -28,20 +28,23 @@ defmodule FafCnWeb.EcoWorkflow.InitialNode do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="workflow-node-initial-compact">
+    <div class="workflow-node-initial-compact" phx-hook="WorkflowNode" id="workflow-node-initial">
       <%!-- Header --%>
       <div class="workflow-node-initial-compact-header">
         <.icon name="hero-play-circle" class="w-3 h-3" />
         <span class="text-[10px] font-semibold uppercase tracking-wide">Start</span>
         <%!-- Edit Button --%>
-        <div
+        <button
+          type="button"
           class="workflow-node-initial-edit-btn"
-          phx-click="open_initial_settings"
-          phx-value-node-id={@node.id}
+          id="initial-edit-btn"
+          phx-hook="EditButton"
+          data-event="open_initial_settings"
+          data-node-id="initial"
           title="Edit initial settings"
         >
           <.icon name="hero-pencil-square" class="w-3 h-3" />
-        </div>
+        </button>
       </div>
 
       <%!-- Compact Stats Grid --%>

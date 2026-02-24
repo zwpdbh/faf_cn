@@ -568,11 +568,10 @@ defmodule FafCnWeb.FafUnitsComponents do
     <div
       :if={@show}
       class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-      phx-click={@on_close}
+      phx-click-away={@on_close}
     >
       <div
         class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col overflow-hidden"
-        phx-click-away={@on_close}
         phx-stop
       >
         <%!-- Modal Header --%>

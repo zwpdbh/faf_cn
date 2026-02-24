@@ -182,6 +182,7 @@ defmodule FafCnWeb.EcoWorkflowLive do
   defp initial_settings_modal(assigns) do
     ~H"""
     <div
+      id="initial-settings-modal-backdrop"
       class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
       phx-click="close_initial_settings"
     >

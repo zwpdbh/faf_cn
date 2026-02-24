@@ -26,6 +26,45 @@ import topbar from "../vendor/topbar"
 import EcoChart from "./hooks/eco_chart"
 import { LiveFlowHook, FileImportHook, setupDownloadHandler } from "live_flow"
 
+// Hook to handle edit button clicks in workflow nodes
+const EditButtonHook = {
+  mounted() {
+    this.handleMouseDown = (e) => {
+      // Prevent default and stop propagation
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    
+    this.handleClick = (e) => {
+      // Prevent default and stop propagation immediately
+      e.preventDefault()
+      e.stopPropagation()
+      e.stopImmediatePropagation()
+      
+      const eventName = this.el.getAttribute("data-event")
+      const nodeId = this.el.getAttribute("data-node-id")
+      
+      if (eventName) {
+        // Longer delay to ensure the modal backdrop click handler doesn't fire
+        setTimeout(() => {
+          this.pushEvent(eventName, { "node-id": nodeId })
+        }, 100)
+      }
+      
+      return false
+    }
+    
+    // Capture in multiple phases to ensure we catch everything
+    this.el.addEventListener("mousedown", this.handleMouseDown, { capture: true })
+    this.el.addEventListener("click", this.handleClick, { capture: true })
+  },
+  
+  destroyed() {
+    this.el.removeEventListener("mousedown", this.handleMouseDown, { capture: true })
+    this.el.removeEventListener("click", this.handleClick, { capture: true })
+  }
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
@@ -33,7 +72,8 @@ const liveSocket = new LiveSocket("/live", Socket, {
   hooks: {
     EcoChart,
     LiveFlow: LiveFlowHook,
-    FileImport: FileImportHook
+    FileImport: FileImportHook,
+    EditButton: EditButtonHook
   },
 })
 

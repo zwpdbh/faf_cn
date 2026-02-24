@@ -196,6 +196,10 @@
   opacity: 0.7;
   z-index: 10;
   pointer-events: auto;
+  /* Reset button styles */
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
 }
 
 .workflow-node-initial-edit-btn:hover {
@@ -347,6 +351,10 @@
   opacity: 0.6;
   z-index: 10;
   pointer-events: auto;
+  /* Reset button styles */
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
 }
 
 .workflow-node-unit-edit-btn:hover {
