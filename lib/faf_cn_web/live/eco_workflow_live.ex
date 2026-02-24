@@ -410,7 +410,22 @@ defmodule FafCnWeb.EcoWorkflowLive do
     flow =
       update_node_data(socket.assigns.flow, node_id, fn data ->
         current_qty = data[:quantity] || 1
-        %{data | quantity: current_qty + 1}
+        unit = data[:unit]
+        new_qty = current_qty + 1
+
+        if unit do
+          mass = unit.build_cost_mass * new_qty
+          energy = unit.build_cost_energy * new_qty
+          build_time = unit.build_time * new_qty
+
+          require Logger
+
+          Logger.info(
+            "[#{node_id}] #{unit.unit_id}, qty=#{new_qty}, mass=#{trunc(mass)}, energy=#{trunc(energy)}, build_time=#{trunc(build_time)}"
+          )
+        end
+
+        %{data | quantity: new_qty}
       end)
 
     {:noreply, assign(socket, flow: flow, simulation_run: false)}
@@ -423,6 +438,20 @@ defmodule FafCnWeb.EcoWorkflowLive do
         current_qty = data[:quantity] || 1
         # Don't go below 1
         new_qty = max(1, current_qty - 1)
+        unit = data[:unit]
+
+        if unit && new_qty != current_qty do
+          mass = unit.build_cost_mass * new_qty
+          energy = unit.build_cost_energy * new_qty
+          build_time = unit.build_time * new_qty
+
+          require Logger
+
+          Logger.info(
+            "[#{node_id}] #{unit.unit_id}, qty=#{new_qty}, mass=#{trunc(mass)}, energy=#{trunc(energy)}, build_time=#{trunc(build_time)}"
+          )
+        end
+
         %{data | quantity: new_qty}
       end)
 
@@ -534,6 +563,12 @@ defmodule FafCnWeb.EcoWorkflowLive do
 
   @impl true
   def handle_event("save_initial_settings", params, socket) do
+    require Logger
+
+    Logger.info(
+      "[initial] mass_storage=#{params["mass_in_storage"]}, energy_storage=#{params["energy_in_storage"]}, mass_per_sec=#{params["mass_per_sec"]}, energy_per_sec=#{params["energy_per_sec"]}, build_power=#{params["build_power"]}"
+    )
+
     flow =
       update_node_data(socket.assigns.flow, "initial", fn data ->
         %{
@@ -563,10 +598,20 @@ defmodule FafCnWeb.EcoWorkflowLive do
   def handle_event("select_unit_for_node", %{"unit_id" => unit_id}, socket) do
     node_id = socket.assigns.selected_node_id
     unit = Enum.find(socket.assigns.units, &(&1.unit_id == unit_id))
+    qty = 1
+    mass = unit.build_cost_mass * qty
+    energy = unit.build_cost_energy * qty
+    build_time = unit.build_time * qty
+
+    require Logger
+
+    Logger.info(
+      "[#{node_id}] #{unit.unit_id}, qty=#{qty}, mass=#{trunc(mass)}, energy=#{trunc(energy)}, build_time=#{trunc(build_time)}"
+    )
 
     flow =
       update_node_data(socket.assigns.flow, node_id, fn data ->
-        %{data | unit: unit, finished_time: nil}
+        %{data | unit: unit, finished_time: nil, quantity: qty}
       end)
 
     {:noreply,
@@ -672,6 +717,13 @@ defmodule FafCnWeb.EcoWorkflowLive do
 
   @impl true
   def handle_event("lf:" <> _event, _params, socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:lf_node_click, node_id}, socket) do
+    require Logger
+    Logger.debug("[EcoWorkflow] Node clicked: #{node_id}")
     {:noreply, socket}
   end
 
