@@ -36,7 +36,4 @@ npm-debug.log
 /assets/node_modules/
 
 .env
-fafcn-in-rust/target
-
 tmp
-fafcn-in-ocaml
