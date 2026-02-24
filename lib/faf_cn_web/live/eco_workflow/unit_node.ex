@@ -138,14 +138,15 @@ defmodule FafCnWeb.EcoWorkflow.UnitNode do
               <.icon name="hero-plus" class="w-2.5 h-2.5" />
             </button>
           </div>
-        </div>
 
-        <%!-- Finished Time Badge --%>
-        <%= if @finished_time do %>
-          <div class="workflow-node-unit-finished-badge">
-            {@finished_time}s
-          </div>
-        <% end %>
+          <%!-- Finished Time - Shows after simulation --%>
+          <%= if @finished_time do %>
+            <div class="workflow-node-unit-finished-time">
+              <.icon name="hero-clock" class="w-2.5 h-2.5" />
+              <span>{@finished_time}s</span>
+            </div>
+          <% end %>
+        </div>
       <% else %>
         <%!-- Empty State --%>
         <div class="flex flex-col items-center justify-center py-3 text-base-content/50">

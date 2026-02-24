@@ -88,19 +88,15 @@ defmodule FafCnWeb.EcoWorkflowLive do
                 <button class="btn btn-sm btn-primary" phx-click="add_unit_node">
                   <.icon name="hero-plus" class="w-4 h-4 mr-1" /> Add Unit
                 </button>
-                <button
-                  class="btn btn-sm btn-success"
-                  phx-click="run_simulation"
-                  disabled={@simulation_run}
-                >
-                  <.icon name="hero-play" class="w-4 h-4 mr-1" />
-                  <%= if @simulation_run do %>
-                    Ran
-                  <% else %>
-                    Run
-                  <% end %>
-                  Simulation
-                </button>
+                <%= if @simulation_run do %>
+                  <button class="btn btn-sm btn-warning" phx-click="clear_simulation">
+                    <.icon name="hero-arrow-path" class="w-4 h-4 mr-1" /> Reset Simulation
+                  </button>
+                <% else %>
+                  <button class="btn btn-sm btn-success" phx-click="run_simulation">
+                    <.icon name="hero-play" class="w-4 h-4 mr-1" /> Run Simulation
+                  </button>
+                <% end %>
               </div>
             </div>
 
@@ -380,6 +376,21 @@ defmodule FafCnWeb.EcoWorkflowLive do
     flow = %{flow | nodes: updated_nodes, edges: updated_edges}
 
     {:noreply, assign(socket, flow: flow, simulation_run: true)}
+  end
+
+  @impl true
+  def handle_event("clear_simulation", _params, socket) do
+    flow = socket.assigns.flow
+
+    # Clear finished times from all nodes
+    updated_nodes =
+      Enum.reduce(flow.nodes, %{}, fn {id, node}, acc ->
+        updated_node = %{node | data: Map.put(node.data, :finished_time, nil)}
+        Map.put(acc, id, updated_node)
+      end)
+
+    flow = %{flow | nodes: updated_nodes}
+    {:noreply, assign(socket, flow: flow, simulation_run: false)}
   end
 
   @impl true
