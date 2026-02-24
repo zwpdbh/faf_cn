@@ -73,7 +73,7 @@ defmodule FafCnWeb.EcoWorkflow.UnitNode do
       ]}>
         <%= if @unit do %>
           <div class={["unit-icon-#{@unit_id} w-5 h-5 shrink-0"]}></div>
-          <span class="workflow-node-unit-name truncate" title={@unit_name}>
+          <span class="workflow-node-unit-name" title={@unit_name}>
             {@unit_name}
           </span>
         <% else %>
@@ -100,16 +100,16 @@ defmodule FafCnWeb.EcoWorkflow.UnitNode do
           <%!-- Resource Costs Row --%>
           <div class="workflow-node-unit-costs">
             <div class="workflow-node-unit-cost" title="Mass: #{@build_cost_mass}">
-              <.icon name="hero-cube" class="w-3 h-3 text-mass" />
-              <span class="text-[10px] font-medium">{format_number(@build_cost_mass)}</span>
+              <.icon name="hero-cube" class="w-2.5 h-2.5 text-mass shrink-0" />
+              <span class="text-[8px] font-medium truncate">{format_number(@build_cost_mass)}</span>
             </div>
             <div class="workflow-node-unit-cost" title="Energy: #{@build_cost_energy}">
-              <.icon name="hero-bolt" class="w-3 h-3 text-energy" />
-              <span class="text-[10px] font-medium">{format_number(@build_cost_energy)}</span>
+              <.icon name="hero-bolt" class="w-2.5 h-2.5 text-energy shrink-0" />
+              <span class="text-[8px] font-medium truncate">{format_number(@build_cost_energy)}</span>
             </div>
             <div class="workflow-node-unit-cost" title="Build Time: #{@build_time}">
-              <.icon name="hero-clock" class="w-3 h-3 text-build" />
-              <span class="text-[10px] font-medium">{format_number(@build_time)}</span>
+              <.icon name="hero-clock" class="w-2.5 h-2.5 text-build shrink-0" />
+              <span class="text-[8px] font-medium truncate">{format_number(@build_time)}</span>
             </div>
           </div>
 
@@ -124,7 +124,7 @@ defmodule FafCnWeb.EcoWorkflow.UnitNode do
               data-node-id={@node.id}
               disabled={@quantity <= 1}
             >
-              <.icon name="hero-minus" class="w-3 h-3" />
+              <.icon name="hero-minus" class="w-2.5 h-2.5" />
             </button>
             <span class="workflow-node-unit-qty-value">{@quantity}</span>
             <button
@@ -135,7 +135,7 @@ defmodule FafCnWeb.EcoWorkflow.UnitNode do
               data-event="increase_quantity"
               data-node-id={@node.id}
             >
-              <.icon name="hero-plus" class="w-3 h-3" />
+              <.icon name="hero-plus" class="w-2.5 h-2.5" />
             </button>
           </div>
         </div>

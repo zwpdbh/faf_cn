@@ -246,10 +246,23 @@
   min-height: 24px;
 }
 
+/* Scale down unit icons inside node headers */
+.workflow-node-unit-compact-header [class^="unit-icon-"] {
+  width: 64px !important;
+  height: 64px !important;
+  flex-shrink: 0;
+  transform: scale(0.75);
+  transform-origin: center;
+  margin: -8px;
+}
+
 .workflow-node-unit-name {
   flex: 1;
   font-size: 10px;
   font-weight: 500;
+  min-width: 0;
+  line-height: 1.2;
+  word-break: break-word;
 }
 
 .workflow-node-unit-compact-body {
@@ -263,16 +276,18 @@
 .workflow-node-unit-costs {
   display: flex;
   justify-content: space-between;
-  gap: 2px;
+  gap: 1px;
 }
 
 .workflow-node-unit-cost {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px 4px;
+  gap: 1px;
+  padding: 1px 2px;
   background: var(--color-base-200);
-  border-radius: 3px;
+  border-radius: 2px;
+  font-size: 8px;
+  overflow: hidden;
 }
 
 /* Quantity Selector */
@@ -280,8 +295,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding-top: 4px;
+  gap: 4px;
+  padding-top: 3px;
   border-top: 1px solid var(--color-base-300);
 }
 
@@ -289,12 +304,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   padding: 0;
   background: var(--color-base-200);
   border: none;
-  border-radius: 3px;
+  border-radius: 2px;
   color: var(--color-base-content);
   cursor: pointer;
   transition: all 0.15s;
@@ -311,9 +326,9 @@
 }
 
 .workflow-node-unit-qty-value {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 600;
-  min-width: 20px;
+  min-width: 16px;
   text-align: center;
 }
 
