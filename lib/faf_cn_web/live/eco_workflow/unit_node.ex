@@ -11,7 +11,7 @@ defmodule FafCnWeb.EcoWorkflow.UnitNode do
   use Phoenix.LiveComponent
   import FafCnWeb.CoreComponents
 
-  alias FafCnWeb.EcoGuidesLive.Components
+  alias FafCnWeb.FafUnitsHelpers
 
   @impl true
   def update(assigns, socket) do
@@ -54,6 +54,7 @@ defmodule FafCnWeb.EcoWorkflow.UnitNode do
   defp format_number(n) do
     # Format as X.XM
     value = Float.round(n / 1_000_000, 1)
+
     if value == trunc(value) do
       "#{trunc(value)}M"
     else
@@ -68,7 +69,7 @@ defmodule FafCnWeb.EcoWorkflow.UnitNode do
       <%!-- Header with Icon and Name --%>
       <div class={[
         "workflow-node-unit-compact-header",
-        @faction && Components.unit_faction_bg_class(@faction)
+        @faction && FafUnitsHelpers.faction_bg_class(@faction)
       ]}>
         <%= if @unit do %>
           <div class={["unit-icon-#{@unit_id} w-5 h-5 shrink-0"]}></div>

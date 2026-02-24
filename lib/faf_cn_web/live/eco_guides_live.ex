@@ -5,12 +5,11 @@ defmodule FafCnWeb.EcoGuidesLive do
   use FafCnWeb, :live_view
 
   import FafCnWeb.EcoGuidesLive.Components
+  import FafCnWeb.FafUnitsHelpers
 
   alias FafCn.Units
 
   on_mount {FafCnWeb.UserAuth, :mount_current_user}
-
-  @factions ["UEF", "CYBRAN", "AEON", "SERAPHIM"]
 
   # T1 Engineer unit IDs per faction (default base unit)
   @faction_engineers %{
@@ -20,29 +19,17 @@ defmodule FafCnWeb.EcoGuidesLive do
     "SERAPHIM" => "XSL0105"
   }
 
-  # Available filters with their category mappings and groupings
-  @filters [
-    %{key: "ENGINEER", label: "Engineer", category: "ENGINEER", group: :usage},
-    %{key: "STRUCTURE", label: "Structure", category: "STRUCTURE", group: :usage},
-    %{key: "LAND", label: "Land", category: "LAND", group: :usage},
-    %{key: "AIR", label: "Air", category: "AIR", group: :usage},
-    %{key: "NAVAL", label: "Naval", category: "NAVAL", group: :usage},
-    %{key: "TECH1", label: "T1", category: "TECH1", group: :tech},
-    %{key: "TECH2", label: "T2", category: "TECH2", group: :tech},
-    %{key: "TECH3", label: "T3", category: "TECH3", group: :tech},
-    %{key: "EXPERIMENTAL", label: "EXP", category: "EXPERIMENTAL", group: :tech}
-  ]
-
-  # Define mutually exclusive groups
-  @usage_filters ["ENGINEER", "STRUCTURE", "LAND", "AIR", "NAVAL"]
-  @tech_filters ["TECH1", "TECH2", "TECH3", "EXPERIMENTAL"]
+  # Import filter definitions from shared helpers
+  @filters FafCnWeb.FafUnitsHelpers.all_filters()
+  @usage_filters FafCnWeb.FafUnitsHelpers.usage_filter_keys()
+  @tech_filters FafCnWeb.FafUnitsHelpers.tech_filter_keys()
 
   @impl true
   def mount(_params, _session, socket) do
     # Use optimized query that excludes the large 'data' JSON field
     # Reduces memory usage by ~16x compared to list_units()
     units = Units.list_units_for_eco_guides()
-    units_by_faction = group_units_by_faction(units)
+    units_by_faction = FafCnWeb.FafUnitsHelpers.group_units_by_faction(units)
 
     # Default to UEF faction
     selected_faction = "UEF"
@@ -51,7 +38,7 @@ defmodule FafCnWeb.EcoGuidesLive do
     socket =
       socket
       |> assign(:page_title, "Eco Guides")
-      |> assign(:factions, @factions)
+      |> assign(:factions, ["UEF", "CYBRAN", "AEON", "SERAPHIM"])
       |> assign(:faction_engineers, @faction_engineers)
       |> assign(:filters, @filters)
       |> assign(:active_filters, [])
@@ -135,19 +122,5 @@ defmodule FafCnWeb.EcoGuidesLive do
   @impl true
   def handle_event("clear_filters", _params, socket) do
     {:noreply, assign(socket, :active_filters, [])}
-  end
-
-  defp group_units_by_faction(units) do
-    units
-    |> Enum.group_by(& &1.faction)
-    |> Enum.map(fn {faction, faction_units} ->
-      # Sort by unit_id to have consistent ordering
-      {faction, Enum.sort_by(faction_units, & &1.unit_id)}
-    end)
-    |> Enum.into(%{})
-  end
-
-  defp find_unit(units, unit_id) do
-    Enum.find(units, &(&1.unit_id == unit_id))
   end
 end
