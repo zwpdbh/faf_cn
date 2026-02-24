@@ -116,20 +116,24 @@ defmodule FafCnWeb.EcoWorkflow.UnitNode do
           <%!-- Quantity Selector Row --%>
           <div class="workflow-node-unit-quantity">
             <button
+              type="button"
               class="workflow-node-unit-qty-btn"
-              phx-click="decrease_quantity"
-              phx-value-node-id={@node.id}
-              phx-stop
+              id={"qty-minus-btn-#{@node.id}"}
+              phx-hook="QuantityButton"
+              data-event="decrease_quantity"
+              data-node-id={@node.id}
               disabled={@quantity <= 1}
             >
               <.icon name="hero-minus" class="w-3 h-3" />
             </button>
             <span class="workflow-node-unit-qty-value">{@quantity}</span>
             <button
+              type="button"
               class="workflow-node-unit-qty-btn"
-              phx-click="increase_quantity"
-              phx-value-node-id={@node.id}
-              phx-stop
+              id={"qty-plus-btn-#{@node.id}"}
+              phx-hook="QuantityButton"
+              data-event="increase_quantity"
+              data-node-id={@node.id}
             >
               <.icon name="hero-plus" class="w-3 h-3" />
             </button>

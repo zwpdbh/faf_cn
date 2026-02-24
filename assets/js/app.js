@@ -65,6 +65,44 @@ const EditButtonHook = {
   }
 }
 
+// Hook to handle quantity button clicks (+/-) in workflow nodes
+const QuantityButtonHook = {
+  mounted() {
+    this.handleMouseDown = (e) => {
+      // Prevent default and stop propagation
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    
+    this.handleClick = (e) => {
+      // Prevent default and stop propagation immediately
+      e.preventDefault()
+      e.stopPropagation()
+      e.stopImmediatePropagation()
+      
+      const eventName = this.el.getAttribute("data-event")
+      const nodeId = this.el.getAttribute("data-node-id")
+      
+      if (eventName) {
+        setTimeout(() => {
+          this.pushEvent(eventName, { "node-id": nodeId })
+        }, 50)
+      }
+      
+      return false
+    }
+    
+    // Capture in capture phase to intercept before LiveFlow
+    this.el.addEventListener("mousedown", this.handleMouseDown, { capture: true })
+    this.el.addEventListener("click", this.handleClick, { capture: true })
+  },
+  
+  destroyed() {
+    this.el.removeEventListener("mousedown", this.handleMouseDown, { capture: true })
+    this.el.removeEventListener("click", this.handleClick, { capture: true })
+  }
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
@@ -73,7 +111,8 @@ const liveSocket = new LiveSocket("/live", Socket, {
     EcoChart,
     LiveFlow: LiveFlowHook,
     FileImport: FileImportHook,
-    EditButton: EditButtonHook
+    EditButton: EditButtonHook,
+    QuantityButton: QuantityButtonHook
   },
 })
 
