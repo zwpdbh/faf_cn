@@ -42,6 +42,7 @@ defmodule FafCnWeb.EcoGuidesLive do
       |> assign(:faction_engineers, @faction_engineers)
       |> assign(:filters, @filters)
       |> assign(:active_filters, [])
+      |> assign(:show_eco_only, false)
       |> assign(:units, units)
       |> assign(:units_by_faction, units_by_faction)
       |> assign(:selected_faction, selected_faction)
@@ -61,7 +62,8 @@ defmodule FafCnWeb.EcoGuidesLive do
      |> assign(:selected_faction, faction)
      |> assign(:base_unit, base_unit)
      |> assign(:selected_units, [])
-     |> assign(:active_filters, [])}
+     |> assign(:active_filters, [])
+     |> assign(:show_eco_only, false)}
   end
 
   @impl true
@@ -120,7 +122,12 @@ defmodule FafCnWeb.EcoGuidesLive do
   end
 
   @impl true
+  def handle_event("toggle_eco_filter", _params, socket) do
+    {:noreply, assign(socket, show_eco_only: !socket.assigns.show_eco_only)}
+  end
+
+  @impl true
   def handle_event("clear_filters", _params, socket) do
-    {:noreply, assign(socket, :active_filters, [])}
+    {:noreply, assign(socket, active_filters: [], show_eco_only: false)}
   end
 end

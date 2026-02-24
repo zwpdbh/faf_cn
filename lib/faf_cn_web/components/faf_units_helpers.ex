@@ -173,19 +173,6 @@ defmodule FafCnWeb.FafUnitsHelpers do
   end
 
   @doc """
-  Returns the tab active/inactive classes for a faction.
-  """
-  def faction_tab_classes(faction, is_active) do
-    color = faction_color_class(faction)
-
-    if is_active do
-      "border-#{color}-500 text-#{color}-600"
-    else
-      "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-    end
-  end
-
-  @doc """
   Returns the tech level (1-4) for a unit based on its categories.
   """
   def get_tech_level(unit) do
@@ -331,5 +318,162 @@ defmodule FafCnWeb.FafUnitsHelpers do
       {faction, Enum.sort_by(faction_units, & &1.unit_id)}
     end)
     |> Enum.into(%{})
+  end
+
+  # ============================================================================
+  # Style Helpers (for consistent UI across components)
+  # ============================================================================
+
+  @doc """
+  Returns base CSS classes for filter buttons.
+
+  ## Options
+
+    * `:size` - :sm (default) or :xs
+    * `:radius` - :md (default) or :lg
+  """
+  def filter_button_base_classes(opts \\ []) do
+    size = Keyword.get(opts, :size, :sm)
+    radius = Keyword.get(opts, :radius, :md)
+
+    size_class =
+      case size do
+        :xs -> "text-xs"
+        _ -> "text-sm"
+      end
+
+    radius_class =
+      case radius do
+        :lg -> "rounded-lg"
+        _ -> "rounded"
+      end
+
+    "px-3 py-1.5 #{radius_class} #{size_class} font-medium transition-all"
+  end
+
+  @doc """
+  Returns CSS classes for an active filter button.
+  """
+  def filter_button_active_classes(_opts \\ []) do
+    "bg-indigo-500 text-white shadow-md"
+  end
+
+  @doc """
+  Returns CSS classes for an inactive filter button.
+
+  ## Options
+
+    * `:variant` - :default (gray, for modals) or :light (white, for inline panels)
+  """
+  def filter_button_inactive_classes(opts \\ []) do
+    variant = Keyword.get(opts, :variant, :default)
+
+    case variant do
+      :light -> "bg-white/90 text-gray-700 hover:bg-white hover:shadow"
+      _ -> "bg-base-200 text-base-content hover:bg-base-300"
+    end
+  end
+
+  @doc """
+  Returns CSS classes for the Eco Only filter button.
+
+  ## Options
+
+    * `:active` - boolean
+  """
+  def eco_filter_button_classes(active, opts \\ []) do
+    base = filter_button_base_classes(opts) <> " flex items-center gap-1.5"
+
+    state =
+      if active do
+        "bg-emerald-500 text-white shadow-md"
+      else
+        "bg-base-200 text-base-content hover:bg-base-300"
+      end
+
+    "#{base} #{state}"
+  end
+
+  @doc """
+  Returns CSS classes for the Clear Filters button.
+
+  ## Options
+
+    * `:size` - :sm (default) or :xs
+    * `:radius` - :md (default) or :lg
+    * `:variant` - :default or :inline (no ml-auto)
+  """
+  def clear_button_classes(opts \\ []) do
+    size = Keyword.get(opts, :size, :sm)
+    radius = Keyword.get(opts, :radius, :md)
+    variant = Keyword.get(opts, :variant, :default)
+
+    size_class =
+      case size do
+        :xs -> "text-xs"
+        _ -> "text-sm"
+      end
+
+    radius_class =
+      case radius do
+        :lg -> "rounded-lg"
+        _ -> "rounded"
+      end
+
+    position_class = if variant == :inline, do: "", else: "ml-auto"
+
+    "#{position_class} px-3 py-1.5 #{radius_class} #{size_class} font-medium bg-gray-500/50 text-white hover:bg-gray-500/70 transition-all"
+  end
+
+  @doc """
+  Returns CSS classes for faction pill buttons.
+
+  ## Options
+
+    * `:active` - boolean
+  """
+  def faction_pill_classes(faction, active, _opts \\ []) do
+    base = "flex-1 py-2 px-4 text-sm font-medium rounded-lg transition-all"
+
+    color =
+      case {faction, active} do
+        {_, true} ->
+          case faction do
+            "UEF" -> "bg-blue-500 text-white shadow-md"
+            "CYBRAN" -> "bg-red-500 text-white shadow-md"
+            "AEON" -> "bg-emerald-500 text-white shadow-md"
+            "SERAPHIM" -> "bg-violet-500 text-white shadow-md"
+            _ -> "bg-indigo-500 text-white shadow-md"
+          end
+
+        {_, false} ->
+          "bg-base-100 text-base-content hover:bg-base-300"
+      end
+
+    "#{base} #{color}"
+  end
+
+  @doc """
+  Returns CSS classes for faction tab buttons.
+
+  ## Options
+
+    * `:active` - boolean
+  """
+  def faction_tab_classes(faction, active, _opts \\ []) do
+    base =
+      "whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors"
+
+    color =
+      case {faction, active} do
+        {"UEF", true} -> "border-blue-500 text-blue-600"
+        {"CYBRAN", true} -> "border-red-500 text-red-600"
+        {"AEON", true} -> "border-emerald-500 text-emerald-600"
+        {"SERAPHIM", true} -> "border-violet-500 text-violet-600"
+        {_, true} -> "border-indigo-500 text-indigo-600"
+        {_, false} -> "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+      end
+
+    "#{base} #{color}"
   end
 end

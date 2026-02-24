@@ -102,19 +102,7 @@ defmodule FafCnWeb.FafUnitsComponents do
   defp tabs_container_class(_), do: "border-b border-gray-200"
 
   defp faction_pill_class(faction, is_active) do
-    case {faction, is_active} do
-      {_, true} ->
-        case faction do
-          "UEF" -> "bg-blue-500 text-white shadow-md"
-          "CYBRAN" -> "bg-red-500 text-white shadow-md"
-          "AEON" -> "bg-emerald-500 text-white shadow-md"
-          "SERAPHIM" -> "bg-violet-500 text-white shadow-md"
-          _ -> "bg-indigo-500 text-white shadow-md"
-        end
-
-      {_, false} ->
-        "bg-base-100 text-base-content hover:bg-base-300"
-    end
+    FafCnWeb.FafUnitsHelpers.faction_pill_classes(faction, is_active)
   end
 
   # ============================================================================
@@ -130,6 +118,7 @@ defmodule FafCnWeb.FafUnitsComponents do
     * `active_filters` - List of currently active filter keys
     * `variant` - Visual variant (:default | :with_eco | :grouped)
     * `eco_filter_active` - Whether eco-only filter is active (for :with_eco variant)
+    * `label_class` - CSS classes for group labels (default: auto based on variant)
     * `on_toggle` - Event name for toggling filters (default: "toggle_filter")
     * `on_toggle_eco` - Event name for eco toggle (default: "toggle_eco_filter")
     * `on_clear` - Event name for clearing filters (default: "clear_filters")
@@ -139,6 +128,7 @@ defmodule FafCnWeb.FafUnitsComponents do
   # :default | :with_eco | :grouped
   attr :variant, :atom, default: :default
   attr :eco_filter_active, :boolean, default: false
+  attr :label_class, :string, default: nil
   attr :on_toggle, :string, default: "toggle_filter"
   attr :on_toggle_eco, :string, default: "toggle_eco_filter"
   attr :on_clear, :string, default: "clear_filters"
@@ -148,7 +138,8 @@ defmodule FafCnWeb.FafUnitsComponents do
     <div class={filter_bar_container_class(@variant)}>
       <%= case @variant do %>
         <% :with_eco -> %>
-          <%!-- Eco Guides style: Eco toggle + grouped filters --%>
+          <%!-- Eco style: Eco toggle + grouped filters --%>
+          <% label_class = @label_class || "text-xs font-semibold text-gray-600 mr-1" %>
           <.eco_filter_button active={@eco_filter_active} on_toggle={@on_toggle_eco} />
           <div class="w-px h-4 bg-base-300 mx-1"></div>
           <.filter_group
@@ -157,6 +148,7 @@ defmodule FafCnWeb.FafUnitsComponents do
             group={:tech}
             label="Tech:"
             on_toggle={@on_toggle}
+            label_class={label_class}
           />
           <div class="w-px h-4 bg-base-300 mx-1"></div>
           <.filter_group
@@ -165,6 +157,7 @@ defmodule FafCnWeb.FafUnitsComponents do
             group={:type}
             label="Type:"
             on_toggle={@on_toggle}
+            label_class={label_class}
           />
           <.clear_button
             :if={length(@active_filters) > 0 or @eco_filter_active}
@@ -179,6 +172,7 @@ defmodule FafCnWeb.FafUnitsComponents do
             group={:tech}
             label="Tech:"
             on_toggle={@on_toggle}
+            label_class="text-xs font-semibold text-base-content mr-1"
           />
           <div class="w-px h-4 bg-base-300 mx-1"></div>
           <.filter_group
@@ -187,6 +181,7 @@ defmodule FafCnWeb.FafUnitsComponents do
             group={:usage}
             label="Type:"
             on_toggle={@on_toggle}
+            label_class="text-xs font-semibold text-base-content mr-1"
           />
           <.clear_button
             :if={length(@active_filters) > 0}
@@ -201,11 +196,11 @@ defmodule FafCnWeb.FafUnitsComponents do
               phx-click={@on_toggle}
               phx-value-filter={filter.key}
               class={[
-                "px-3 py-1.5 rounded text-sm font-medium transition-all",
+                FafCnWeb.FafUnitsHelpers.filter_button_base_classes(variant: :light),
                 if is_active do
-                  "bg-indigo-500 text-white shadow-md"
+                  FafCnWeb.FafUnitsHelpers.filter_button_active_classes()
                 else
-                  "bg-white/90 text-gray-700 hover:bg-white hover:shadow"
+                  FafCnWeb.FafUnitsHelpers.filter_button_inactive_classes(variant: :light)
                 end
               ]}
             >
@@ -221,7 +216,7 @@ defmodule FafCnWeb.FafUnitsComponents do
   end
 
   defp filter_bar_container_class(:with_eco),
-    do: "flex flex-wrap gap-2 items-center"
+    do: "flex flex-wrap gap-x-2 gap-y-2 items-center"
 
   defp filter_bar_container_class(_),
     do: "flex flex-wrap gap-2 mb-2"
@@ -230,34 +225,34 @@ defmodule FafCnWeb.FafUnitsComponents do
     ~H"""
     <button
       phx-click={@on_toggle}
-      class={[
-        "px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5",
-        if @active do
-          "bg-emerald-500 text-white shadow-md"
-        else
-          "bg-base-200 text-base-content hover:bg-base-300"
-        end
-      ]}
+      class={FafCnWeb.FafUnitsHelpers.eco_filter_button_classes(@active, size: :xs, radius: :lg)}
     >
       <.icon name="hero-arrow-trending-up" class="w-3 h-3" /> Eco Only
     </button>
     """
   end
 
+  attr :filters, :list, required: true
+  attr :active_filters, :list, default: []
+  attr :group, :atom, required: true
+  attr :label, :string, required: true
+  attr :on_toggle, :string, required: true
+  attr :label_class, :string, default: "text-xs font-medium text-base-content/80 mr-1"
+
   defp filter_group(assigns) do
     ~H"""
-    <span class="text-xs text-base-content/60 mr-1">{@label}</span>
+    <span class={@label_class}>{@label}</span>
     <%= for filter <- Enum.filter(@filters, &(&1.group == @group)) do %>
       <% is_active = filter.key in @active_filters %>
       <button
         phx-click={@on_toggle}
         phx-value-filter={filter.key}
         class={[
-          "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+          FafCnWeb.FafUnitsHelpers.filter_button_base_classes(size: :xs, radius: :lg),
           if is_active do
-            "bg-indigo-500 text-white shadow-md"
+            FafCnWeb.FafUnitsHelpers.filter_button_active_classes()
           else
-            "bg-base-200 text-base-content hover:bg-base-300"
+            FafCnWeb.FafUnitsHelpers.filter_button_inactive_classes()
           end
         ]}
       >
@@ -272,18 +267,19 @@ defmodule FafCnWeb.FafUnitsComponents do
     <button
       phx-click={@on_clear}
       class={clear_button_class(@variant)}
+      title="Clear filters"
     >
-      Clear{if @variant == :with_eco, do: "", else: " All"}
+      <.icon name="hero-trash" class="w-4 h-4" />
     </button>
     """
   end
 
   defp clear_button_class(:with_eco) do
-    "ml-auto px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-500/50 text-white hover:bg-gray-500/70 transition-all"
+    "ml-auto w-8 h-8 flex items-center justify-center rounded bg-gray-500/50 text-white hover:bg-gray-500/70 transition-all"
   end
 
   defp clear_button_class(_) do
-    "px-3 py-1.5 rounded text-sm font-medium bg-gray-500/50 text-white hover:bg-gray-500/70 transition-all"
+    "w-8 h-8 flex items-center justify-center rounded bg-gray-500/50 text-white hover:bg-gray-500/70 transition-all"
   end
 
   # ============================================================================
@@ -353,16 +349,9 @@ defmodule FafCnWeb.FafUnitsComponents do
     "p-4"
   end
 
-  defp grid_columns_class(:dense) do
-    "grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3 content-start"
-  end
-
-  defp grid_columns_class(:sparse) do
-    "grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-4 content-start"
-  end
-
+  # Unified grid columns - consistent density across both features
   defp grid_columns_class(_) do
-    "grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 content-start"
+    "grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3 content-start"
   end
 
   defp empty_state(assigns) do
@@ -426,54 +415,43 @@ defmodule FafCnWeb.FafUnitsComponents do
     """
   end
 
-  defp unit_button_classes(unit, selected, is_base, variant) do
+  # Unified unit button styling - consistent across both Eco Guides and Eco Workflow
+  defp unit_button_classes(unit, selected, is_base, _variant) do
     base_classes = [
-      "group relative aspect-square rounded-lg p-1 transition-all duration-150 flex flex-col items-center justify-center text-center overflow-hidden",
+      "group relative aspect-square rounded-xl p-1 transition-all duration-150 flex flex-col items-center justify-center text-center overflow-hidden shadow-sm",
       faction_bg_class(unit.faction)
     ]
 
     state_classes =
       cond do
         is_base ->
-          "ring-2 ring-yellow-400 ring-offset-1 cursor-default"
-
-        selected && variant == :compact ->
-          "ring-2 ring-yellow-400 ring-offset-2 shadow-lg scale-105"
+          "ring-2 ring-yellow-400 ring-offset-2 cursor-default"
 
         selected ->
-          "ring-2 ring-indigo-500 ring-offset-1"
-
-        variant == :compact ->
-          "hover:ring-2 hover:ring-white/50 hover:ring-offset-2 hover:scale-105 hover:shadow-md"
+          "ring-2 ring-yellow-400 ring-offset-2 shadow-lg scale-105"
 
         true ->
-          "hover:ring-2 hover:ring-gray-300 hover:ring-offset-1 cursor-pointer"
+          "hover:ring-2 hover:ring-white/50 hover:ring-offset-2 hover:scale-105 hover:shadow-md cursor-pointer"
       end
 
     Enum.join(base_classes ++ [state_classes], " ")
   end
 
-  defp icon_size_class(:compact), do: "w-12 h-12 shrink-0"
+  # Unified icon size
   defp icon_size_class(_), do: "w-12 h-12 shrink-0"
 
-  defp base_indicator_class(:compact) do
-    "absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center z-10 shadow-md"
-  end
-
+  # Unified base unit indicator (star)
   defp base_indicator_class(_) do
-    "absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center z-10"
-  end
-
-  defp selection_indicator_class(:compact) do
     "absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center z-10 shadow-md"
   end
 
+  # Unified selection indicator (yellow checkmark)
   defp selection_indicator_class(_) do
-    "absolute -top-1 -right-1 w-4 h-4 bg-indigo-500 rounded-full flex items-center justify-center z-10"
+    "absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center z-10 shadow-md"
   end
 
-  defp check_icon_size(:compact), do: "w-3 h-3 text-yellow-900"
-  defp check_icon_size(_), do: "w-3 h-3 text-white"
+  # Unified check icon
+  defp check_icon_size(_), do: "w-3 h-3 text-yellow-900"
 
   # ============================================================================
   # Pre-composed Components
@@ -489,19 +467,21 @@ defmodule FafCnWeb.FafUnitsComponents do
     * `selected_units` - List of selected units
     * `base_unit` - The base unit (shown as locked)
     * `active_filters` - Active filter keys
-    * `show_background` - Show background image (default: true)
+    * `show_eco_only` - Whether to show only eco units
   """
   attr :units_by_faction, :map, required: true
   attr :selected_faction, :string, required: true
   attr :selected_units, :list, default: []
   attr :base_unit, :any, default: nil
   attr :active_filters, :list, default: []
-  attr :show_background, :boolean, default: true
+  attr :show_eco_only, :boolean, default: false
   attr :on_clear_selections, :string, default: "clear_selections"
 
   def unit_selection_panel(assigns) do
     faction_units = assigns.units_by_faction[assigns.selected_faction] || []
-    filtered_units = apply_filters(faction_units, assigns.active_filters)
+
+    filtered_units =
+      apply_filters(faction_units, assigns.active_filters, eco_only: assigns.show_eco_only)
 
     assigns =
       assigns
@@ -512,11 +492,7 @@ defmodule FafCnWeb.FafUnitsComponents do
     ~H"""
     <div
       class="rounded-lg shadow-sm border border-gray-200 p-4"
-      style={
-        if @show_background,
-          do:
-            "background-image: url('/images/units/background.jpg'); background-size: cover; background-position: center;"
-      }
+      style="background-image: url('/images/units/background.jpg'); background-size: cover; background-position: center;"
     >
       <%!-- Header with selection count --%>
       <div class="flex items-center justify-between mb-4">
@@ -533,10 +509,13 @@ defmodule FafCnWeb.FafUnitsComponents do
         <% end %>
       </div>
 
-      <%!-- Filter Bar --%>
+      <%!-- Filter Bar with Eco Only (dark background) --%>
       <.filter_bar
         filters={all_filters()}
         active_filters={@active_filters}
+        variant={:with_eco}
+        eco_filter_active={@show_eco_only}
+        label_class="text-xs font-medium text-white/90 mr-1"
       />
 
       <%!-- Unit Grid --%>
@@ -546,7 +525,6 @@ defmodule FafCnWeb.FafUnitsComponents do
         base_unit_id={@base_unit_id}
         selection_mode={:multiple}
         on_select="toggle_unit"
-        columns={:default}
         show_background={false}
       />
     </div>
@@ -629,36 +607,13 @@ defmodule FafCnWeb.FafUnitsComponents do
           class="flex-1 overflow-y-auto p-4 min-h-[400px]"
           style="background-image: url('/images/units/background.jpg'); background-size: cover; background-position: center;"
         >
-          <%= if @filtered_units == [] do %>
-            <.empty_state text="No units match the selected filters." on_clear="clear_filters" />
-          <% else %>
-            <div class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3 content-start">
-              <%= for unit <- @filtered_units do %>
-                <% is_selected = unit.unit_id == @current_unit_id %>
-                <button
-                  class={[
-                    "group relative aspect-square rounded-xl p-1 transition-all duration-150 flex flex-col items-center justify-center text-center overflow-hidden shadow-sm",
-                    faction_bg_class(unit.faction),
-                    if is_selected do
-                      "ring-2 ring-yellow-400 ring-offset-2 shadow-lg scale-105"
-                    else
-                      "hover:ring-2 hover:ring-white/50 hover:ring-offset-2 hover:scale-105 hover:shadow-md"
-                    end
-                  ]}
-                  phx-click={@on_select_unit}
-                  phx-value-unit_id={unit.unit_id}
-                  title={"#{unit.description || unit.name} (#{unit.unit_id})"}
-                >
-                  <div class={["unit-icon-#{unit.unit_id} w-12 h-12 shrink-0"]}></div>
-                  <%= if is_selected do %>
-                    <span class="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center z-10 shadow-md">
-                      <.icon name="hero-check" class="w-3 h-3 text-yellow-900" />
-                    </span>
-                  <% end %>
-                </button>
-              <% end %>
-            </div>
-          <% end %>
+          <.unit_grid
+            units={@filtered_units}
+            current_unit_id={@current_unit_id}
+            selection_mode={:single}
+            on_select={@on_select_unit}
+            show_background={false}
+          />
         </div>
 
         <%!-- Modal Footer --%>
