@@ -26,6 +26,17 @@ defmodule FafCnWeb.EcoWorkflowLive do
     %{key: "NAVAL", label: "Naval", category: "NAVAL", group: :type}
   ]
 
+  # Eco-expanding unit categories (mass, energy, or build power producers)
+  @eco_categories [
+    "MASSEXTRACTION",
+    "MASSFABRICATION", 
+    "MASSSTORAGE",
+    "ENERGYPRODUCTION",
+    "ENERGYSTORAGE",
+    "HYDROCARBON",
+    "ENGINEER"
+  ]
+
   @usage_filters ["ENGINEER", "STRUCTURE", "LAND", "AIR", "NAVAL"]
   @tech_filters ["TECH1", "TECH2", "TECH3", "EXPERIMENTAL"]
 
@@ -62,6 +73,7 @@ defmodule FafCnWeb.EcoWorkflowLive do
        current_unit_id: nil,
        unit_search: "",
        active_filters: [],
+       show_eco_only: false,
        # Initial node settings form
        initial_settings_form: %{
          "mass_in_storage" => 650,
@@ -171,6 +183,7 @@ defmodule FafCnWeb.EcoWorkflowLive do
           selected_node_id={@selected_node_id}
           current_unit_id={@current_unit_id}
           active_filters={@active_filters}
+          show_eco_only={@show_eco_only}
         />
       <% end %>
 
@@ -192,15 +205,34 @@ defmodule FafCnWeb.EcoWorkflowLive do
     # Get units for selected faction
     faction_units = assigns.units_by_faction[assigns.selected_faction] || []
 
+    # Check if eco filter is active
+    eco_filter_active = assigns.show_eco_only
+
     # Apply category filters
     filtered_units =
-      if assigns.active_filters == [] do
+      if assigns.active_filters == [] && !eco_filter_active do
         faction_units
       else
         Enum.filter(faction_units, fn unit ->
           categories = unit.categories || []
-          # Unit must match at least one active filter
-          Enum.any?(assigns.active_filters, &(&1 in categories))
+          
+          # Check category filters
+          category_match = 
+            if assigns.active_filters == [] do
+              true
+            else
+              Enum.any?(assigns.active_filters, &(&1 in categories))
+            end
+          
+          # Check eco filter
+          eco_match =
+            if eco_filter_active do
+              Enum.any?(@eco_categories, &(&1 in categories))
+            else
+              true
+            end
+          
+          category_match && eco_match
         end)
       end
 
@@ -208,6 +240,7 @@ defmodule FafCnWeb.EcoWorkflowLive do
       assigns
       |> assign(:factions, factions)
       |> assign(:filters, @filters)
+      |> assign(:eco_filter_active, eco_filter_active)
       |> assign(:filtered_units, filtered_units)
 
     ~H"""
@@ -216,15 +249,15 @@ defmodule FafCnWeb.EcoWorkflowLive do
       phx-click="close_unit_selector"
     >
       <div 
-        class="bg-base-100 rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col"
+        class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col overflow-hidden"
         phx-click-away="close_unit_selector"
         phx-stop
       >
         <%!-- Modal Header --%>
-        <div class="p-4 border-b border-base-300 flex items-center justify-between bg-base-200">
+        <div class="p-4 border-b border-base-300 flex items-center justify-between bg-base-200 rounded-t-2xl">
           <h2 class="text-lg font-semibold">Select Unit</h2>
           <button 
-            class="btn btn-sm btn-ghost"
+            class="btn btn-sm btn-ghost rounded-lg"
             phx-click="close_unit_selector"
           >
             <.icon name="hero-x-mark" class="w-5 h-5" />
@@ -232,22 +265,20 @@ defmodule FafCnWeb.EcoWorkflowLive do
         </div>
 
         <%!-- Faction Tabs --%>
-        <div class="flex border-b border-base-300 bg-base-200">
+        <div class="flex gap-2 p-2 bg-base-200">
           <%= for faction <- @factions do %>
-            <% is_active = @selected_faction == faction
-            active_classes =
-              case faction do
-                "UEF" -> if is_active, do: "border-blue-500 text-blue-600 bg-blue-50", else: "border-transparent text-gray-500 hover:text-gray-700"
-                "CYBRAN" -> if is_active, do: "border-red-500 text-red-600 bg-red-50", else: "border-transparent text-gray-500 hover:text-gray-700"
-                "AEON" -> if is_active, do: "border-emerald-500 text-emerald-600 bg-emerald-50", else: "border-transparent text-gray-500 hover:text-gray-700"
-                "SERAPHIM" -> if is_active, do: "border-violet-500 text-violet-600 bg-violet-50", else: "border-transparent text-gray-500 hover:text-gray-700"
-              end %>
+            <% is_active = @selected_faction == faction %>
             <button
               phx-click="select_faction"
               phx-value-faction={faction}
               class={[
-                "flex-1 py-2 px-4 text-sm font-medium border-b-2 transition-colors",
-                active_classes
+                "flex-1 py-2 px-4 text-sm font-medium rounded-lg transition-all",
+                case faction do
+                  "UEF" -> if is_active, do: "bg-blue-500 text-white shadow-md", else: "bg-base-100 text-base-content hover:bg-blue-100"
+                  "CYBRAN" -> if is_active, do: "bg-red-500 text-white shadow-md", else: "bg-base-100 text-base-content hover:bg-red-100"
+                  "AEON" -> if is_active, do: "bg-emerald-500 text-white shadow-md", else: "bg-base-100 text-base-content hover:bg-emerald-100"
+                  "SERAPHIM" -> if is_active, do: "bg-violet-500 text-white shadow-md", else: "bg-base-100 text-base-content hover:bg-violet-100"
+                end
               ]}
             >
               {faction}
@@ -258,6 +289,22 @@ defmodule FafCnWeb.EcoWorkflowLive do
         <%!-- Filter Bar --%>
         <div class="p-3 border-b border-base-300 bg-base-100">
           <div class="flex flex-wrap gap-2 items-center">
+            <%!-- Eco Filter Toggle --%>
+            <button
+              phx-click="toggle_eco_filter"
+              class={[
+                "px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5",
+                if @eco_filter_active do
+                  "bg-emerald-500 text-white shadow-md"
+                else
+                  "bg-base-200 text-base-content hover:bg-base-300"
+                end
+              ]}
+            >
+              <.icon name="hero-arrow-trending-up" class="w-3 h-3" />
+              Eco Only
+            </button>
+            <div class="w-px h-4 bg-base-300 mx-1"></div>
             <span class="text-xs text-base-content/60 mr-1">Tech:</span>
             <%= for filter <- Enum.filter(@filters, &(&1.group == :tech)) do %>
               <% is_active = filter.key in @active_filters %>
@@ -265,7 +312,7 @@ defmodule FafCnWeb.EcoWorkflowLive do
                 phx-click="toggle_filter"
                 phx-value-filter={filter.key}
                 class={[
-                  "px-2 py-1 rounded text-xs font-medium transition-all",
+                  "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
                   if is_active do
                     "bg-indigo-500 text-white shadow-md"
                   else
@@ -284,7 +331,7 @@ defmodule FafCnWeb.EcoWorkflowLive do
                 phx-click="toggle_filter"
                 phx-value-filter={filter.key}
                 class={[
-                  "px-2 py-1 rounded text-xs font-medium transition-all",
+                  "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
                   if is_active do
                     "bg-indigo-500 text-white shadow-md"
                   else
@@ -295,10 +342,10 @@ defmodule FafCnWeb.EcoWorkflowLive do
                 {filter.label}
               </button>
             <% end %>
-            <%= if @active_filters != [] do %>
+            <%= if length(@active_filters) > 0 or @eco_filter_active do %>
               <button
                 phx-click="clear_filters"
-                class="ml-auto px-2 py-1 rounded text-xs font-medium bg-gray-500/50 text-white hover:bg-gray-500/70 transition-all"
+                class="ml-auto px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-500/50 text-white hover:bg-gray-500/70 transition-all"
               >
                 Clear
               </button>
@@ -308,32 +355,32 @@ defmodule FafCnWeb.EcoWorkflowLive do
 
         <%!-- Unit Grid with Background --%>
         <div 
-          class="flex-1 overflow-y-auto p-4"
+          class="flex-1 overflow-y-auto p-4 min-h-[400px]"
           style="background-image: url('/images/units/background.jpg'); background-size: cover; background-position: center;"
         >
           <%= if @filtered_units == [] do %>
-            <div class="text-center py-12 text-white/80">
-              <.icon name="hero-squares-2x2" class="w-12 h-12 mx-auto mb-2" />
+            <div class="flex flex-col items-center justify-center h-full text-white/80">
+              <.icon name="hero-squares-2x2" class="w-12 h-12 mb-2" />
               <p>No units match the selected filters.</p>
               <button
                 phx-click="clear_filters"
-                class="mt-2 text-sm underline hover:text-white"
+                class="mt-3 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-colors"
               >
                 Clear filters
               </button>
             </div>
           <% else %>
-            <div class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
+            <div class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3 content-start">
               <%= for unit <- @filtered_units do %>
                 <% is_selected = unit.unit_id == @current_unit_id %>
                 <button
                   class={[
-                    "group relative aspect-square rounded-lg p-1 transition-all duration-150 flex flex-col items-center justify-center text-center overflow-hidden",
+                    "group relative aspect-square rounded-xl p-1 transition-all duration-150 flex flex-col items-center justify-center text-center overflow-hidden shadow-sm",
                     faction_bg_class(unit.faction),
                     if is_selected do
-                      "ring-2 ring-yellow-400 ring-offset-1 shadow-lg scale-105"
+                      "ring-2 ring-yellow-400 ring-offset-2 shadow-lg scale-105"
                     else
-                      "hover:ring-2 hover:ring-white/50 hover:ring-offset-1 hover:scale-105"
+                      "hover:ring-2 hover:ring-white/50 hover:ring-offset-2 hover:scale-105 hover:shadow-md"
                     end
                   ]}
                   phx-click="select_unit_for_node"
@@ -353,7 +400,7 @@ defmodule FafCnWeb.EcoWorkflowLive do
         </div>
 
         <%!-- Modal Footer --%>
-        <div class="p-3 border-t border-base-300 text-sm text-base-content/60 text-center bg-base-200">
+        <div class="p-3 border-t border-base-300 text-sm text-base-content/60 text-center bg-base-200 rounded-b-2xl">
           Click a unit to select it • Yellow checkmark = current selection
         </div>
       </div>
@@ -621,8 +668,14 @@ defmodule FafCnWeb.EcoWorkflowLive do
        current_unit_id: current_unit_id,
        selected_faction: "UEF",
        unit_search: "",
-       active_filters: []
+       active_filters: [],
+       show_eco_only: false
      )}
+  end
+
+  @impl true
+  def handle_event("toggle_eco_filter", _params, socket) do
+    {:noreply, assign(socket, show_eco_only: !socket.assigns.show_eco_only)}
   end
 
   @impl true
@@ -661,7 +714,7 @@ defmodule FafCnWeb.EcoWorkflowLive do
 
   @impl true
   def handle_event("clear_filters", _params, socket) do
-    {:noreply, assign(socket, active_filters: [])}
+    {:noreply, assign(socket, active_filters: [], show_eco_only: false)}
   end
 
   @impl true
