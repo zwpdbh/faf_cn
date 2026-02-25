@@ -652,25 +652,23 @@ defmodule FafCnWeb.EcoWorkflowLive do
     active_filters = socket.assigns.active_filters
 
     new_filters =
-      cond do
+      if filter_key in active_filters do
         # Remove if already active
-        filter_key in active_filters ->
-          List.delete(active_filters, filter_key)
-
+        List.delete(active_filters, filter_key)
+      else
         # Add new filter, removing others from same group
-        true ->
-          # Determine which group this filter belongs to
-          group_filters =
-            cond do
-              filter_key in @usage_filters -> @usage_filters
-              filter_key in @tech_filters -> @tech_filters
-              true -> []
-            end
+        # Determine which group this filter belongs to
+        group_filters =
+          cond do
+            filter_key in @usage_filters -> @usage_filters
+            filter_key in @tech_filters -> @tech_filters
+            true -> []
+          end
 
-          # Remove any filters from the same group, then add new one
-          active_filters
-          |> Enum.reject(&(&1 in group_filters))
-          |> Kernel.++([filter_key])
+        # Remove any filters from the same group, then add new one
+        active_filters
+        |> Enum.reject(&(&1 in group_filters))
+        |> Kernel.++([filter_key])
       end
 
     {:noreply, assign(socket, active_filters: new_filters)}
