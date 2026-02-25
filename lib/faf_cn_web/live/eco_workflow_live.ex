@@ -327,11 +327,11 @@ defmodule FafCnWeb.EcoWorkflowLive do
 
     assigns =
       assigns
-      |> assign(:mass_in_storage, edge_data[:mass_in_storage] || 650)
-      |> assign(:energy_in_storage, edge_data[:energy_in_storage] || 5000)
-      |> assign(:mass_per_sec, edge_data[:mass_per_sec] || 1.0)
-      |> assign(:energy_per_sec, edge_data[:energy_per_sec] || 20.0)
-      |> assign(:build_power, edge_data[:build_power] || 10)
+      |> assign(:mass_in_storage, format_modal_value(edge_data[:mass_in_storage] || 650))
+      |> assign(:energy_in_storage, format_modal_value(edge_data[:energy_in_storage] || 5000))
+      |> assign(:mass_per_sec, format_modal_value(edge_data[:mass_per_sec] || 1.0))
+      |> assign(:energy_per_sec, format_modal_value(edge_data[:energy_per_sec] || 20.0))
+      |> assign(:build_power, format_modal_value(edge_data[:build_power] || 10))
       |> assign(:elapsed_time, edge_data[:elapsed_time] || 0)
 
     ~H"""
@@ -358,12 +358,6 @@ defmodule FafCnWeb.EcoWorkflowLive do
         <%!-- Eco Stats Table (Read-only) --%>
         <div class="p-0">
           <table class="table table-zebra w-full">
-            <thead>
-              <tr class="bg-base-200">
-                <th class="text-left py-3 px-4 text-sm font-medium text-base-content/70">Metric</th>
-                <th class="text-right py-3 px-4 text-sm font-medium text-base-content/70">Value</th>
-              </tr>
-            </thead>
             <tbody>
               <tr>
                 <td class="py-3 px-4 flex items-center gap-2">
@@ -419,7 +413,7 @@ defmodule FafCnWeb.EcoWorkflowLive do
         <div class="p-4 border-t border-base-300 bg-base-200/50">
           <div class="flex items-center justify-between">
             <span class="text-xs text-base-content/60">
-              <.icon name="hero-lock-closed" class="w-3 h-3 inline" /> Read-only during simulation
+              <.icon name="hero-lock-closed" class="w-3 h-3 inline" />
             </span>
             <button
               type="button"
@@ -914,16 +908,29 @@ defmodule FafCnWeb.EcoWorkflowLive do
   # Format value for tooltip display (1 decimal place max)
   defp format_tooltip_value(value) when is_float(value) do
     if trunc(value) == value do
+      trunc(value)
+    else
+      Float.round(value, 1)
+    end
+  end
+
+  defp format_tooltip_value(value) when is_integer(value), do: value
+  defp format_tooltip_value(_), do: 0
+
+  # Format value for modal display (1 decimal place max, returns string)
+  defp format_modal_value(value) when is_float(value) do
+    if trunc(value) == value do
       "#{trunc(value)}"
     else
       "#{Float.round(value, 1)}"
     end
   end
 
-  defp format_tooltip_value(value) when is_integer(value), do: "#{value}"
-  defp format_tooltip_value(_), do: "0"
+  defp format_modal_value(value) when is_integer(value), do: "#{value}"
+  defp format_modal_value(_), do: "0"
 
-  # Build JSON map of edge IDs to tooltip text for JS hook
+  # Build JSON map of edge IDs to tooltip data for JS hook
+  # Returns structured data with mass and energy as separate fields
   defp build_edge_tooltips(edges, true = _simulation_run) do
     tooltips =
       Enum.reduce(edges, %{}, fn {id, edge}, acc ->
@@ -933,10 +940,13 @@ defmodule FafCnWeb.EcoWorkflowLive do
           mass = data[:mass_per_sec] || 0
           energy = data[:energy_per_sec] || 0
 
-          text =
-            "Mass: -#{format_tooltip_value(mass)}/s  |  Energy: -#{format_tooltip_value(energy)}/s"
+          # Return structured data for the tooltip
+          tooltip_data = %{
+            mass: format_tooltip_value(mass),
+            energy: format_tooltip_value(energy)
+          }
 
-          Map.put(acc, id, text)
+          Map.put(acc, id, tooltip_data)
         else
           acc
         end
