@@ -50,7 +50,7 @@ defmodule FafCnWeb.EcoWorkflowLiveTest do
           name: "T3 Power Generator",
           description: "T3 Power",
           build_cost_mass: 2500,
-          build_cost_energy: 50000,
+          build_cost_energy: 50_000,
           build_time: 5000,
           categories: ["ENERGYPRODUCTION", "TECH3"],
           data: %{"Economy" => %{"ProductionPerSecondEnergy" => 2500}}
@@ -63,7 +63,7 @@ defmodule FafCnWeb.EcoWorkflowLiveTest do
           name: "T3 Mass Extractor",
           description: "T3 Mass",
           build_cost_mass: 4500,
-          build_cost_energy: 65000,
+          build_cost_energy: 65_000,
           build_time: 6500,
           categories: ["MASSPRODUCTION", "TECH3"],
           data: %{"Economy" => %{"ProductionPerSecondMass" => 18}}
@@ -75,9 +75,9 @@ defmodule FafCnWeb.EcoWorkflowLiveTest do
           faction: "UEF",
           name: "Fatboy",
           description: "Experimental Tank",
-          build_cost_mass: 28000,
+          build_cost_mass: 28_000,
           build_cost_energy: 350_000,
-          build_time: 35000,
+          build_time: 35_000,
           categories: ["EXPERIMENTAL", "DIRECTFIRE"],
           data: %{}
         })
@@ -287,7 +287,7 @@ defmodule FafCnWeb.EcoWorkflowLiveTest do
           name: "T3 Power",
           description: "T3 Power",
           build_cost_mass: 2500,
-          build_cost_energy: 50000,
+          build_cost_energy: 50_000,
           build_time: 5000,
           categories: ["ENERGYPRODUCTION", "TECH3"],
           data: %{}
@@ -300,7 +300,7 @@ defmodule FafCnWeb.EcoWorkflowLiveTest do
           name: "T3 Mass",
           description: "T3 Mass",
           build_cost_mass: 4500,
-          build_cost_energy: 65000,
+          build_cost_energy: 65_000,
           build_time: 6500,
           categories: ["MASSPRODUCTION", "TECH3"],
           data: %{}
@@ -312,9 +312,9 @@ defmodule FafCnWeb.EcoWorkflowLiveTest do
           faction: "UEF",
           name: "Fatboy",
           description: "Experimental",
-          build_cost_mass: 28000,
+          build_cost_mass: 28_000,
           build_cost_energy: 350_000,
-          build_time: 35000,
+          build_time: 35_000,
           categories: ["EXPERIMENTAL"],
           data: %{}
         })
