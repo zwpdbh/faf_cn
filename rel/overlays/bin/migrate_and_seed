@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+
+cd -P -- "$(dirname -- "$0")"
+
+# Run migrations first
+./faf_cn eval FafCn.Release.migrate
+
+# Then seed the database
+./faf_cn eval FafCn.Release.seed

@@ -544,58 +544,67 @@ defmodule FafCnWeb.EcoWorkflowLive do
         deletable: false
       )
 
-    # Create workflow: initial -> 3x T3 Engineer -> T3 PGen -> T3 Mex -> Fatboy
-    node_specs = [
-      {"unit-t3-eng-1", units.t3_engineer, %{x: 250, y: 100}, 1},
-      {"unit-t3-eng-2", units.t3_engineer, %{x: 400, y: 200}, 1},
-      {"unit-t3-eng-3", units.t3_engineer, %{x: 550, y: 300}, 1},
-      {"unit-t3-pgen", units.t3_pgen, %{x: 700, y: 200}, 1},
-      {"unit-t3-mex", units.t3_mex, %{x: 850, y: 200}, 1},
-      {"unit-fatboy", units.fatboy, %{x: 1000, y: 200}, 1}
-    ]
+    # Check if required units are available (database is seeded)
+    # If any required unit is nil, return a flow with just the initial node
+    required_units = [units.t3_engineer, units.t3_pgen, units.t3_mex, units.fatboy]
 
-    {unit_nodes, _} =
-      Enum.map_reduce(node_specs, [], fn {id, unit, pos, qty}, acc ->
-        node =
-          Node.new(
-            id,
-            pos,
-            %{unit: unit, quantity: qty, finished_time: nil},
-            type: :unit,
-            handles: [Handle.target(:left), Handle.source(:right)]
+    if Enum.any?(required_units, &is_nil/1) do
+      # Return a minimal flow with just the initial node when units are missing
+      State.new(nodes: [initial_node], edges: [])
+    else
+      # Create workflow: initial -> 3x T3 Engineer -> T3 PGen -> T3 Mex -> Fatboy
+      node_specs = [
+        {"unit-t3-eng-1", units.t3_engineer, %{x: 250, y: 100}, 1},
+        {"unit-t3-eng-2", units.t3_engineer, %{x: 400, y: 200}, 1},
+        {"unit-t3-eng-3", units.t3_engineer, %{x: 550, y: 300}, 1},
+        {"unit-t3-pgen", units.t3_pgen, %{x: 700, y: 200}, 1},
+        {"unit-t3-mex", units.t3_mex, %{x: 850, y: 200}, 1},
+        {"unit-fatboy", units.fatboy, %{x: 1000, y: 200}, 1}
+      ]
+
+      {unit_nodes, _} =
+        Enum.map_reduce(node_specs, [], fn {id, unit, pos, qty}, acc ->
+          node =
+            Node.new(
+              id,
+              pos,
+              %{unit: unit, quantity: qty, finished_time: nil},
+              type: :unit,
+              handles: [Handle.target(:left), Handle.source(:right)]
+            )
+
+          {node, [node | acc]}
+        end)
+
+      edge_specs = [
+        {"e-initial", "initial", "unit-t3-eng-1"},
+        {"e-eng-1", "unit-t3-eng-1", "unit-t3-eng-2"},
+        {"e-eng-2", "unit-t3-eng-2", "unit-t3-eng-3"},
+        {"e-eng-3", "unit-t3-eng-3", "unit-t3-pgen"},
+        {"e-pgen", "unit-t3-pgen", "unit-t3-mex"},
+        {"e-mex", "unit-t3-mex", "unit-fatboy"}
+      ]
+
+      edges =
+        Enum.map(edge_specs, fn {id, source, target} ->
+          Edge.new(id, source, target,
+            source_handle: "right",
+            target_handle: "left",
+            marker_end: %{type: :arrow_closed, color: "#64748b"},
+            data: %{
+              mass_in_storage: initial_eco.mass_in_storage,
+              energy_in_storage: initial_eco.energy_in_storage,
+              mass_per_sec: initial_eco.mass_per_sec,
+              energy_per_sec: initial_eco.energy_per_sec,
+              build_power: initial_eco.build_power,
+              elapsed_time: 0
+            }
           )
+        end)
 
-        {node, [node | acc]}
-      end)
+      all_nodes = [initial_node | Enum.reverse(unit_nodes)]
 
-    edge_specs = [
-      {"e-initial", "initial", "unit-t3-eng-1"},
-      {"e-eng-1", "unit-t3-eng-1", "unit-t3-eng-2"},
-      {"e-eng-2", "unit-t3-eng-2", "unit-t3-eng-3"},
-      {"e-eng-3", "unit-t3-eng-3", "unit-t3-pgen"},
-      {"e-pgen", "unit-t3-pgen", "unit-t3-mex"},
-      {"e-mex", "unit-t3-mex", "unit-fatboy"}
-    ]
-
-    edges =
-      Enum.map(edge_specs, fn {id, source, target} ->
-        Edge.new(id, source, target,
-          source_handle: "right",
-          target_handle: "left",
-          marker_end: %{type: :arrow_closed, color: "#64748b"},
-          data: %{
-            mass_in_storage: initial_eco.mass_in_storage,
-            energy_in_storage: initial_eco.energy_in_storage,
-            mass_per_sec: initial_eco.mass_per_sec,
-            energy_per_sec: initial_eco.energy_per_sec,
-            build_power: initial_eco.build_power,
-            elapsed_time: 0
-          }
-        )
-      end)
-
-    all_nodes = [initial_node | Enum.reverse(unit_nodes)]
-
-    State.new(nodes: all_nodes, edges: edges)
+      State.new(nodes: all_nodes, edges: edges)
+    end
   end
 end

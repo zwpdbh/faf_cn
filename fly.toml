@@ -5,6 +5,9 @@ primary_region = 'sin'
 
 [build]
 
+[deploy]
+  release_command = '/app/bin/migrate_and_seed'
+
 [env]
   PHX_HOST = 'faf-cn.fly.dev'
   PORT = '8080'
