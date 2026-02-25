@@ -28,7 +28,7 @@ defmodule FafCnWeb.EcoWorkflow.InitialNode do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="workflow-node-initial-compact" phx-hook="WorkflowNode" id="workflow-node-initial">
+    <div class="workflow-node-initial-compact" id="workflow-node-initial">
       <%!-- Header --%>
       <div class="workflow-node-initial-compact-header">
         <.icon name="hero-play-circle" class="w-3 h-3" />

@@ -9,7 +9,8 @@ This guide documents the integration of LiveFlow (a visual workflow editor libra
 3. [The Interaction Problem](#the-interaction-problem)
 4. [Solution: Capture-Phase Event Hooks](#solution-capture-phase-event-hooks)
 5. [Complete Examples](#complete-examples)
-6. [Troubleshooting](#troubleshooting)
+6. [Edge Hover Tooltip](#edge-hover-tooltip-simulation-mode)
+7. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -29,38 +30,38 @@ LiveFlow provides a visual node-based editor with drag-and-drop capabilities. Wh
 
 ### Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        LiveView (Server)                         │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐      │
-│  │ Event Handlers│◀───│  handle_event │◀───│   WebSocket   │      │
-│  └──────────────┘    └──────────────┘    └──────────────┘      │
-│         │                                                        │
-│         └──────────────────────────────────────────────────┐    │
-│                                                            │    │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐ │    │
-│  │   Flow State  │───▶│ push_event    │───▶│  LiveFlow API │ │    │
-│  └──────────────┘    └──────────────┘    └──────────────┘ │    │
-└─────────────────────────────────────────────────────────────┼────┘
-                              │                               │
-                              │ WebSocket                     │
-                              ▼                               │
-┌─────────────────────────────────────────────────────────────┼────┐
-│                     Browser (Client)                         │    │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐  │    │
-│  │  LiveSocket  │───▶│   JS Hooks   │───▶│   LiveFlow    │  │    │
-│  └──────────────┘    └──────────────┘    └──────────────┘  │    │
-│         │                          │              │         │    │
-│         │                          │              ▼         │    │
-│         │                          │       ┌──────────┐    │    │
-│         │                          │       │ Node DOM │    │    │
-│         │                          │       │ ┌──────┐ │    │    │
-│         │                          │       │ │Button│ │────┘    │
-│         │                          │       │ └──────┘ │         │
-│         │                          │       └──────────┘         │
-│         │                          │                             │
-│         └──────────────────────────┘  (Capture phase intercept)  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Server["LiveView (Server)"]
+        EH[Event Handlers]
+        HE[handle_event]
+        WS[WebSocket]
+        FS[Flow State]
+        PE[push_event]
+        LF_API[LiveFlow API]
+        
+        WS --> HE
+        HE --> EH
+        EH --> FS
+        FS --> PE
+        PE --> LF_API
+    end
+    
+    WS -.->|WebSocket| LS
+    
+    subgraph Client["Browser (Client)"]
+        LS[LiveSocket]
+        JSH[JS Hooks]
+        LF[LiveFlow]
+        ND[Node DOM]
+        BTN[Button]
+        
+        LS --> JSH
+        JSH --> LF
+        LF --> ND
+        ND --> BTN
+        JSH -.->|Capture phase intercept| BTN
+    end
 ```
 
 ---
@@ -87,22 +88,15 @@ These handlers use the **capture phase** and call `stopPropagation()`, preventin
 
 ### Event Flow (Problematic)
 
-```
-User clicks + button
-    │
-    ▼
-┌─────────────────────────────────────┐
-│  Capture Phase                      │
-│    LiveFlow handler (intercepts)   │ ◀── Stops here!
-│    stops propagation               │
-└─────────────────────────────────────┘
-    │
-    ▼ (blocked)
-┌─────────────────────────────────────┐
-│  Bubble Phase                       │
-│    Your phx-click handler          │ ◀── Never receives event
-│    on the + button                 │
-└─────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A[User clicks + button] --> B{Capture Phase}
+    B -->|Intercepts| C[LiveFlow handler]
+    C -->|stopPropagation| D[Propagation stopped]
+    D -.->|Blocked| E[Your phx-click handler<br/>Never receives event]
+    
+    style C fill:#ffcccc
+    style E fill:#ffcccc
 ```
 
 ---
@@ -118,27 +112,16 @@ Intercept the event **before** LiveFlow can capture it, using:
 
 ### Event Flow (Fixed)
 
-```
-User clicks + button
-    │
-    ▼
-┌─────────────────────────────────────┐
-│  Capture Phase                      │
-│    YOUR hook handler               │ ◀── Intercepts first
-│    stops propagation               │
-└─────────────────────────────────────┘
-    │
-    ▼ (propagation stopped)
-┌─────────────────────────────────────┐
-│  Capture Phase                      │
-│    LiveFlow handler                │ ◀── Never receives event
-└─────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────┐
-│  Your code manually pushes event    │
-│  via pushEvent()                   │
-└─────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A[User clicks + button] --> B{Capture Phase}
+    B -->|Intercepts first| C[YOUR hook handler]
+    C -->|stopPropagation| D[Propagation stopped]
+    D -.->|Never receives| E[LiveFlow handler]
+    D --> F[Your code manually pushes event<br/>via pushEvent]
+    
+    style C fill:#ccffcc
+    style F fill:#ccffcc
 ```
 
 ### Hook Implementation Pattern
@@ -503,6 +486,473 @@ window.liveSocket = liveSocket
 
 ---
 
+## Edge Hover Tooltip (Simulation Mode)
+
+This section explains how to implement a custom hover tooltip on edges during simulation mode.
+
+### Overview
+
+When running a workflow simulation, hovering over edges displays a floating tooltip with eco statistics (mass/energy drain). Double-clicking opens a detailed modal.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Edge as LiveFlow Edge
+    participant Hook as EdgeInfoHook
+    participant Tooltip as Tooltip Element
+    
+    User->>Edge: mouseover
+    Edge->>Hook: Event bubbles to container
+    Hook->>Hook: parseEdgeTooltips()
+    Hook->>Tooltip: renderTooltip(data)
+    Hook->>Tooltip: Show & position at cursor
+    Tooltip-->>User: Display mass/energy drain
+    
+    User->>Edge: double-click
+    Edge->>Hook: Event bubbles
+    Hook->>Hook: pushEvent("show_edge_info")
+    Hook->>LiveView: Request modal open
+```
+
+### Architecture
+
+#### Data Flow
+
+1. **Server (LiveView)**: Encodes edge data as JSON in container's `data-edge-tooltips` attribute
+2. **Client (JS Hook)**: Parses JSON, creates tooltip element, handles mouse events
+3. **Display**: Tooltip follows cursor, shows formatted eco data
+
+```mermaid
+flowchart TB
+    subgraph Server["LiveView (Server)"]
+        RS[run_simulation handler]
+        BET[build_edge_tooltips/2]
+        DATA[data-edge-tooltips JSON]
+        
+        RS --> BET
+        BET --> DATA
+    end
+    
+    DATA -.->|render| Container
+    
+    subgraph Client["Browser (Client)"]
+        Container[Container with phx-hook="EdgeInfo"]
+        EIH[EdgeInfoHook]
+        PARSE[parseEdgeTooltips]
+        RENDER[renderTooltip]
+        TOOLTIP[Floating Tooltip]
+        EDGE[.lf-edge element]
+        
+        Container --> EIH
+        EIH --> PARSE
+        EIH --> EDGE
+        EDGE -->|mouseover| RENDER
+        RENDER --> TOOLTIP
+    end
+```
+
+### Implementation
+
+#### Step 1: LiveView - Prepare Edge Data
+
+```elixir
+# lib/my_app_web/live/workflow_live.ex
+
+defp build_edge_tooltips(edges, true = _simulation_run) do
+  tooltips =
+    Enum.reduce(edges, %{}, fn {id, edge}, acc ->
+      data = edge.data || %{}
+
+      if data[:simulation_run] do
+        mass = data[:mass_per_sec] || 0
+        energy = data[:energy_per_sec] || 0
+
+        # Return structured data for the tooltip
+        tooltip_data = %{
+          mass: format_tooltip_value(mass),
+          energy: format_tooltip_value(energy)
+        }
+
+        Map.put(acc, id, tooltip_data)
+      else
+        acc
+      end
+    end)
+
+  Jason.encode!(tooltips)
+end
+
+defp format_tooltip_value(value) when is_float(value) do
+  if trunc(value) == value do
+    trunc(value)
+  else
+    Float.round(value, 1)
+  end
+end
+
+defp format_tooltip_value(value) when is_integer(value), do: value
+defp format_tooltip_value(_), do: 0
+```
+
+#### Step 2: LiveView - Container with Hook
+
+```elixir
+# In your LiveView template
+<div
+  id="eco-workflow-container"
+  data-simulation-run={to_string(@simulation_run)}
+  data-edge-tooltips={build_edge_tooltips(@flow.edges, @simulation_run)}
+  phx-hook="EdgeInfo"
+>
+  <.live_component
+    module={LiveFlow.Components.Flow}
+    id="workflow-flow"
+    flow={@flow}
+    # ... other props
+  />
+</div>
+```
+
+**Key Points:**
+- Hook is attached to a **container** element wrapping LiveFlow, not individual edges
+- `data-edge-tooltips` contains JSON mapping edge IDs to tooltip data
+- `data-simulation-run` controls whether tooltips are shown
+
+#### Step 3: JavaScript - EdgeInfo Hook
+
+```javascript
+// assets/js/hooks/edge_info.js
+
+const EdgeInfoHook = {
+  mounted() {
+    // Parse edge tooltips from data attribute
+    this.parseEdgeTooltips()
+
+    // Create tooltip element (initially hidden)
+    this.tooltip = document.createElement('div')
+    this.tooltip.className = 'edge-hover-tooltip'
+    this.tooltip.style.cssText = `
+      position: fixed;
+      display: none;
+      z-index: 1000;
+      /* ... other styles */
+    `
+    document.body.appendChild(this.tooltip)
+
+    // Mouse over - show tooltip
+    this.handleMouseOver = (e) => {
+      if (!this.isSimulationRunning()) return
+
+      const edgeEl = e.target.closest('.lf-edge-interaction, .lf-edge')
+      if (!edgeEl) return
+
+      const edgeId = edgeEl.dataset.edgeId
+      if (!edgeId) return
+
+      const tooltipData = this.edgeTooltips[edgeId]
+      if (tooltipData) {
+        this.renderTooltip(tooltipData)
+        this.tooltip.style.display = 'block'
+        this.updateTooltipPosition(e)
+      }
+    }
+
+    // Mouse move - update position
+    this.handleMouseMove = (e) => {
+      if (this.tooltip.style.display === 'block') {
+        this.updateTooltipPosition(e)
+      }
+    }
+
+    // Mouse out - hide tooltip
+    this.handleMouseOut = (e) => {
+      const relatedTarget = e.relatedTarget
+      if (!relatedTarget || !relatedTarget.closest('.lf-edge-group')) {
+        this.tooltip.style.display = 'none'
+      }
+    }
+
+    // Double-click - open modal
+    this.handleDoubleClick = (e) => {
+      if (!this.isSimulationRunning()) return
+
+      const edgeEl = e.target.closest('.lf-edge-interaction, .lf-edge')
+      if (!edgeEl) return
+
+      const edgeId = edgeEl.dataset.edgeId
+      if (edgeId) {
+        e.preventDefault()
+        e.stopPropagation()
+        this.pushEvent("show_edge_info", { "edge_id": edgeId })
+      }
+    }
+
+    // Attach listeners to container (events bubble from edges)
+    this.el.addEventListener('mouseover', this.handleMouseOver)
+    this.el.addEventListener('mousemove', this.handleMouseMove)
+    this.el.addEventListener('mouseout', this.handleMouseOut)
+    this.el.addEventListener('dblclick', this.handleDoubleClick, true)
+  },
+
+  updated() {
+    // Re-parse after DOM update (LiveView re-renders)
+    this.parseEdgeTooltips()
+  },
+
+  parseEdgeTooltips() {
+    try {
+      const tooltipsJson = this.el.dataset.edgeTooltips || '{}'
+      this.edgeTooltips = JSON.parse(tooltipsJson)
+    } catch (e) {
+      this.edgeTooltips = {}
+    }
+  },
+
+  isSimulationRunning() {
+    return this.el.dataset.simulationRun === "true"
+  },
+
+  renderTooltip(data) {
+    const formatValue = (val) => {
+      if (typeof val === 'number') {
+        return Number.isInteger(val) ? val.toString() : val.toFixed(1)
+      }
+      return '0'
+    }
+
+    this.tooltip.innerHTML = `
+      <div class="tooltip-row mass-row">
+        <span class="tooltip-label">Mass</span>
+        <span class="tooltip-value">-${formatValue(data.mass)}/s</span>
+      </div>
+      <div class="tooltip-row energy-row">
+        <span class="tooltip-label">Energy</span>
+        <span class="tooltip-value">-${formatValue(data.energy)}/s</span>
+      </div>
+      <div class="tooltip-hint">Double-click for details</div>
+    `
+  },
+
+  updateTooltipPosition(e) {
+    const tooltipRect = this.tooltip.getBoundingClientRect()
+
+    // Position above cursor
+    let x = e.clientX - tooltipRect.width / 2
+    let y = e.clientY - tooltipRect.height - 15
+
+    // Keep within viewport
+    const padding = 10
+    x = Math.max(padding, Math.min(x, window.innerWidth - tooltipRect.width - padding))
+    y = Math.max(padding, y)
+
+    this.tooltip.style.left = x + 'px'
+    this.tooltip.style.top = y + 'px'
+  },
+
+  destroyed() {
+    this.el.removeEventListener('mouseover', this.handleMouseOver)
+    this.el.removeEventListener('mousemove', this.handleMouseMove)
+    this.el.removeEventListener('mouseout', this.handleMouseOut)
+    this.el.removeEventListener('dblclick', this.handleDoubleClick, true)
+
+    if (this.tooltip && this.tooltip.parentNode) {
+      this.tooltip.parentNode.removeChild(this.tooltip)
+    }
+  }
+}
+
+export { EdgeInfoHook }
+```
+
+#### Step 4: Register Hook
+
+```javascript
+// assets/js/app.js
+
+import { EdgeInfoHook } from "./hooks/edge_info"
+
+const liveSocket = new LiveSocket("/live", Socket, {
+  hooks: {
+    EdgeInfo: EdgeInfoHook,
+    // ... other hooks
+  }
+})
+```
+
+#### Step 5: CSS Styling
+
+```css
+/* assets/css/workflow.css */
+
+.edge-hover-tooltip {
+  position: fixed;
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 1000;
+  display: none;
+  min-width: 140px;
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.tooltip-row.mass-row {
+  border-left: 3px solid #06b6d4;
+  padding-left: 8px;
+}
+
+.tooltip-row.energy-row {
+  border-left: 3px solid #f59e0b;
+  padding-left: 8px;
+}
+
+.tooltip-value {
+  font-weight: 700;
+  font-family: monospace;
+}
+
+.tooltip-hint {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px dashed #4b5563;
+  font-size: 10px;
+  color: #6b7280;
+  font-style: italic;
+  text-align: center;
+}
+```
+
+### Key Implementation Details
+
+#### 1. Event Delegation Pattern
+
+Instead of attaching listeners to each edge (which are dynamically created/destroyed), we use **event delegation** on the container:
+
+```javascript
+// Container listens, events bubble from edges
+this.el.addEventListener('mouseover', this.handleMouseOver)
+
+// Then find the specific edge
+const edgeEl = e.target.closest('.lf-edge-interaction, .lf-edge')
+```
+
+#### 2. Positioning Strategy
+
+The tooltip is `position: fixed` and appended to `document.body` to escape any stacking context issues within LiveFlow's SVG:
+
+```javascript
+// Create once, reuse
+document.body.appendChild(this.tooltip)
+
+// Position relative to viewport
+this.tooltip.style.left = x + 'px'
+this.tooltip.style.top = y + 'px'
+```
+
+#### 3. Data Flow via Dataset
+
+LiveView encodes data as a JSON string in the HTML:
+
+```html
+<div data-edge-tooltips='{"edge-1": {"mass": 3.7, "energy": 45.2}}'>
+```
+
+JavaScript parses this on mount and after each update:
+
+```javascript
+updated() {
+  this.parseEdgeTooltips()  // Re-parse after LiveView re-render
+}
+```
+
+#### 4. Simulation State Check
+
+Tooltips only appear during simulation mode:
+
+```javascript
+this.handleMouseOver = (e) => {
+  if (!this.isSimulationRunning()) return
+  // ... show tooltip
+}
+```
+
+### Double-Click for Modal
+
+To show detailed info on double-click:
+
+```javascript
+this.handleDoubleClick = (e) => {
+  const edgeId = edgeEl.dataset.edgeId
+  this.pushEvent("show_edge_info", { "edge_id": edgeId })
+}
+```
+
+**LiveView Handler:**
+
+```elixir
+def handle_event("show_edge_info", %{"edge_id" => edge_id}, socket) do
+  {:noreply,
+   assign(socket,
+     show_edge_info: true,
+     selected_edge_id: edge_id
+   )}
+end
+```
+
+### Troubleshooting Edge Tooltips
+
+#### Issue: Tooltip doesn't appear
+
+**Check:**
+1. ✅ Hook registered as `EdgeInfo: EdgeInfoHook` in LiveSocket
+2. ✅ Container has `phx-hook="EdgeInfo"`
+3. ✅ `data-edge-tooltips` contains valid JSON
+4. ✅ `data-simulation-run="true"` is set
+5. ✅ Edge elements have `data-edge-id` attribute
+
+#### Issue: Tooltip position is wrong
+
+**Fix:** Force layout measurement before positioning:
+
+```javascript
+updateTooltipPosition(e) {
+  // First position off-screen to get dimensions
+  this.tooltip.style.left = '-9999px'
+  const rect = this.tooltip.getBoundingClientRect()
+
+  // Then calculate proper position
+  let x = e.clientX - rect.width / 2
+  // ...
+}
+```
+
+#### Issue: Tooltip flickers
+
+**Cause:** Mouse events firing rapidly on SVG elements.
+
+**Fix:** Use `mouseout` with `relatedTarget` check:
+
+```javascript
+this.handleMouseOut = (e) => {
+  // Only hide if actually leaving the edge, not entering child element
+  const relatedTarget = e.relatedTarget
+  if (!relatedTarget || !relatedTarget.closest('.lf-edge-group')) {
+    this.tooltip.style.display = 'none'
+  }
+}
+```
+
+---
+
 ## Troubleshooting
 
 ### Issue: Button still doesn't work on first click
@@ -622,3 +1072,4 @@ this.handleClick = (e) => {
 - [Phoenix LiveView JS Interop](https://hexdocs.pm/phoenix_live_view/js-interop.html)
 - [LiveFlow Library Documentation](https://github.com/liveshowy/web_components/tree/main/live_flow)
 - [MDN: Event Capture and Bubbling](https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Scripting/Event_bubbling)
+- [Mermaid Diagram Syntax](https://mermaid.js.org/intro/)
