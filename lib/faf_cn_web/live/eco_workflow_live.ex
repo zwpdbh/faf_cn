@@ -11,9 +11,16 @@ defmodule FafCnWeb.EcoWorkflowLive do
 
   alias LiveFlow.{State, Node, Edge, Handle}
   alias FafCn.Units
+  alias FafCn.EcoEngine.BuildPower
   on_mount {FafCnWeb.UserAuth, :mount_current_user}
 
   @default_engineer_id "UEL0105"
+
+  # Default workflow unit IDs
+  @t3_engineer_id "UEL0309"
+  @t3_pgen_id "UEB1301"
+  @t3_mex_id "UEB1302"
+  @fatboy_id "UEL0401"
 
   # Filter group constants from shared helpers
   @usage_filters FafCnWeb.FafUnitsHelpers.usage_filter_keys()
@@ -28,7 +35,20 @@ defmodule FafCnWeb.EcoWorkflowLive do
     units = Units.list_units_for_eco_guides()
     units_by_faction = Enum.group_by(units, & &1.faction)
 
-    flow = create_initial_flow(default_unit)
+    # Load default workflow units
+    t3_engineer = Units.get_unit_by_unit_id(@t3_engineer_id)
+    t3_pgen = Units.get_unit_by_unit_id(@t3_pgen_id)
+    t3_mex = Units.get_unit_by_unit_id(@t3_mex_id)
+    fatboy = Units.get_unit_by_unit_id(@fatboy_id)
+
+    workflow_units = %{
+      t3_engineer: t3_engineer,
+      t3_pgen: t3_pgen,
+      t3_mex: t3_mex,
+      fatboy: fatboy
+    }
+
+    flow = create_default_workflow(workflow_units)
 
     {:ok,
      assign(socket,
@@ -37,6 +57,7 @@ defmodule FafCnWeb.EcoWorkflowLive do
        units: units,
        units_by_faction: units_by_faction,
        default_unit: default_unit,
+       workflow_units: workflow_units,
        node_types: %{
          initial: FafCnWeb.EcoWorkflow.InitialNode,
          unit: FafCnWeb.EcoWorkflow.UnitNode
@@ -342,7 +363,7 @@ defmodule FafCnWeb.EcoWorkflowLive do
     >
       <div class="bg-base-100 rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
         <%!-- Modal Header --%>
-        <div class="p-4 border-b border-base-300 flex items-center justify-between bg-gradient-to-r from-info/10 to-transparent">
+        <div class="p-4 border-b border-base-300 flex items-center justify-between bg-linear-to-r from-info/10 to-transparent">
           <div class="flex items-center gap-2">
             <.icon name="hero-information-circle" class="w-5 h-5 text-info" />
             <h2 class="text-lg font-semibold">Eco Statistics</h2>
@@ -460,52 +481,26 @@ defmodule FafCnWeb.EcoWorkflowLive do
 
   @impl true
   def handle_event("run_simulation", _params, socket) do
-    # Generate dummy simulation results
     flow = socket.assigns.flow
 
-    # Update nodes with finished times and read-only flag
-    updated_nodes =
-      Enum.reduce(flow.nodes, %{}, fn {id, node}, acc ->
-        updated_node =
-          if node.type == :unit do
-            # Generate dummy finished time based on position
-            base_time = 30
-            random_offset = :rand.uniform(60)
-            finished_time = base_time + random_offset
+    # Get initial eco state from initial node
+    initial_node = flow.nodes["initial"]
+    initial_data = initial_node && initial_node.data
 
-            %{node | data: Map.put(node.data, :finished_time, finished_time), deletable: false}
-          else
-            # Initial node - also mark as non-deletable during simulation
-            %{node | deletable: false}
-          end
+    initial_eco = %{
+      mass_storage: initial_data[:mass_in_storage] || 650,
+      energy_storage: initial_data[:energy_in_storage] || 5000,
+      mass_per_sec: initial_data[:mass_per_sec] || 1.0,
+      energy_per_sec: initial_data[:energy_per_sec] || 20.0,
+      build_power: initial_data[:build_power] || 10
+    }
 
-        Map.put(acc, id, updated_node)
-      end)
+    # Build topological order of units following edge connections
+    build_order = get_build_order(flow)
 
-    # Update edges with dummy eco status and read-only flag
-    updated_edges =
-      Enum.reduce(flow.edges, %{}, fn {id, edge}, acc ->
-        elapsed_time = :rand.uniform(120)
-        mass_per_sec = 1.0 + elapsed_time * 0.05
-        energy_per_sec = 20.0 + elapsed_time * 0.2
-
-        edge_data = %{
-          mass_in_storage: 650 + trunc(elapsed_time * 0.5),
-          energy_in_storage: max(0, 5000 - trunc(elapsed_time * 10)),
-          mass_per_sec: mass_per_sec,
-          energy_per_sec: energy_per_sec,
-          build_power: 10 + trunc(elapsed_time * 0.1),
-          elapsed_time: elapsed_time,
-          simulation_run: true,
-          # Store formatted tooltip text for CSS display
-          tooltip_text:
-            "Mass: -#{format_tooltip_value(mass_per_sec)}/s  |  Energy: -#{format_tooltip_value(energy_per_sec)}/s"
-        }
-
-        # No label - hover shows tooltip with mass/energy drain
-        # Double-click opens modal with full details
-        Map.put(acc, id, %{edge | data: edge_data, deletable: false, label: nil})
-      end)
+    # Run simulation
+    {updated_nodes, updated_edges, _final_eco} =
+      simulate_build_order(flow, build_order, initial_eco)
 
     flow = %{flow | nodes: updated_nodes, edges: updated_edges}
 
@@ -785,7 +780,7 @@ defmodule FafCnWeb.EcoWorkflowLive do
 
   @impl true
   def handle_event("reset_flow", _params, socket) do
-    flow = create_initial_flow(socket.assigns.default_unit)
+    flow = create_default_workflow(socket.assigns.workflow_units)
     {:noreply, assign(socket, flow: flow, simulation_run: false)}
   end
 
@@ -886,6 +881,170 @@ defmodule FafCnWeb.EcoWorkflowLive do
     {:noreply, socket}
   end
 
+  # ===== Simulation Helpers =====
+
+  # Get build order by traversing the flow graph from initial node
+  defp get_build_order(flow) do
+    # Build adjacency list from edges
+    adjacency =
+      Enum.reduce(flow.edges, %{}, fn {_, edge}, acc ->
+        source = edge.source
+        target = edge.target
+        Map.update(acc, source, [target], &[target | &1])
+      end)
+
+    # Start from initial node and traverse
+    traverse_from("initial", adjacency, [])
+    |> Enum.reverse()
+    |> Enum.filter(&(&1 != "initial"))
+  end
+
+  # Traverse graph depth-first, avoiding cycles
+  defp traverse_from(node_id, adjacency, visited) do
+    if node_id in visited do
+      visited
+    else
+      visited = [node_id | visited]
+      neighbors = Map.get(adjacency, node_id, [])
+
+      Enum.reduce(neighbors, visited, fn neighbor, acc ->
+        traverse_from(neighbor, adjacency, acc)
+      end)
+    end
+  end
+
+  # Simulate building units in order
+  defp simulate_build_order(flow, build_order, initial_eco) do
+    # Find edge mapping: target_node_id -> edge_id
+    edge_by_target =
+      Enum.reduce(flow.edges, %{}, fn {id, edge}, acc ->
+        Map.put(acc, edge.target, id)
+      end)
+
+    # Run simulation
+    {nodes, edges, final_eco, _cumulative_time} =
+      Enum.reduce(build_order, {flow.nodes, flow.edges, initial_eco, 0}, fn node_id,
+                                                                           {nodes, edges, eco,
+                                                                            cum_time} ->
+        node = nodes[node_id]
+        unit = node.data[:unit]
+        quantity = node.data[:quantity] || 1
+
+        if unit do
+          # Calculate build metrics for this unit
+          unit_stats = %{
+            mass: unit.build_cost_mass * quantity,
+            energy: unit.build_cost_energy * quantity,
+            build_time: unit.build_time * quantity
+          }
+
+          production = %{
+            mass: eco.mass_per_sec,
+            energy: eco.energy_per_sec
+          }
+
+          storage = %{
+            mass: eco.mass_storage,
+            energy: eco.energy_storage
+          }
+
+          metrics =
+            BuildPower.calculate_metrics(unit_stats, eco.build_power, production, storage)
+
+          build_time = metrics.total_ticks
+          new_cum_time = cum_time + build_time
+
+          # Update node with finished time
+          updated_node = %{
+            node
+            | data: Map.put(node.data, :finished_time, trunc(new_cum_time)),
+              deletable: false
+          }
+
+          nodes = Map.put(nodes, node_id, updated_node)
+
+          # Update edge with eco status at this point
+          edge_id = edge_by_target[node_id]
+          edges = update_edge_with_eco(edges, edge_id, eco, cum_time, metrics)
+
+          # Update eco state after unit is built (add unit's eco contribution)
+          new_eco = update_eco_after_build(eco, unit, quantity)
+
+          {nodes, edges, new_eco, new_cum_time}
+        else
+          # No unit selected, skip
+          {nodes, edges, eco, cum_time}
+        end
+      end)
+
+    # Mark initial node as non-deletable
+    nodes =
+      Map.update!(nodes, "initial", fn node ->
+        %{node | deletable: false}
+      end)
+
+    {nodes, edges, final_eco}
+  end
+
+  # Update edge with eco status data
+  defp update_edge_with_eco(edges, nil, _eco, _cum_time, _metrics), do: edges
+
+  defp update_edge_with_eco(edges, edge_id, eco, cum_time, metrics) do
+    edge = edges[edge_id]
+
+    edge_data = %{
+      mass_in_storage: trunc(eco.mass_storage),
+      energy_in_storage: trunc(eco.energy_storage),
+      mass_per_sec: Float.round(eco.mass_per_sec, 1),
+      energy_per_sec: Float.round(eco.energy_per_sec, 1),
+      build_power: eco.build_power,
+      elapsed_time: trunc(cum_time),
+      simulation_run: true,
+      tooltip_text:
+        "Mass: -#{format_tooltip_value(metrics.drain_per_bp.mass * eco.build_power)}/s  |  Energy: -#{format_tooltip_value(metrics.drain_per_bp.energy * eco.build_power)}/s"
+    }
+
+    Map.put(edges, edge_id, %{edge | data: edge_data, deletable: false, label: nil})
+  end
+
+  # Update eco state after building a unit (add its BP, income, storage)
+  defp update_eco_after_build(eco, unit, quantity) do
+    # Handle case where unit.data might not be loaded (e.g., from list query)
+    economy_data = fetch_unit_economy_data(unit)
+
+    # Extract eco contributions from unit data
+    build_rate = economy_data["BuildRate"] || 0
+    energy_production = economy_data["ProductionPerSecondEnergy"] || 0
+    mass_production = economy_data["ProductionPerSecondMass"] || 0
+    energy_storage = economy_data["StorageEnergy"] || 0
+    mass_storage = economy_data["StorageMass"] || 0
+
+    %{
+      mass_storage: eco.mass_storage + mass_storage * quantity,
+      energy_storage: eco.energy_storage + energy_storage * quantity,
+      mass_per_sec: eco.mass_per_sec + mass_production * quantity,
+      energy_per_sec: eco.energy_per_sec + energy_production * quantity,
+      build_power: eco.build_power + build_rate * quantity
+    }
+  end
+
+  # Fetch economy data from unit, handling different data formats
+  defp fetch_unit_economy_data(unit) do
+    cond do
+      # Ecto schema with data field loaded
+      is_struct(unit, FafCn.Units.Unit) and is_map(unit.data) ->
+        unit.data["Economy"] || %{}
+
+      # Plain map with data field (preloaded)
+      is_map(unit) and is_map(unit[:data]) ->
+        unit[:data]["Economy"] || %{}
+
+      # Plain map with data key but nil value
+      is_map(unit) ->
+        %{}
+    end
+  end
+
   # ===== Private Helpers =====
 
   defp parse_int(value) when is_binary(value), do: String.to_integer(value)
@@ -955,53 +1114,88 @@ defmodule FafCnWeb.EcoWorkflowLive do
 
   defp build_edge_tooltips(_edges, false = _simulation_run), do: "{}"
 
-  defp create_initial_flow(default_unit) do
+  defp create_default_workflow(units) do
+    # Initial eco state
+    initial_eco = %{
+      mass_in_storage: 650,
+      energy_in_storage: 5000,
+      mass_per_sec: 1.0,
+      energy_per_sec: 20.0,
+      build_power: 10
+    }
+
+    # Create initial node
     initial_node =
       Node.new(
         "initial",
-        %{x: 50, y: 150},
-        %{
-          mass_in_storage: 650,
-          energy_in_storage: 5000,
-          mass_per_sec: 1.0,
-          energy_per_sec: 20.0,
-          build_power: 10
-        },
+        %{x: 50, y: 200},
+        initial_eco,
         type: :initial,
         handles: [Handle.source(:right)],
         deletable: false
       )
 
-    # Add one default unit node connected to initial
-    unit_node =
-      Node.new(
-        "unit-default",
-        %{x: 280, y: 150},
-        %{
-          unit: default_unit,
-          quantity: 1,
-          finished_time: nil
-        },
-        type: :unit,
-        handles: [Handle.target(:left), Handle.source(:right)]
-      )
+    # Create workflow: initial -> 3x T3 Engineer -> T3 PGen -> T3 Mex -> Fatboy
+    # Position nodes in a horizontal line with vertical staggering
+    node_specs = [
+      {"unit-t3-eng-1", units.t3_engineer, %{x: 250, y: 100}, 1},
+      {"unit-t3-eng-2", units.t3_engineer, %{x: 400, y: 200}, 1},
+      {"unit-t3-eng-3", units.t3_engineer, %{x: 550, y: 300}, 1},
+      {"unit-t3-pgen", units.t3_pgen, %{x: 700, y: 200}, 1},
+      {"unit-t3-mex", units.t3_mex, %{x: 850, y: 200}, 1},
+      {"unit-fatboy", units.fatboy, %{x: 1000, y: 200}, 1}
+    ]
 
-    edge =
-      Edge.new("e-initial", "initial", "unit-default",
-        source_handle: "right",
-        target_handle: "left",
-        marker_end: %{type: :arrow_closed, color: "#64748b"},
-        data: %{
-          mass_in_storage: 650,
-          energy_in_storage: 5000,
-          mass_per_sec: 1.0,
-          energy_per_sec: 20.0,
-          build_power: 10,
-          elapsed_time: 0
-        }
-      )
+    # Create unit nodes
+    {unit_nodes, _} =
+      Enum.map_reduce(node_specs, [], fn {id, unit, pos, qty}, acc ->
+        node =
+          Node.new(
+            id,
+            pos,
+            %{
+              unit: unit,
+              quantity: qty,
+              finished_time: nil
+            },
+            type: :unit,
+            handles: [Handle.target(:left), Handle.source(:right)]
+          )
 
-    State.new(nodes: [initial_node, unit_node], edges: [edge])
+        {node, [node | acc]}
+      end)
+
+    # Create edges connecting the chain
+    # initial -> eng-1 -> eng-2 -> eng-3 -> pgen -> mex -> fatboy
+    edge_specs = [
+      {"e-initial", "initial", "unit-t3-eng-1"},
+      {"e-eng-1", "unit-t3-eng-1", "unit-t3-eng-2"},
+      {"e-eng-2", "unit-t3-eng-2", "unit-t3-eng-3"},
+      {"e-eng-3", "unit-t3-eng-3", "unit-t3-pgen"},
+      {"e-pgen", "unit-t3-pgen", "unit-t3-mex"},
+      {"e-mex", "unit-t3-mex", "unit-fatboy"}
+    ]
+
+    edges =
+      Enum.map(edge_specs, fn {id, source, target} ->
+        Edge.new(id, source, target,
+          source_handle: "right",
+          target_handle: "left",
+          marker_end: %{type: :arrow_closed, color: "#64748b"},
+          data: %{
+            mass_in_storage: initial_eco.mass_in_storage,
+            energy_in_storage: initial_eco.energy_in_storage,
+            mass_per_sec: initial_eco.mass_per_sec,
+            energy_per_sec: initial_eco.energy_per_sec,
+            build_power: initial_eco.build_power,
+            elapsed_time: 0
+          }
+        )
+      end)
+
+    all_nodes = [initial_node | Enum.reverse(unit_nodes)]
+
+    State.new(nodes: all_nodes, edges: edges)
   end
 
   defp ensure_initial_node(flow, _default_unit) do
