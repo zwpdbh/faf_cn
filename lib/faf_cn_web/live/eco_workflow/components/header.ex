@@ -29,7 +29,10 @@ defmodule FafCnWeb.EcoWorkflow.Components.Header do
                 workflow_id={@workflow_id}
               />
             <% else %>
-              <span class="text-sm text-base-content/60">{@workflow_name}</span>
+              <.workflow_name_dropdown_guest
+                workflow_name={@workflow_name}
+                workflow_dirty={@workflow_dirty}
+              />
             <% end %>
           </div>
           <.status_indicator
@@ -51,17 +54,17 @@ defmodule FafCnWeb.EcoWorkflow.Components.Header do
 
         <%!-- Right: View Controls --%>
         <div class="w-64 shrink-0 flex justify-end items-center gap-2">
-          <button class="btn btn-sm" phx-click="reset_flow">
-            <.icon name="hero-arrow-path" class="w-4 h-4 mr-1" /> Reset
+          <button class="btn btn-sm gap-1" phx-click="reset_flow">
+            <.icon name="hero-arrow-path" class="w-4 h-4" /> Reset
           </button>
-          <button class="btn btn-sm" phx-click="fit_view">
-            <.icon name="hero-arrows-pointing-out" class="w-4 h-4 mr-1" /> Fit
+          <button class="btn btn-sm gap-1" phx-click="fit_view">
+            <.icon name="hero-arrows-pointing-out" class="w-4 h-4" /> Fit
           </button>
           <button
-            class="btn btn-sm btn-info"
+            class="btn btn-sm btn-info gap-1"
             phx-click={JS.dispatch("lf:auto-layout", to: "#eco-workflow-flow")}
           >
-            <.icon name="hero-sparkles" class="w-4 h-4 mr-1" /> Auto
+            <.icon name="hero-sparkles" class="w-4 h-4" /> Auto
           </button>
         </div>
       </div>
@@ -119,6 +122,32 @@ defmodule FafCnWeb.EcoWorkflow.Components.Header do
     """
   end
 
+  defp workflow_name_dropdown_guest(assigns) do
+    ~H"""
+    <div class="dropdown dropdown-hover">
+      <label
+        tabindex="0"
+        class="btn btn-sm btn-ghost gap-1 text-base font-normal"
+        title="Workflow options"
+      >
+        <span class="truncate max-w-[140px]">{@workflow_name}</span>
+        <.status_dot dirty={@workflow_dirty} />
+        <.icon name="hero-chevron-down" class="w-3 h-3" />
+      </label>
+      <ul
+        tabindex="0"
+        class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
+      >
+        <li>
+          <a phx-click="reset_to_default">
+            <.icon name="hero-arrow-path" class="w-4 h-4" /> Reset to Default
+          </a>
+        </li>
+      </ul>
+    </div>
+    """
+  end
+
   defp status_dot(assigns) do
     ~H"""
     <%= if @dirty do %>
@@ -154,17 +183,17 @@ defmodule FafCnWeb.EcoWorkflow.Components.Header do
   defp action_buttons(assigns) do
     ~H"""
     <div class="flex items-center gap-2 bg-base-300/50 px-4 py-2 rounded-xl">
-      <button class="btn btn-sm btn-primary" phx-click="add_unit_node">
-        <.icon name="hero-plus" class="w-4 h-4 mr-1" /> Add Unit
+      <button class="btn btn-sm btn-primary gap-1" phx-click="add_unit_node">
+        <.icon name="hero-plus" class="w-4 h-4" /> Add Unit
       </button>
 
       <%= if @simulation_run do %>
-        <button class="btn btn-sm btn-warning" phx-click="clear_simulation">
-          <.icon name="hero-arrow-path" class="w-4 h-4 mr-1" /> Reset Simulation
+        <button class="btn btn-sm btn-warning gap-1" phx-click="clear_simulation">
+          <.icon name="hero-arrow-path" class="w-4 h-4" /> Reset Simulation
         </button>
       <% else %>
-        <button class="btn btn-sm btn-success" phx-click="run_simulation">
-          <.icon name="hero-play" class="w-4 h-4 mr-1" /> Run Simulation
+        <button class="btn btn-sm btn-success gap-1" phx-click="run_simulation">
+          <.icon name="hero-play" class="w-4 h-4" /> Run Simulation
         </button>
       <% end %>
 
@@ -172,17 +201,22 @@ defmodule FafCnWeb.EcoWorkflow.Components.Header do
         <div class="w-px h-6 bg-base-content/20 mx-1"></div>
         <%= if @workflow_id do %>
           <button
-            class="btn btn-sm btn-info"
+            class="btn btn-sm btn-info gap-1"
             phx-click="quick_save_workflow"
             disabled={not @workflow_dirty}
           >
-            <.icon name="hero-document-check" class="w-4 h-4 mr-1" /> Save
+            <.icon name="hero-document-check" class="w-4 h-4" /> Save
           </button>
         <% else %>
-          <button class="btn btn-sm btn-info" phx-click="open_save_workflow">
-            <.icon name="hero-document-arrow-down" class="w-4 h-4 mr-1" /> Save As
+          <button class="btn btn-sm btn-info gap-1" phx-click="open_save_workflow">
+            <.icon name="hero-arrow-down-tray" class="w-4 h-4" /> Save As
           </button>
         <% end %>
+      <% else %>
+        <div class="w-px h-6 bg-base-content/20 mx-1"></div>
+        <button class="btn btn-sm btn-info gap-1" phx-click="prompt_login">
+          <.icon name="hero-arrow-down-tray" class="w-4 h-4" /> Save As
+        </button>
       <% end %>
     </div>
     """

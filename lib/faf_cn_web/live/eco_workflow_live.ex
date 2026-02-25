@@ -131,7 +131,7 @@ defmodule FafCnWeb.EcoWorkflowLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="h-[calc(100vh-64px)] flex flex-col">
         <%!-- Header Component --%>
         <Header.workflow_header
@@ -296,6 +296,14 @@ defmodule FafCnWeb.EcoWorkflowLive do
   @impl true
   def handle_event("open_save_workflow", _params, socket) do
     {:noreply, assign(socket, show_save_workflow: true)}
+  end
+
+  @impl true
+  def handle_event("prompt_login", _params, socket) do
+    {:noreply,
+     socket
+     |> put_flash(:info, "Please log in to save workflows")
+     |> push_navigate(to: ~p"/auth/github")}
   end
 
   @impl true
