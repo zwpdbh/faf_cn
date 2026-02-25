@@ -1,12 +1,8 @@
 /* ============================================
-   05 - Eco Workflow Styles
+   Eco Workflow - Base Styles
    ============================================
-   Styles for the Eco Workflow visual editor.
-   
-   Modify this file to:
-   - Change node appearances
-   - Add new node types
-   - Adjust colors and layout
+   Core styles, colors, and utilities used across
+   all eco workflow components.
    ============================================ */
 
 /* ===== Base Node Styles ===== */
@@ -89,7 +85,6 @@
 }
 
 /* ===== Node Body Elements ===== */
-
 .workflow-node-field {
   display: flex;
   align-items: baseline;

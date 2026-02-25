@@ -4,38 +4,38 @@
    This file imports all CSS modules in order.
    
    To add new styles:
-   1. Create a new file in this directory (e.g., 07_new_feature.css)
-   2. Import it below following the numbering convention
+   1. Create a new file in this directory (e.g., new_feature.css)
+   2. Import it below in the appropriate section
    
    File Organization:
-   - 01_* : Tailwind configuration & plugins
-   - 02_* : Theme definitions (DaisyUI)
-   - 03_* : Third-party library integration (LiveFlow)
-   - 04_* : Base application styles
-   - 05_* : Feature-specific styles (Eco Workflow)
-   - 06_* : Asset imports (icons, fonts)
+   - tailwind_config.css   : Tailwind configuration & plugins
+   - daisyui_themes.css    : Theme definitions (DaisyUI)
+   - liveflow_integration  : Third-party library integration (LiveFlow)
+   - base_styles.css       : Base application styles
+   - eco_workflow.css      : Feature-specific styles (Eco Workflow)
+   - unit_icons.css        : Asset imports (icons, fonts)
    ============================================ */
 
-/* 01 - Tailwind Configuration */
-@import "./01_tailwind_config.css";
+/* Tailwind Configuration */
+@import "./tailwind_config.css";
 
-/* 02 - DaisyUI Themes */
-@import "./02_daisyui_themes.css";
+/* DaisyUI Themes */
+@import "./daisyui_themes.css";
 
-/* 03 - LiveFlow Integration */
-@import "./03_liveflow_integration.css";
+/* LiveFlow Integration */
+@import "./liveflow_integration.css";
 
-/* 04 - Base Application Styles */
-@import "./04_base_styles.css";
+/* Base Application Styles */
+@import "./base_styles.css";
 
-/* 05 - Eco Workflow Styles */
-@import "./05_eco_workflow.css";
+/* Eco Workflow Styles */
+@import "./eco_workflow.css";
 
-/* 06 - Unit Icons */
-@import "./06_unit_icons.css";
+/* Unit Icons */
+@import "./unit_icons.css";
 
 /* ============================================
    Add new feature styles below:
    
-   @import "./07_your_feature.css";
+   @import "./your_feature.css";
    ============================================ */

@@ -5,6 +5,9 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
   This module contains reusable components for:
   - Unit selection interface
   - Eco comparison display
+
+  Note: This module now uses shared helpers from FafUnitsHelpers.
+  Consider using FafUnitsComponents for new features.
   """
 
   use FafCnWeb, :html
@@ -25,42 +28,11 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
     <div class="border-b border-gray-200">
       <nav class="-mb-px flex space-x-8" aria-label="Tabs">
         <%= for faction <- @factions do %>
-          <% is_active = @selected_faction == faction
-
-          active_classes =
-            case faction do
-              "UEF" ->
-                if is_active,
-                  do: "border-blue-500 text-blue-600",
-                  else: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-
-              "CYBRAN" ->
-                if is_active,
-                  do: "border-red-500 text-red-600",
-                  else: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-
-              "AEON" ->
-                if is_active,
-                  do: "border-emerald-500 text-emerald-600",
-                  else: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-
-              "SERAPHIM" ->
-                if is_active,
-                  do: "border-violet-500 text-violet-600",
-                  else: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-
-              _ ->
-                if is_active,
-                  do: "border-indigo-500 text-indigo-600",
-                  else: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            end %>
+          <% is_active = @selected_faction == faction %>
           <button
             phx-click="select_faction"
             phx-value-faction={faction}
-            class={[
-              "whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors",
-              active_classes
-            ]}
+            class={FafCnWeb.FafUnitsHelpers.faction_tab_classes(faction, is_active)}
           >
             {faction}
           </button>
@@ -88,7 +60,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
         <h2 class="text-lg font-semibold text-gray-900">Base Unit (Engineer)</h2>
         <span class={[
           "px-2 py-1 text-xs font-medium rounded-full",
-          faction_badge_class(@selected_faction)
+          FafCnWeb.FafUnitsHelpers.faction_badge_class(@selected_faction)
         ]}>
           {@selected_faction}
         </span>
@@ -98,24 +70,26 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
           <%!-- Engineer Icon --%>
           <div class={[
             "w-16 h-16 rounded-lg flex items-center justify-center shadow-inner",
-            unit_faction_bg_class(@base_unit.faction)
+            FafCnWeb.FafUnitsHelpers.faction_bg_class(@base_unit.faction)
           ]}>
             <div class={"unit-icon-#{@base_unit.unit_id} w-14 h-14"}></div>
           </div>
           <div class="flex-1">
             <div class="flex items-center space-x-2">
               <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                {unit_tech_badge(@base_unit)}
+                {FafCnWeb.FafUnitsHelpers.tech_badge(@base_unit)}
               </span>
               <h3 class="font-semibold text-gray-900">{@base_unit.unit_id}</h3>
             </div>
             <p class="text-sm text-gray-600">
-              {format_unit_display_name(@base_unit)}
+              {FafCnWeb.FafUnitsHelpers.format_unit_display_name(@base_unit)}
             </p>
             <div class="mt-1 flex items-center space-x-4 text-xs text-gray-500">
-              <span>Mass: {format_number(@base_unit.build_cost_mass)}</span>
-              <span>Energy: {format_number(@base_unit.build_cost_energy)}</span>
-              <span>BT: {format_number(@base_unit.build_time)}</span>
+              <span>Mass: {FafCnWeb.FafUnitsHelpers.format_number(@base_unit.build_cost_mass)}</span>
+              <span>
+                Energy: {FafCnWeb.FafUnitsHelpers.format_number(@base_unit.build_cost_energy)}
+              </span>
+              <span>BT: {FafCnWeb.FafUnitsHelpers.format_number(@base_unit.build_time)}</span>
             </div>
           </div>
         </div>
@@ -133,8 +107,8 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
     * `selected_faction` - Currently selected faction
     * `selected_units` - List of currently selected units
     * `base_unit` - The base engineer unit
-    * `filters` - List of available filter definitions
     * `active_filters` - List of currently active filter keys
+    * `show_eco_only` - Whether to show only eco units
   """
   attr :units_by_faction, :map, required: true
   attr :selected_faction, :string, required: true
@@ -142,120 +116,18 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
   attr :base_unit, :any, required: true
   attr :filters, :list, required: true
   attr :active_filters, :list, required: true
+  attr :show_eco_only, :boolean, default: false
 
   def unit_selection_grid(assigns) do
     ~H"""
-    <% faction_units = @units_by_faction[@selected_faction] || []
-    filtered_units = apply_filters(faction_units, @active_filters) %>
-    <div
-      class="rounded-lg shadow-sm border border-gray-200 p-4"
-      style="background-image: url('/images/units/background.jpg'); background-size: cover; background-position: center;"
-    >
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold text-white drop-shadow-md">
-          Select Units to Compare
-        </h2>
-        <%= if length(@selected_units) > 0 do %>
-          <button
-            phx-click="clear_selections"
-            class="text-sm bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded transition-colors shadow-md"
-          >
-            Clear ({length(@selected_units)})
-          </button>
-        <% end %>
-      </div>
-
-      <%!-- Filter Bar --%>
-      <.filter_bar filters={@filters} active_filters={@active_filters} />
-
-      <%!-- Unit Grid --%>
-      <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 mt-4">
-        <%= for unit <- filtered_units do %>
-          <% is_selected = unit_selected?(@selected_units, unit.unit_id)
-          is_engineer = unit.unit_id == @base_unit.unit_id
-
-          border_class =
-            cond do
-              is_engineer -> "ring-2 ring-yellow-400 ring-offset-1 cursor-default"
-              is_selected -> "ring-2 ring-indigo-500 ring-offset-1"
-              true -> "hover:ring-2 hover:ring-gray-300 hover:ring-offset-1 cursor-pointer"
-            end %>
-          <button
-            phx-click={if !is_engineer, do: "toggle_unit"}
-            phx-value-unit_id={unit.unit_id}
-            class={[
-              "group relative aspect-square rounded-lg p-1 transition-all duration-150 flex flex-col items-center justify-center text-center overflow-hidden",
-              unit_faction_bg_class(unit.faction),
-              border_class
-            ]}
-            title={"#{format_unit_display_name(unit)}: #{unit.description || "No description"}"}
-          >
-            <%!-- Unit icon from sprite sheet --%>
-            <div class={["unit-icon-#{unit.unit_id} w-12 h-12 shrink-0"]}></div>
-            <%= if is_engineer do %>
-              <span class="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center z-10">
-                <span class="text-[8px] font-bold text-yellow-900">★</span>
-              </span>
-            <% end %>
-            <%= if is_selected do %>
-              <span class="absolute -top-1 -right-1 w-4 h-4 bg-indigo-500 rounded-full flex items-center justify-center z-10">
-                <.icon name="hero-check" class="w-3 h-3 text-white" />
-              </span>
-            <% end %>
-          </button>
-        <% end %>
-      </div>
-
-      <%= if filtered_units == [] do %>
-        <div class="text-center py-8 text-white/70">
-          <p>No units match the selected filters.</p>
-          <button
-            phx-click="clear_filters"
-            class="mt-2 text-sm underline hover:text-white"
-          >
-            Clear filters
-          </button>
-        </div>
-      <% end %>
-    </div>
-    """
-  end
-
-  @doc """
-  Renders the filter bar with filter buttons.
-  """
-  attr :filters, :list, required: true
-  attr :active_filters, :list, required: true
-
-  def filter_bar(assigns) do
-    ~H"""
-    <div class="flex flex-wrap gap-2 mb-2">
-      <%= for filter <- @filters do %>
-        <% is_active = filter.key in @active_filters %>
-        <button
-          phx-click="toggle_filter"
-          phx-value-filter={filter.key}
-          class={[
-            "px-3 py-1.5 rounded text-sm font-medium transition-all",
-            if is_active do
-              "bg-indigo-500 text-white shadow-md"
-            else
-              "bg-white/90 text-gray-700 hover:bg-white hover:shadow"
-            end
-          ]}
-        >
-          {filter.label}
-        </button>
-      <% end %>
-      <%= if length(@active_filters) > 0 do %>
-        <button
-          phx-click="clear_filters"
-          class="px-3 py-1.5 rounded text-sm font-medium bg-gray-500/50 text-white hover:bg-gray-500/70 transition-all"
-        >
-          Clear All
-        </button>
-      <% end %>
-    </div>
+    <FafCnWeb.FafUnitsComponents.unit_selection_panel
+      units_by_faction={@units_by_faction}
+      selected_faction={@selected_faction}
+      selected_units={@selected_units}
+      base_unit={@base_unit}
+      active_filters={@active_filters}
+      show_eco_only={@show_eco_only}
+    />
     """
   end
 
@@ -330,7 +202,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
         <div class="flex items-center gap-2 mb-2">
           <div class={[
             "w-8 h-8 rounded shrink-0 overflow-hidden relative",
-            unit_faction_bg_class(@base_unit.faction)
+            FafCnWeb.FafUnitsHelpers.faction_bg_class(@base_unit.faction)
           ]}>
             <div
               class={"unit-icon-#{@base_unit.unit_id} absolute"}
@@ -353,19 +225,19 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
           <div class="bg-white rounded p-1">
             <span class="block text-gray-400">Mass</span>
             <span class="font-semibold text-gray-700">
-              {format_number(@base_unit.build_cost_mass)}
+              {FafCnWeb.FafUnitsHelpers.format_number(@base_unit.build_cost_mass)}
             </span>
           </div>
           <div class="bg-white rounded p-1">
             <span class="block text-gray-400">Energy</span>
             <span class="font-semibold text-gray-700">
-              {format_number(@base_unit.build_cost_energy)}
+              {FafCnWeb.FafUnitsHelpers.format_number(@base_unit.build_cost_energy)}
             </span>
           </div>
           <div class="bg-white rounded p-1">
             <span class="block text-gray-400">BT</span>
             <span class="font-semibold text-gray-700">
-              {format_number(@base_unit.build_time)}
+              {FafCnWeb.FafUnitsHelpers.format_number(@base_unit.build_time)}
             </span>
           </div>
         </div>
@@ -377,7 +249,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
               <%!-- Unit Icon --%>
               <div class={[
                 "w-8 h-8 rounded shrink-0 overflow-hidden relative",
-                unit_faction_bg_class(unit.faction)
+                FafCnWeb.FafUnitsHelpers.faction_bg_class(unit.faction)
               ]}>
                 <div
                   class={"unit-icon-#{unit.unit_id} absolute"}
@@ -390,7 +262,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
                   href={~p"/units/#{unit.unit_id}"}
                   class="text-xs font-medium text-gray-900 truncate hover:text-indigo-600"
                 >
-                  {format_unit_display_name(unit)}
+                  {FafCnWeb.FafUnitsHelpers.format_unit_display_name(unit)}
                 </a>
               </div>
               <span class={[
@@ -451,7 +323,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
               <div class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-200">
                 <div class={[
                   "w-6 h-6 rounded shrink-0 overflow-hidden relative",
-                  unit_faction_bg_class(base_unit.faction)
+                  FafCnWeb.FafUnitsHelpers.faction_bg_class(base_unit.faction)
                 ]}>
                   <div
                     class={"unit-icon-#{base_unit.unit_id} absolute"}
@@ -464,10 +336,10 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
                     href={~p"/units/#{base_unit.unit_id}"}
                     class="text-xs font-medium text-gray-700 truncate block hover:text-indigo-600"
                   >
-                    {format_unit_display_name(base_unit)}
+                    {FafCnWeb.FafUnitsHelpers.format_unit_display_name(base_unit)}
                   </a>
                   <span class="text-[10px] text-gray-500">
-                    Mass: {format_number(base_unit.build_cost_mass)}
+                    Mass: {FafCnWeb.FafUnitsHelpers.format_number(base_unit.build_cost_mass)}
                   </span>
                 </div>
               </div>
@@ -479,7 +351,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
                       <%!-- To Unit --%>
                       <div class={[
                         "w-8 h-8 rounded shrink-0 overflow-hidden relative",
-                        unit_faction_bg_class(target_unit.faction)
+                        FafCnWeb.FafUnitsHelpers.faction_bg_class(target_unit.faction)
                       ]}>
                         <div
                           class={"unit-icon-#{target_unit.unit_id} absolute"}
@@ -491,7 +363,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
                         href={~p"/units/#{target_unit.unit_id}"}
                         class="text-xs text-gray-700 truncate hover:text-indigo-600"
                       >
-                        {format_unit_display_name(target_unit)}
+                        {FafCnWeb.FafUnitsHelpers.format_unit_display_name(target_unit)}
                       </a>
                     </div>
                     <span class={[
@@ -548,13 +420,17 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
         <div class="bg-gray-50 rounded p-2">
           <span class="block text-gray-500">Total Mass</span>
           <span class="font-semibold text-gray-900">
-            {format_number(Enum.sum(Enum.map(@selected_units, & &1.build_cost_mass)))}
+            {FafCnWeb.FafUnitsHelpers.format_number(
+              Enum.sum(Enum.map(@selected_units, & &1.build_cost_mass))
+            )}
           </span>
         </div>
         <div class="bg-gray-50 rounded p-2">
           <span class="block text-gray-500">Total Energy</span>
           <span class="font-semibold text-gray-900">
-            {format_number(Enum.sum(Enum.map(@selected_units, & &1.build_cost_energy)))}
+            {FafCnWeb.FafUnitsHelpers.format_number(
+              Enum.sum(Enum.map(@selected_units, & &1.build_cost_energy))
+            )}
           </span>
         </div>
       </div>
@@ -562,158 +438,17 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
     """
   end
 
-  # Helper functions (moved from EcoGuidesLive)
+  # Helper functions (some imported from FafUnitsHelpers)
 
-  @doc """
-  Checks if a unit is currently selected.
-  """
-  def unit_selected?(selected_units, unit_id) do
-    Enum.any?(selected_units, &(&1.unit_id == unit_id))
-  end
-
-  @doc """
-  Applies active filters to a list of units.
-  """
-  def apply_filters(units, []), do: units
-
-  def apply_filters(units, active_filters) do
-    Enum.filter(units, fn unit ->
-      categories = unit.categories || []
-
-      Enum.all?(active_filters, fn filter_key ->
-        filter_key in categories
-      end)
-    end)
-  end
-
-  @doc """
-  Gets the faction background class for unit icons.
-  """
-  def unit_faction_bg_class(faction) do
-    case faction do
-      "UEF" -> "unit-bg-uef"
-      "CYBRAN" -> "unit-bg-cybran"
-      "AEON" -> "unit-bg-aeon"
-      "SERAPHIM" -> "unit-bg-seraphim"
-      _ -> "unit-bg-uef"
-    end
-  end
-
-  @doc """
-  Gets badge color class for a faction.
-  """
-  def faction_badge_class(faction) do
-    case faction do
-      "UEF" -> "bg-blue-100 text-blue-800"
-      "CYBRAN" -> "bg-red-100 text-red-800"
-      "AEON" -> "bg-emerald-100 text-emerald-800"
-      "SERAPHIM" -> "bg-violet-100 text-violet-800"
-      _ -> "bg-gray-100 text-gray-800"
-    end
-  end
-
-  @doc """
-  Gets the tech level display for a unit.
-  """
-  def unit_tech_badge(unit) do
-    case get_tech_level(unit) do
-      1 -> "T1"
-      2 -> "T2"
-      3 -> "T3"
-      4 -> "EXP"
-    end
-  end
-
-  @doc """
-  Formats unit display name as "Description -- Name" or just "Description" if no name.
-  """
-  def format_unit_display_name(unit) do
-    display_name = get_standardized_display_name(unit)
-    tier_prefix = get_tier_prefix(unit)
-    "#{tier_prefix}#{display_name}"
-  end
-
-  # List of unit descriptions that should be standardized across factions
-  @standardized_descriptions [
-    "Mass Extractor",
-    "Mass Fabricator",
-    "Energy Generator",
-    "Hydrocarbon Power Plant"
-  ]
-
-  # Standardize display names for units that have faction-specific naming
-  defp get_standardized_display_name(unit) do
-    description = unit.description || "Unknown"
-
-    # For units with standard descriptions, use description (ignoring faction-specific names)
-    # This ensures "Mass Pump", "Hyalatoh" all show as "Mass Extractor"
-    if description in @standardized_descriptions do
-      description
-    else
-      # For other units, use nickname if available, otherwise description
-      unit.name || description
-    end
-  end
-
-  # Units that exist at multiple tech levels - these need tier prefix
-  @multi_tier_units [
-    "Mass Extractor",
-    "Mass Fabricator",
-    "Power Generator",
-    "Energy Storage",
-    "Mass Storage",
-    "Engineer",
-    "Land Factory",
-    "Land Factory HQ",
-    "Air Factory",
-    "Air Factory HQ",
-    "Naval Factory",
-    "Naval Factory HQ",
-    "Point Defense",
-    "Anti-Air Turret",
-    "Anti-Air Defense",
-    "Anti-Air Flak Artillery",
-    "Anti-Air SAM Launcher",
-    "Artillery Installation",
-    "Torpedo Launcher",
-    "Radar System",
-    "Sonar System"
-  ]
-
-  defp get_tier_prefix(unit) do
-    description = unit.description || ""
-
-    # Only add tier prefix for units that exist at multiple tech levels
-    if description in @multi_tier_units do
-      categories = unit.categories || []
-
-      cond do
-        "TECH1" in categories -> "T1 "
-        "TECH2" in categories -> "T2 "
-        "TECH3" in categories -> "T3 "
-        "EXPERIMENTAL" in categories -> "EXP "
-        true -> ""
-      end
-    else
-      ""
-    end
-  end
-
-  @doc """
-  Formats a number with commas for thousands.
-  """
-  def format_number(nil), do: "0"
-  def format_number(n) when n < 1000, do: to_string(n)
-
-  def format_number(n) do
-    n
-    |> to_string()
-    |> String.reverse()
-    |> String.graphemes()
-    |> Enum.chunk_every(3)
-    |> Enum.join(",")
-    |> String.reverse()
-  end
+  # The following functions are imported from FafUnitsHelpers:
+  # - unit_selected?/2
+  # - apply_filters/2
+  # - unit_faction_bg_class/1
+  # - faction_badge_class/1
+  # - unit_tech_badge/1
+  # - format_unit_display_name/1
+  # - format_number/1
+  # - get_tech_level/1
 
   @doc """
   Returns color class based on ratio value.
@@ -769,17 +504,7 @@ defmodule FafCnWeb.EcoGuidesLive.Components do
     end)
   end
 
-  defp get_tech_level(unit) do
-    categories = unit.categories || []
-
-    cond do
-      "TECH1" in categories -> 1
-      "TECH2" in categories -> 2
-      "TECH3" in categories -> 3
-      "EXPERIMENTAL" in categories -> 4
-      true -> 1
-    end
-  end
+  # get_tech_level/1 is imported from FafUnitsHelpers
 
   defp calculate_eco_ratio(base_unit, compare_unit)
        when is_nil(base_unit) or is_nil(compare_unit) do
