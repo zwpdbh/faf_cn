@@ -47,6 +47,27 @@ defmodule FafCn.EcoWorkflows do
   end
 
   @doc """
+  Gets a single eco workflow or returns nil if not found.
+
+  ## Examples
+
+      iex> get_workflow(123)
+      %EcoWorkflow{}
+
+      iex> get_workflow(456)
+      nil
+
+  """
+  def get_workflow(id) do
+    EcoWorkflow
+    |> Repo.get(id)
+    |> case do
+      nil -> nil
+      workflow -> Repo.preload(workflow, [:nodes, :edges])
+    end
+  end
+
+  @doc """
   Gets a single eco workflow if it belongs to the user.
 
   Returns nil if the workflow doesn't exist or doesn't belong to the user.
@@ -243,5 +264,119 @@ defmodule FafCn.EcoWorkflows do
     EcoWorkflowNode
     |> where(eco_workflow_id: ^workflow_id)
     |> Repo.aggregate(:count, :id)
+  end
+
+  @doc """
+  Creates a workflow with graph data (nodes + edges) in a single transaction.
+  Used by the React Flow editor when saving a new workflow.
+
+  ## Examples
+
+      iex> create_workflow_with_graph(%{name: "My Workflow", nodes: [...], edges: [...]})
+      {:ok, %EcoWorkflow{}}
+
+  """
+  def create_workflow_with_graph(attrs) do
+    nodes = Map.get(attrs, "nodes", [])
+    edges = Map.get(attrs, "edges", [])
+    user_id = attrs["user_id"]
+
+    workflow_attrs = %{
+      "name" => attrs["name"] || "Untitled Workflow",
+      "user_id" => user_id
+    }
+
+    Repo.transaction(fn ->
+      # Create workflow
+      workflow =
+        %EcoWorkflow{}
+        |> EcoWorkflow.changeset(workflow_attrs)
+        |> Repo.insert!()
+
+      # Insert nodes
+      Enum.each(nodes, fn node_attrs ->
+        node_attrs =
+          node_attrs
+          |> Map.put("eco_workflow_id", workflow.id)
+          |> Map.put_new("quantity", 1)
+
+        %EcoWorkflowNode{}
+        |> EcoWorkflowNode.changeset(node_attrs)
+        |> Repo.insert!()
+      end)
+
+      # Insert edges
+      Enum.each(edges, fn edge_attrs ->
+        edge_attrs = Map.put(edge_attrs, "eco_workflow_id", workflow.id)
+
+        %EcoWorkflowEdge{}
+        |> EcoWorkflowEdge.changeset(edge_attrs)
+        |> Repo.insert!()
+      end)
+
+      # Return workflow with preloaded associations
+      workflow |> Repo.preload([:nodes, :edges])
+    end)
+  rescue
+    Ecto.InvalidChangesetError -> {:error, :invalid_changeset}
+  end
+
+  @doc """
+  Updates a workflow with graph data (nodes + edges) in a single transaction.
+  Replaces all existing nodes and edges.
+
+  ## Examples
+
+      iex> update_workflow_with_graph(workflow_id, %{name: "Updated", nodes: [...], edges: [...]})
+      {:ok, %EcoWorkflow{}}
+
+  """
+  def update_workflow_with_graph(workflow_id, attrs) do
+    nodes = Map.get(attrs, "nodes", [])
+    edges = Map.get(attrs, "edges", [])
+
+    Repo.transaction(fn ->
+      workflow = get_workflow!(workflow_id)
+
+      # Update workflow name if changed
+      if attrs["name"] && attrs["name"] != workflow.name do
+        workflow
+        |> EcoWorkflow.changeset(%{"name" => attrs["name"]})
+        |> Repo.update!()
+      end
+
+      # Delete existing nodes and edges
+      EcoWorkflowNode
+      |> where(eco_workflow_id: ^workflow_id)
+      |> Repo.delete_all()
+
+      EcoWorkflowEdge
+      |> where(eco_workflow_id: ^workflow_id)
+      |> Repo.delete_all()
+
+      # Insert new nodes
+      Enum.each(nodes, fn node_attrs ->
+        node_attrs =
+          node_attrs
+          |> Map.put("eco_workflow_id", workflow_id)
+          |> Map.put_new("quantity", 1)
+
+        %EcoWorkflowNode{}
+        |> EcoWorkflowNode.changeset(node_attrs)
+        |> Repo.insert!()
+      end)
+
+      # Insert new edges
+      Enum.each(edges, fn edge_attrs ->
+        edge_attrs = Map.put(edge_attrs, "eco_workflow_id", workflow_id)
+
+        %EcoWorkflowEdge{}
+        |> EcoWorkflowEdge.changeset(edge_attrs)
+        |> Repo.insert!()
+      end)
+
+      # Return workflow with preloaded associations
+      workflow |> Repo.preload([:nodes, :edges], force: true)
+    end)
   end
 end

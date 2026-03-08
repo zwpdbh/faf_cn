@@ -20,7 +20,16 @@ defmodule FafCnWeb.Router do
 
     get "/", PageController, :home
     live "/eco-guides", EcoGuidesLive
-    live "/eco-workflow", EcoWorkflowLive
+
+    # React Flow-based Eco Workflow Editor
+    live "/eco_workflows", EcoWorkflowEditorLive, :index
+    live "/eco_workflows/new", EcoWorkflowEditorLive, :new
+    live "/eco_workflows/:id", EcoWorkflowEditorLive, :show
+    live "/eco_workflows/:id/edit", EcoWorkflowEditorLive, :edit
+
+    # Redirect old /eco-workflow to new /eco_workflows
+    get "/eco-workflow", RedirectController, :eco_workflow
+
     live "/settings", SettingsLive
     live "/units/:unit_id", UnitLive, :show
 

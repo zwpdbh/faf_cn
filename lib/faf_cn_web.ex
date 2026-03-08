@@ -17,7 +17,7 @@ defmodule FafCnWeb do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
+  def static_paths, do: ~w(assets assets/vendor fonts images favicon.ico robots.txt)
 
   def router do
     quote do
@@ -86,6 +86,9 @@ defmodule FafCnWeb do
       import Phoenix.HTML
       # Core UI components
       import FafCnWeb.CoreComponents
+
+      # React component integration via live_react
+      import LiveReact
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS

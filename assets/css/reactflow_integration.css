@@ -1,0 +1,176 @@
+/* ============================================
+   React Flow Integration Styles
+   ============================================
+   Styles for React Flow workflow editor components.
+
+   Note: React Flow base styles are loaded via the JS bundle
+   (imported in WorkflowEditor.tsx).
+   ============================================ */
+
+/* React Flow container styles */
+.react-flow {
+  --xy-edge-stroke: #b1b1b7;
+  --xy-edge-stroke-width: 2;
+  --xy-handle-background: #fff;
+  --xy-handle-border-color: #b1b1b7;
+  --xy-handle-border-width: 2;
+
+  background-color: #f9fafb;
+}
+
+/* Remove default node styles from React Flow (we handle styling in our components) */
+.react-flow__node {
+  border: none !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.react-flow__node.selected {
+  box-shadow: none !important;
+}
+
+/* Controls customization */
+.react-flow__controls {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.react-flow__controls-button {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.react-flow__controls-button:hover {
+  background: #f3f4f6;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+
+/* MiniMap customization */
+.react-flow__minimap {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Handle styles */
+.react-flow__handle {
+  opacity: 0.6;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.react-flow__handle:hover {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+.react-flow__handle-top {
+  top: -4px;
+}
+
+.react-flow__handle-bottom {
+  bottom: -4px;
+}
+
+.react-flow__handle-left {
+  left: -4px;
+}
+
+.react-flow__handle-right {
+  right: -4px;
+}
+
+/* Edge styles */
+.react-flow__edge-path {
+  stroke-width: 2;
+  transition: stroke 0.2s;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #3b82f6;
+  stroke-width: 3;
+}
+
+.react-flow__edge.animated .react-flow__edge-path {
+  stroke-dasharray: 5;
+  animation: dashdraw 0.5s linear infinite;
+}
+
+@keyframes dashdraw {
+  from {
+    stroke-dashoffset: 10;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Connection line */
+.react-flow__connection-line {
+  stroke: #3b82f6;
+  stroke-width: 2;
+}
+
+/* Selection box */
+.react-flow__selection {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid #3b82f6;
+}
+
+/* Pane (background) */
+.react-flow__pane {
+  cursor: grab;
+}
+
+.react-flow__pane.dragging {
+  cursor: grabbing;
+}
+
+/* Attribution */
+.react-flow__attribution {
+  background: rgba(255, 255, 255, 0.8);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+/* Workflow editor container */
+.workflow-editor-container {
+  width: 100%;
+  height: 100%;
+  min-height: 600px;
+}
+
+/* Pulse animation for running nodes */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Scrollbar styling for panels */
+.workflow-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.workflow-panel::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.workflow-panel::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.workflow-panel::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}

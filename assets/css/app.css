@@ -10,9 +10,8 @@
    File Organization:
    - tailwind_config.css   : Tailwind configuration & plugins
    - daisyui_themes.css    : Theme definitions (DaisyUI)
-   - liveflow_integration  : Third-party library integration (LiveFlow)
+   - reactflow_integration : React Flow workflow editor styles
    - base_styles.css       : Base application styles
-   - eco_workflow.css      : Feature-specific styles (Eco Workflow)
    - unit_icons.css        : Asset imports (icons, fonts)
    ============================================ */
 
@@ -22,14 +21,11 @@
 /* DaisyUI Themes */
 @import "./daisyui_themes.css";
 
-/* LiveFlow Integration */
-@import "./liveflow_integration.css";
+/* React Flow Integration */
+@import "./reactflow_integration.css";
 
 /* Base Application Styles */
 @import "./base_styles.css";
-
-/* Eco Workflow Styles */
-@import "./eco_workflow.css";
 
 /* Unit Icons */
 @import "./unit_icons.css";

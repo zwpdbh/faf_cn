@@ -18,9 +18,7 @@
 @plugin "../vendor/heroicons";
 
 /* DaisyUI base plugin (themes disabled - defined separately) */
-@plugin "../vendor/daisyui" {
-  themes: false;
-}
+@plugin "../vendor/daisyui";
 
 /* Add variants based on LiveView classes */
 @custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
