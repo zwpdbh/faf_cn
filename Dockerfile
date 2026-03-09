@@ -48,6 +48,9 @@ COPY lib lib
 
 COPY assets assets
 
+# Copy Tailwind config
+COPY tailwind.config.js ./
+
 # install npm dependencies and compile assets
 RUN cd assets && npm install && cd ..
 RUN mix assets.deploy

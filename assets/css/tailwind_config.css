@@ -9,21 +9,20 @@
    - Configure custom variants
    ============================================ */
 
-@import "tailwindcss" source(none);
-@source "../css";
-@source "../js";
-@source "../../lib/faf_cn_web";
+/* Tailwind v3 Directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* Heroicons plugin - provides hero-{icon} classes */
-@plugin "../vendor/heroicons";
-
-/* DaisyUI base plugin (themes disabled - defined separately) */
-@plugin "../vendor/daisyui";
-
-/* Add variants based on LiveView classes */
-@custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
-@custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
-@custom-variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
-
-/* Dark mode variant based on data-theme attribute */
-@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+/* Custom variants for LiveView */
+@layer utilities {
+  .phx-click-loading {
+    cursor: wait;
+  }
+  .phx-submit-loading {
+    cursor: wait;
+  }
+  .phx-change-loading {
+    cursor: wait;
+  }
+}

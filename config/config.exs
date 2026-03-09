@@ -49,9 +49,10 @@ config :esbuild,
 
 # Configure tailwind (the version is required)
 config :tailwind,
-  version: "4.1.12",
+  version: "3.4.17",
   faf_cn: [
     args: ~w(
+      --config=tailwind.config.js
       --input=assets/css/app.css
       --output=priv/static/assets/css/app.css
     ),
