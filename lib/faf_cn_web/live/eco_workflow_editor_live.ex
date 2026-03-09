@@ -188,7 +188,10 @@ defmodule FafCnWeb.EcoWorkflowEditorLive do
                   <.link navigate={~p"/eco_workflows/#{workflow.id}"} class="btn btn-ghost btn-sm">
                     <.icon name="hero-eye" class="w-4 h-4" />
                   </.link>
-                  <.link navigate={~p"/eco_workflows/#{workflow.id}/edit"} class="btn btn-primary btn-sm">
+                  <.link
+                    navigate={~p"/eco_workflows/#{workflow.id}/edit"}
+                    class="btn btn-primary btn-sm"
+                  >
                     <.icon name="hero-pencil" class="w-4 h-4" />
                   </.link>
                 </div>
@@ -442,10 +445,14 @@ defmodule FafCnWeb.EcoWorkflowEditorLive do
        |> update(:nodes, fn nodes ->
          Enum.map(nodes, fn node ->
            if node["id"] == node_id do
-             put_in(node, ["data"], Map.merge(node["data"], %{
-               "unit" => unit_to_json(unit),
-               "label" => unit.name
-             }))
+             put_in(
+               node,
+               ["data"],
+               Map.merge(node["data"], %{
+                 "unit" => unit_to_json(unit),
+                 "label" => unit.name
+               })
+             )
            else
              node
            end
@@ -608,12 +615,42 @@ defmodule FafCnWeb.EcoWorkflowEditorLive do
       ]
 
       edges = [
-        %{"id" => "e-initial", "source" => "initial", "target" => "unit-t3-eng-1", "animated" => false},
-        %{"id" => "e-eng-1", "source" => "unit-t3-eng-1", "target" => "unit-t3-eng-2", "animated" => false},
-        %{"id" => "e-eng-2", "source" => "unit-t3-eng-2", "target" => "unit-t3-eng-3", "animated" => false},
-        %{"id" => "e-eng-3", "source" => "unit-t3-eng-3", "target" => "unit-t3-pgen", "animated" => false},
-        %{"id" => "e-pgen", "source" => "unit-t3-pgen", "target" => "unit-t3-mex", "animated" => false},
-        %{"id" => "e-mex", "source" => "unit-t3-mex", "target" => "unit-fatboy", "animated" => false}
+        %{
+          "id" => "e-initial",
+          "source" => "initial",
+          "target" => "unit-t3-eng-1",
+          "animated" => false
+        },
+        %{
+          "id" => "e-eng-1",
+          "source" => "unit-t3-eng-1",
+          "target" => "unit-t3-eng-2",
+          "animated" => false
+        },
+        %{
+          "id" => "e-eng-2",
+          "source" => "unit-t3-eng-2",
+          "target" => "unit-t3-eng-3",
+          "animated" => false
+        },
+        %{
+          "id" => "e-eng-3",
+          "source" => "unit-t3-eng-3",
+          "target" => "unit-t3-pgen",
+          "animated" => false
+        },
+        %{
+          "id" => "e-pgen",
+          "source" => "unit-t3-pgen",
+          "target" => "unit-t3-mex",
+          "animated" => false
+        },
+        %{
+          "id" => "e-mex",
+          "source" => "unit-t3-mex",
+          "target" => "unit-fatboy",
+          "animated" => false
+        }
       ]
 
       {[initial_node | unit_nodes], edges}
