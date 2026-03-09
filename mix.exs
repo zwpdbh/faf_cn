@@ -59,7 +59,7 @@ defmodule FafCn.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:live_flow, github: "zwpdbh/live_flow", branch: "main"},
+      {:live_react, "~> 0.1"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:tidewave, "~> 0.5", only: :dev},
@@ -72,8 +72,8 @@ defmodule FafCn.MixProject do
       {:phoenix_live_view, "~> 1.1.0"},
       {:lazy_html, ">= 0.1.0", only: :test},
       {:phoenix_live_dashboard, "~> 0.8.3"},
-      {:esbuild, "~> 0.10", runtime: Mix.env() == :dev},
-      {:tailwind, "~> 0.3", runtime: Mix.env() == :dev},
+      {:esbuild, "~> 0.10", runtime: true},
+      {:tailwind, "~> 0.3", runtime: true},
       {:heroicons,
        github: "tailwindlabs/heroicons",
        tag: "v2.2.0",
@@ -107,13 +107,32 @@ defmodule FafCn.MixProject do
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["compile", "tailwind faf_cn", "esbuild faf_cn"],
+      "assets.build": ["compile", "tailwind faf_cn", "esbuild faf_cn", "assets.copy_vendor"],
       "assets.deploy": [
         "tailwind faf_cn --minify",
         "esbuild faf_cn --minify",
+        "assets.copy_vendor",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      "assets.copy_vendor": fn _ ->
+        File.mkdir_p!("priv/static/assets/js")
+        File.mkdir_p!("priv/static/assets/css")
+        File.cp!("assets/vendor/topbar.js", "priv/static/assets/js/topbar.js")
+        File.cp!("assets/vendor/react-flow.css", "priv/static/assets/css/react-flow.css")
+        :ok
+      end,
+      precommit: [
+        "compile --warnings-as-errors",
+        "deps.unlock --unused",
+        "format",
+        "test",
+        "dialyzer.check",
+        "credo --strict"
+      ],
+      "dialyzer.check": ["dialyzer --format dialyxir"],
+      "dialyzer.setup": ["dialyzer --plt"],
+      "credo.check": ["credo --strict"],
+      "code.quality": ["format", "dialyzer.check", "credo --strict"]
     ]
   end
 end

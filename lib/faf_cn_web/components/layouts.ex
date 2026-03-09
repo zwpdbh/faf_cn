@@ -120,6 +120,24 @@ defmodule FafCnWeb.Layouts do
   end
 
   @doc """
+  Full-screen layout without the default navbar.
+  For immersive apps like the workflow editor.
+  """
+  attr :flash, :map, required: true, doc: "the map of flash messages"
+
+  slot :inner_block, required: true
+
+  def fullscreen(assigns) do
+    ~H"""
+    <main class="h-screen w-screen overflow-hidden">
+      {render_slot(@inner_block)}
+    </main>
+
+    <.flash_group flash={@flash} />
+    """
+  end
+
+  @doc """
   Shows the flash group with standard titles and content.
 
   ## Examples

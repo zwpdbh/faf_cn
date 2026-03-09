@@ -29,6 +29,7 @@ defmodule FafCnWeb.CoreComponents do
   use Phoenix.Component
   use Gettext, backend: FafCnWeb.Gettext
 
+  alias Phoenix.HTML.Form
   alias Phoenix.LiveView.JS
 
   @doc """
@@ -54,6 +55,7 @@ defmodule FafCnWeb.CoreComponents do
     <div
       :if={msg = render_slot(@inner_block) || Phoenix.Flash.get(@flash, @kind)}
       id={@id}
+      phx-mounted={JS.dispatch("phx:flash-auto-hide", to: "##{@id}", detail: %{kind: @kind})}
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
       role="alert"
       class="toast toast-top toast-end z-50"
@@ -201,7 +203,7 @@ defmodule FafCnWeb.CoreComponents do
   def input(%{type: "checkbox"} = assigns) do
     assigns =
       assign_new(assigns, :checked, fn ->
-        Phoenix.HTML.Form.normalize_value("checkbox", assigns[:value])
+        Form.normalize_value("checkbox", assigns[:value])
       end)
 
     ~H"""

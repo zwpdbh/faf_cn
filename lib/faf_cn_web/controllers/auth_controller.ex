@@ -6,6 +6,7 @@ defmodule FafCnWeb.AuthController do
   """
   use FafCnWeb, :controller
 
+  alias Assent.Strategy.Github
   alias FafCn.Accounts
 
   @doc """
@@ -19,7 +20,7 @@ defmodule FafCnWeb.AuthController do
         |> redirect(to: "/")
 
       config ->
-        case Assent.Strategy.Github.authorize_url(config) do
+        case Github.authorize_url(config) do
           {:ok, %{url: url, session_params: session_params}} ->
             conn
             |> put_session(:oauth_session_params, session_params)
@@ -70,7 +71,7 @@ defmodule FafCnWeb.AuthController do
     require Logger
 
     with {:ok, %{user: user_info, token: token}} <-
-           Assent.Strategy.Github.callback(config, params),
+           Github.callback(config, params),
          {:ok, user_info} <- ensure_user_email(user_info, config, token),
          :ok <- validate_github_id(user_info),
          :ok <- validate_github_email(user_info),

@@ -87,9 +87,12 @@ defmodule FafCnWeb do
       # Core UI components
       import FafCnWeb.CoreComponents
 
+      # React component integration via live_react
+      import LiveReact
+
       # Common modules used in templates
-      alias Phoenix.LiveView.JS
       alias FafCnWeb.Layouts
+      alias Phoenix.LiveView.JS
 
       # Routes generation with the ~p sigil
       unquote(verified_routes())

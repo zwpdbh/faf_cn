@@ -1,18 +1,4 @@
-// If you want to use Phoenix channels, run `mix help phx.gen.channel`
-// to get started and then uncomment the line below.
-// import "./user_socket.js"
-
-// You can include dependencies in two ways.
-//
-// The simplest option is to put them in assets/vendor and
-// import them using relative paths:
-//
-//     import "../vendor/some-package.js"
-//
-// Alternatively, you can `npm install some-package --prefix assets` and import
-// using a path starting with the package name:
-//
-//     import "some-package"
+// Phoenix LiveView and React Flow Entry Point
 
 // Include phoenix_html to handle method=PUT/DELETE in forms and buttons.
 import "phoenix_html"
@@ -20,37 +6,29 @@ import "phoenix_html"
 // Establish Phoenix Socket and LiveView configuration.
 import { Socket } from "phoenix"
 import { LiveSocket } from "phoenix_live_view"
-import topbar from "../vendor/topbar"
 
-// Import hooks from different features
-import EcoChart from "./hooks/eco_chart"
-import { EdgeInfoHook, EditButtonHook, QuantityButtonHook } from "./hooks/eco_workflow"
-import { LiveFlowHook, FileImportHook, setupDownloadHandler } from "live_flow"
+// topbar is loaded via a script tag in root.html.heex
+const topbar = window.topbar
+
+// Import live_react for React component integration
+import { getHooks } from "@mrdotb/live-react"
+
+// Import React components
+import * as Components from "./components"
 
 // Configure and initialize LiveSocket
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
+// Combine all hooks - live_react hooks with React components
+const hooks = {
+  ...getHooks(Components),
+}
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: { _csrf_token: csrfToken },
-  hooks: {
-    // Feature: Eco Charts
-    EcoChart,
-    
-    // Feature: Eco Workflow (LiveFlow integration)
-    // Hook names must match phx-hook attributes in templates
-    EdgeInfo: EdgeInfoHook,
-    EditButton: EditButtonHook,
-    QuantityButton: QuantityButtonHook,
-    
-    // Package: LiveFlow
-    LiveFlow: LiveFlowHook,
-    FileImport: FileImportHook
-  }
+  hooks: hooks
 })
-
-// Enable JSON file download for LiveFlow
-setupDownloadHandler()
 
 // Show progress bar on live navigation and form submits
 topbar.config({ barColors: { 0: "#29d" }, shadowColor: "rgba(0, 0, 0, .3)" })
@@ -62,6 +40,13 @@ liveSocket.connect()
 
 // Expose liveSocket on window for web console debug
 window.liveSocket = liveSocket
+
+// Auto-hide flash notifications after 2 seconds (simulates clicking)
+window.addEventListener("phx:flash-auto-hide", ({ target }) => {
+  setTimeout(() => {
+    target.click()
+  }, 2000)
+})
 
 // Development features (quality of life for phoenix_live_reload)
 if (process.env.NODE_ENV === "development") {

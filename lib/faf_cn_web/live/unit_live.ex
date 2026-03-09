@@ -4,10 +4,10 @@ defmodule FafCnWeb.UnitLive do
   """
   use FafCnWeb, :live_view
 
-  alias FafCn.Units
+  alias FafCn.Accounts
   alias FafCn.UnitComments
   alias FafCn.UnitEditLogs
-  alias FafCn.Accounts
+  alias FafCn.Units
 
   on_mount {FafCnWeb.UserAuth, :mount_current_user}
 
