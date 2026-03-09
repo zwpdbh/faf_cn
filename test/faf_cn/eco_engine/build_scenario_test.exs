@@ -12,8 +12,8 @@ defmodule FafCn.EcoEngine.BuildScenarioTest do
   """
   use ExUnit.Case, async: true
 
-  alias FafCn.EcoEngine.Player
   alias FafCn.EcoEngine.BuildPower
+  alias FafCn.EcoEngine.Player
 
   @fatboy_mass 28_000.0
   @fatboy_power 350_000.0

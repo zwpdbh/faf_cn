@@ -7,8 +7,8 @@ defmodule FafCn.EcoWorkflows do
   """
 
   import Ecto.Query, warn: false
+  alias FafCn.EcoWorkflows.{EcoWorkflow, EcoWorkflowEdge, EcoWorkflowNode}
   alias FafCn.Repo
-  alias FafCn.EcoWorkflows.{EcoWorkflow, EcoWorkflowNode, EcoWorkflowEdge}
 
   @doc """
   Returns the list of eco workflows for a user.

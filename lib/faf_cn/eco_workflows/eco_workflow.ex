@@ -8,7 +8,7 @@ defmodule FafCn.EcoWorkflows.EcoWorkflow do
   import Ecto.Changeset
 
   alias FafCn.Accounts.User
-  alias FafCn.EcoWorkflows.{EcoWorkflowNode, EcoWorkflowEdge}
+  alias FafCn.EcoWorkflows.{EcoWorkflowEdge, EcoWorkflowNode}
 
   schema "eco_workflows" do
     field :name, :string

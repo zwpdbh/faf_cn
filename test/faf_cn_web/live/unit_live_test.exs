@@ -4,8 +4,8 @@ defmodule FafCnWeb.UnitLiveTest do
   import Phoenix.LiveViewTest
 
   alias FafCn.Accounts
-  alias FafCn.Units
   alias FafCn.UnitComments
+  alias FafCn.Units
 
   describe "Unit detail page" do
     setup do

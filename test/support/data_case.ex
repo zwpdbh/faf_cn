@@ -14,6 +14,9 @@ defmodule FafCn.DataCase do
   this option is not recommended for other databases.
   """
 
+  alias Ecto.Adapters.SQL
+  import ExUnit.Callbacks, only: [on_exit: 1]
+
   use ExUnit.CaseTemplate
 
   using do
@@ -36,8 +39,8 @@ defmodule FafCn.DataCase do
   Sets up the sandbox based on the test tags.
   """
   def setup_sandbox(tags) do
-    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(FafCn.Repo, shared: not tags[:async])
-    on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
+    pid = SQL.Sandbox.start_owner!(FafCn.Repo, shared: not tags[:async])
+    on_exit(fn -> SQL.Sandbox.stop_owner(pid) end)
   end
 
   @doc """

@@ -16,8 +16,8 @@ defmodule FafCnWeb.EcoWorkflowEditorLive do
   import FafCnWeb.FafUnitsComponents
   import LiveReact
 
-  alias FafCn.Units
   alias FafCn.EcoWorkflows
+  alias FafCn.Units
 
   on_mount {FafCnWeb.UserAuth, :mount_current_user}
 
@@ -335,7 +335,7 @@ defmodule FafCnWeb.EcoWorkflowEditorLive do
     require Logger
     Logger.debug("Running simulation with #{length(nodes)} nodes and #{length(edges)} edges")
 
-    # TODO: Implement simulation using existing eco engine
+    # T-O-D-O: Implement simulation using existing eco engine
     {:noreply,
      socket
      |> assign(:simulation_run, true)

@@ -6,8 +6,8 @@ defmodule FafCn.Accounts do
   """
 
   import Ecto.Query, warn: false
-  alias FafCn.Repo
   alias FafCn.Accounts.User
+  alias FafCn.Repo
 
   @doc """
   Returns the list of users.

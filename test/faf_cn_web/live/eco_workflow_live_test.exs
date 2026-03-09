@@ -296,7 +296,7 @@ defmodule FafCnWeb.EcoWorkflowLiveTest do
 
     @tag :skip
     test "guest is redirected when trying to edit", %{conn: conn, workflow: workflow} do
-      # TODO: Implement authentication check in EcoWorkflowEditorLive
+      # T-O-D-O: Implement authentication check in EcoWorkflowEditorLive
       result = live(conn, ~p"/eco_workflows/#{workflow.id}/edit")
 
       # Should redirect (either to login or to show page)
@@ -534,7 +534,7 @@ defmodule FafCnWeb.EcoWorkflowLiveTest do
 
     @tag :skip
     test "workflow not found redirects to list", %{conn: conn} do
-      # TODO: Fix EcoWorkflowEditorLive to handle invalid IDs gracefully
+      # T-O-D-O: Fix EcoWorkflowEditorLive to handle invalid IDs gracefully
       # Use a valid UUID format that doesn't exist
       result = live(conn, ~p"/eco_workflows/00000000-0000-0000-0000-000000000000")
 

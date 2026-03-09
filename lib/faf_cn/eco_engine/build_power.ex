@@ -45,8 +45,12 @@ defmodule FafCn.EcoEngine.BuildPower do
       7.368421052631579
   """
   @spec drain_per_bp(float(), float()) :: float()
-  def drain_per_bp(unit_cost, unit_build_time) when unit_build_time > 0 do
-    unit_cost / unit_build_time
+  def drain_per_bp(unit_cost, unit_build_time) do
+    if unit_build_time > 0 do
+      unit_cost / unit_build_time
+    else
+      0.0
+    end
   end
 
   @doc """
@@ -62,8 +66,12 @@ defmodule FafCn.EcoEngine.BuildPower do
       67.86
   """
   @spec bp_limited_by_resource(float(), float()) :: float()
-  def bp_limited_by_resource(resource_produce, drain_per_bp) when drain_per_bp > 0 do
-    resource_produce / drain_per_bp
+  def bp_limited_by_resource(resource_produce, drain_per_bp) do
+    if drain_per_bp > 0 do
+      resource_produce / drain_per_bp
+    else
+      0.0
+    end
   end
 
   @doc """
@@ -108,9 +116,13 @@ defmodule FafCn.EcoEngine.BuildPower do
       iex> BuildPower.ticks_needed(47_500, 67.86) |> Float.round(2)
       700.0
   """
-  @spec ticks_needed(float(), float()) :: float()
-  def ticks_needed(target_build_time, actual_bp) when actual_bp > 0 do
-    target_build_time / actual_bp
+  @spec ticks_needed(float(), float()) :: float() | :infinity
+  def ticks_needed(target_build_time, actual_bp) do
+    if actual_bp > 0 do
+      target_build_time / actual_bp
+    else
+      :infinity
+    end
   end
 
   @doc """
@@ -186,8 +198,12 @@ defmodule FafCn.EcoEngine.BuildPower do
       60.93
   """
   @spec phase2_ticks(float(), float()) :: float()
-  def phase2_ticks(remaining_progress, bp_limited) when bp_limited > 0 do
-    remaining_progress / bp_limited
+  def phase2_ticks(remaining_progress, bp_limited) do
+    if bp_limited > 0 do
+      remaining_progress / bp_limited
+    else
+      :infinity
+    end
   end
 
   @doc """
@@ -221,12 +237,12 @@ defmodule FafCn.EcoEngine.BuildPower do
       316.67
   """
   @spec two_phase_build_time(
-          float(),
-          float(),
-          float(),
-          float(),
-          float(),
-          float()
+          target_build_time :: float(),
+          available_bp :: float(),
+          mass_produce :: float(),
+          energy_produce :: float(),
+          mass_storage :: float(),
+          energy_storage :: float()
         ) :: float()
   def two_phase_build_time(
         target_build_time,
@@ -237,8 +253,8 @@ defmodule FafCn.EcoEngine.BuildPower do
         energy_storage
       ) do
     # Calculate drain per BP for Fatboy (assumed constant)
-    mass_drain_per_bp = drain_per_bp(28_000, target_build_time)
-    energy_drain_per_bp = drain_per_bp(350_000, target_build_time)
+    mass_drain_per_bp = drain_per_bp(28_000.0, target_build_time)
+    energy_drain_per_bp = drain_per_bp(350_000.0, target_build_time)
 
     # Full BP drain rates
     full_mass_drain = mass_drain_per_bp * available_bp

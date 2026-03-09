@@ -5,10 +5,10 @@ defmodule FafCn.UnitEditLogs do
 
   import Ecto.Query, warn: false
 
+  alias FafCn.Accounts
   alias FafCn.Repo
   alias FafCn.UnitEditLogs.UnitEditLog
   alias FafCn.Units.Unit
-  alias FafCn.Accounts
 
   @doc """
   Logs a unit edit to the audit trail.

@@ -267,7 +267,6 @@ defmodule FafCnWeb.FafUnitsHelpers do
         2 -> "T2 "
         3 -> "T3 "
         4 -> "EXP "
-        _ -> ""
       end
     else
       ""
