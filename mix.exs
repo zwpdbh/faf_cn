@@ -107,12 +107,18 @@ defmodule FafCn.MixProject do
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["compile", "tailwind faf_cn", "esbuild faf_cn"],
+      "assets.build": ["compile", "tailwind faf_cn", "esbuild faf_cn", "assets.copy_vendor"],
       "assets.deploy": [
         "tailwind faf_cn --minify",
         "esbuild faf_cn --minify",
+        "assets.copy_vendor",
         "phx.digest"
       ],
+      "assets.copy_vendor": fn _ ->
+        File.mkdir_p!("priv/static/assets/vendor")
+        File.cp_r!("assets/vendor", "priv/static/assets/vendor")
+        :ok
+      end,
       precommit: [
         "compile --warnings-as-errors",
         "deps.unlock --unused",
