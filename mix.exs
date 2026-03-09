@@ -115,8 +115,10 @@ defmodule FafCn.MixProject do
         "phx.digest"
       ],
       "assets.copy_vendor": fn _ ->
-        File.mkdir_p!("priv/static/assets/vendor")
-        File.cp_r!("assets/vendor", "priv/static/assets/vendor")
+        File.mkdir_p!("priv/static/assets/js")
+        File.mkdir_p!("priv/static/assets/css")
+        File.cp!("assets/vendor/topbar.js", "priv/static/assets/js/topbar.js")
+        File.cp!("assets/vendor/react-flow.css", "priv/static/assets/css/react-flow.css")
         :ok
       end,
       precommit: [

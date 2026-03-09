@@ -17,7 +17,7 @@ defmodule FafCnWeb do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets assets/vendor fonts images favicon.ico robots.txt)
+  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
 
   def router do
     quote do

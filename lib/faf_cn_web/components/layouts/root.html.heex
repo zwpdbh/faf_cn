@@ -8,8 +8,9 @@
       {assigns[:page_title]}
     </.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
-    <link phx-track-static rel="stylesheet" href={~p"/assets/js/app.css"} />
-    <script defer phx-track-static type="text/javascript" src={~p"/assets/vendor/topbar.js"}></script>
+    <link phx-track-static rel="stylesheet" href={~p"/assets/css/react-flow.css"} />
+    <script defer phx-track-static type="text/javascript" src={~p"/assets/js/topbar.js"}>
+    </script>
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
     <script>
@@ -32,7 +33,7 @@
       })();
     </script>
   </head>
-  <body>
+  <body class="min-h-screen flex flex-col">
     {@inner_content}
   </body>
 </html>

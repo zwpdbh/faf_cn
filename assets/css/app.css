@@ -1,37 +1,95 @@
-/* ============================================
-   FafCn - Main CSS Entry Point
-   ============================================
-   This file imports all CSS modules in order.
-   
-   To add new styles:
-   1. Create a new file in this directory (e.g., new_feature.css)
-   2. Import it below in the appropriate section
-   
-   File Organization:
-   - tailwind_config.css   : Tailwind configuration & plugins
-   - daisyui_themes.css    : Theme definitions (DaisyUI)
-   - reactflow_integration : React Flow workflow editor styles
-   - base_styles.css       : Base application styles
-   - unit_icons.css        : Asset imports (icons, fonts)
-   ============================================ */
+/* See the Tailwind configuration guide for advanced usage
+   https://tailwindcss.com/docs/configuration */
 
-/* Tailwind Configuration */
-@import "./tailwind_config.css";
+@import "tailwindcss" source(none);
+@source "../css";
+@source "../js";
+@source "../../lib/faf_cn_web";
 
-/* DaisyUI Themes */
-@import "./daisyui_themes.css";
+/* A Tailwind plugin that makes "hero-#{ICON}" classes available.
+   The heroicons installation itself is managed by your mix.exs */
+@plugin "../vendor/heroicons";
+@plugin "../node_modules/daisyui";
 
-/* React Flow Integration */
-@import "./reactflow_integration.css";
+/* Add variants based on LiveView classes */
+@custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
+@custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
+@custom-variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
 
-/* Base Application Styles */
-@import "./base_styles.css";
+/* Use the data attribute for dark mode */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
-/* Unit Icons */
+/* Make LiveView wrapper divs transparent for layout */
+[data-phx-session], [data-phx-teleported-src] { display: contents }
+
+/* Import unit icons sprite styles */
 @import "./unit_icons.css";
 
-/* ============================================
-   Add new feature styles below:
-   
-   @import "./your_feature.css";
-   ============================================ */
+/* React Flow custom styles - Main styles loaded via link tag */
+.react-flow {
+  --xy-edge-stroke: #b1b1b7;
+  --xy-edge-stroke-width: 2;
+  --xy-handle-background: #fff;
+  --xy-handle-border-color: #b1b1b7;
+  --xy-handle-border-width: 2;
+}
+
+.react-flow__node {
+  border: none !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.react-flow__node.selected {
+  box-shadow: none !important;
+}
+
+.react-flow__controls {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.react-flow__controls-button {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.react-flow__controls-button:hover {
+  background: #f3f4f6;
+}
+
+.react-flow__minimap {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Workflow editor container */
+.workflow-editor-container {
+  width: 100%;
+  height: 100%;
+  min-height: 600px;
+}
+
+/* Legacy styles for FAF units and eco guides */
+.eco-guide-unit-card {
+  @apply bg-base-100 border border-base-300 rounded-lg p-4 hover:shadow-md transition-shadow;
+}
+
+.tech-badge-t1 { @apply badge badge-sm badge-primary; }
+.tech-badge-t2 { @apply badge badge-sm badge-secondary; }
+.tech-badge-t3 { @apply badge badge-sm badge-accent; }
+.tech-badge-exp { @apply badge badge-sm badge-warning; }
