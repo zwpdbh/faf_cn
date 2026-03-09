@@ -648,7 +648,7 @@ defmodule FafCnWeb.EcoWorkflowEditorLive do
 
   defp convert_to_react_flow_node(node) when is_map(node) do
     %{
-      "id" => node["id"] || node["id"],
+      "id" => node["id"],
       "type" => node["type"] || "default",
       "position" => node["position"] || %{"x" => 0, "y" => 0},
       "data" => node["data"] || %{}
@@ -683,59 +683,62 @@ defmodule FafCnWeb.EcoWorkflowEditorLive do
 
   defp load_workflow(id, available_units) do
     case EcoWorkflows.get_workflow(id) do
-      nil ->
-        {:error, :not_found}
-
-      workflow ->
-        # Build unit lookup map
-        units_by_id =
-          Enum.reduce(available_units, %{}, fn unit, acc ->
-            Map.put(acc, unit.unit_id, unit)
-          end)
-
-        # Convert database nodes to React Flow format
-        nodes =
-          Enum.map(workflow.nodes, fn db_node ->
-            unit = db_node.unit_id && Map.get(units_by_id, db_node.unit_id)
-
-            %{
-              "id" => db_node.node_id,
-              "type" => "default",
-              "position" => %{
-                "x" => db_node.pos_x || 0,
-                "y" => db_node.pos_y || 0
-              },
-              "data" => %{
-                "label" => if(unit, do: unit.name, else: "Unit"),
-                "type" => db_node.node_type || "unit",
-                "status" => "idle",
-                "unit" => unit && unit_to_json(unit),
-                "quantity" => db_node.quantity || 1
-              }
-            }
-          end)
-
-        # Ensure initial node exists
-        nodes =
-          if Enum.any?(nodes, &(get_in(&1, ["data", "type"]) == "initial")) do
-            nodes
-          else
-            [create_initial_node() | nodes]
-          end
-
-        # Convert edges to React Flow format
-        edges =
-          Enum.map(workflow.edges, fn db_edge ->
-            %{
-              "id" => db_edge.edge_id,
-              "source" => db_edge.source_node_id,
-              "target" => db_edge.target_node_id,
-              "animated" => false
-            }
-          end)
-
-        {:ok, %{nodes: nodes, edges: edges, name: workflow.name}}
+      nil -> {:error, :not_found}
+      workflow -> build_workflow_data(workflow, available_units)
     end
+  end
+
+  defp build_workflow_data(workflow, available_units) do
+    units_by_id = build_unit_lookup_map(available_units)
+    nodes = convert_nodes_to_react_flow(workflow.nodes, units_by_id)
+    nodes = ensure_initial_node(nodes)
+    edges = convert_edges_to_react_flow(workflow.edges)
+
+    {:ok, %{nodes: nodes, edges: edges, name: workflow.name}}
+  end
+
+  defp build_unit_lookup_map(units) do
+    Map.new(units, &{&1.unit_id, &1})
+  end
+
+  defp convert_nodes_to_react_flow(db_nodes, units_by_id) do
+    Enum.map(db_nodes, &convert_node_to_react_flow(&1, units_by_id))
+  end
+
+  defp convert_node_to_react_flow(db_node, units_by_id) do
+    unit = db_node.unit_id && Map.get(units_by_id, db_node.unit_id)
+
+    %{
+      "id" => db_node.node_id,
+      "type" => "default",
+      "position" => %{"x" => db_node.pos_x || 0, "y" => db_node.pos_y || 0},
+      "data" => %{
+        "label" => if(unit, do: unit.name, else: "Unit"),
+        "type" => db_node.node_type || "unit",
+        "status" => "idle",
+        "unit" => unit && unit_to_json(unit),
+        "quantity" => db_node.quantity || 1
+      }
+    }
+  end
+
+  defp ensure_initial_node(nodes) do
+    if Enum.any?(nodes, &(get_in(&1, ["data", "type"]) == "initial")) do
+      nodes
+    else
+      [create_initial_node() | nodes]
+    end
+  end
+
+  defp convert_edges_to_react_flow(db_edges) do
+    Enum.map(db_edges, fn db_edge ->
+      %{
+        "id" => db_edge.edge_id,
+        "source" => db_edge.source_node_id,
+        "target" => db_edge.target_node_id,
+        "animated" => false
+      }
+    end)
   end
 
   defp create_initial_node do
