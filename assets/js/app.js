@@ -41,6 +41,13 @@ liveSocket.connect()
 // Expose liveSocket on window for web console debug
 window.liveSocket = liveSocket
 
+// Auto-hide flash notifications after 2 seconds (simulates clicking)
+window.addEventListener("phx:flash-auto-hide", ({ target }) => {
+  setTimeout(() => {
+    target.click()
+  }, 2000)
+})
+
 // Development features (quality of life for phoenix_live_reload)
 if (process.env.NODE_ENV === "development") {
   window.addEventListener("phx:live_reload:attached", ({ detail: reloader }) => {
