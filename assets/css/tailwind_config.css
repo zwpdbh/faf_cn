@@ -1,15 +1,7 @@
 /* ============================================
    01 - Tailwind Configuration
-   ============================================
-   Core Tailwind imports and plugin configurations.
-   
-   Modify this file to:
-   - Change Tailwind source paths
-   - Add/remove Tailwind plugins
-   - Configure custom variants
    ============================================ */
 
-/* Tailwind v3 Directives */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
