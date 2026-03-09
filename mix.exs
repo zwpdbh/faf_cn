@@ -113,7 +113,18 @@ defmodule FafCn.MixProject do
         "esbuild faf_cn --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      precommit: [
+        "compile --warnings-as-errors",
+        "deps.unlock --unused",
+        "format",
+        "test",
+        "dialyzer.check",
+        "credo --strict"
+      ],
+      "dialyzer.check": ["dialyzer --format dialyxir"],
+      "dialyzer.setup": ["dialyzer --plt"],
+      "credo.check": ["credo --strict"],
+      "code.quality": ["format", "dialyzer.check", "credo --strict"]
     ]
   end
 end

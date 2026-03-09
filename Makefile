@@ -2,28 +2,35 @@
 # Project: faf_cn
 
 .PHONY: help setup db.up db.down db.reset db.migrate db.seed server dev test format precommit \
-        deps.get deps.update assets.setup assets.build clean kimi
+        deps.get deps.update assets.setup assets.build clean kimi \
+        check quality dialyzer dialyzer.setup credo test.full test.run
 
 # Default target
 help:
 	@echo "Available commands:"
-	@echo "  make setup       - Initial project setup (deps, db, assets)"
-	@echo "  make db.up       - Start PostgreSQL database (docker-compose)"
-	@echo "  make db.down     - Stop PostgreSQL database"
-	@echo "  make db.reset    - Reset database (drop, create, migrate, seed)"
-	@echo "  make db.migrate  - Run database migrations"
-	@echo "  make db.seed     - Seed the database"
-	@echo "  make server      - Start Phoenix server with IEx (iex -S mix phx.server)"
-	@echo "  make dev         - Alias for 'make server'"
-	@echo "  make test        - Run tests"
-	@echo "  make format      - Format code"
-	@echo "  make precommit   - Run precommit checks (compile, format, test)"
-	@echo "  make deps.get    - Get dependencies"
-	@echo "  make deps.update - Update dependencies"
-	@echo "  make assets.setup - Install and setup assets"
-	@echo "  make assets.build - Build assets"
-	@echo "  make clean       - Clean build artifacts"
-	@echo "  make kimi        - Start Kimi CLI with local MCP configuration"
+	@echo "  make setup          - Initial project setup (deps, db, assets)"
+	@echo "  make db.up          - Start PostgreSQL database (docker-compose)"
+	@echo "  make db.down        - Stop PostgreSQL database"
+	@echo "  make db.reset       - Reset database (drop, create, migrate, seed)"
+	@echo "  make db.migrate     - Run database migrations"
+	@echo "  make db.seed        - Seed the database"
+	@echo "  make server         - Start Phoenix server with IEx (iex -S mix phx.server)"
+	@echo "  make dev            - Alias for 'make server'"
+	@echo "  make test           - Run tests + credo (fast)"
+	@echo "  make test.full      - Run tests + credo + dialyzer (slow)"
+	@echo "  make format         - Format code"
+	@echo "  make precommit      - Run full precommit suite"
+	@echo "  make check          - Run all quality checks (format, dialyzer, credo)"
+	@echo "  make quality        - Same as check"
+	@echo "  make dialyzer       - Run Dialyzer type checker"
+	@echo "  make dialyzer.setup - Setup Dialyzer PLT"
+	@echo "  make credo          - Run Credo code quality"
+	@echo "  make deps.get       - Get dependencies"
+	@echo "  make deps.update    - Update dependencies"
+	@echo "  make assets.setup   - Install and setup assets"
+	@echo "  make assets.build   - Build assets"
+	@echo "  make clean          - Clean build artifacts"
+	@echo "  make kimi           - Start Kimi CLI with local MCP configuration"
 
 # Setup and Installation
 # ----------------------
@@ -80,14 +87,40 @@ assets.build:
 # Testing & Quality
 # -----------------
 
-test:
+test: test.run credo
+	@echo "✅ Tests and Credo passed (run 'make dialyzer' separately)"
+
+test.full: test.run credo dialyzer
+	@echo "✅ Full test suite passed (including Dialyzer)"
+
+test.run:
 	mix test
 
 format:
 	mix format
 
+check: format.check dialyzer credo
+	@echo "✅ All quality checks passed"
+
+quality: check
+
 precommit:
 	mix precommit
+
+format.check:
+	mix format --check-formatted
+
+# Static Analysis
+# ---------------
+
+dialyzer:
+	mix dialyzer.check
+
+dialyzer.setup:
+	mix dialyzer.setup
+
+credo:
+	mix credo --strict
 
 # Cleanup
 # -------
