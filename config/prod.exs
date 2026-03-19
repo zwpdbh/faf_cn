@@ -13,7 +13,8 @@ config :faf_cn, FafCnWeb.Endpoint, cache_static_manifest: "priv/static/cache_man
 config :faf_cn, FafCnWeb.Endpoint,
   force_ssl: [rewrite_on: [:x_forwarded_proto]],
   exclude: [
-    # paths: ["/health"],
+    # Health check must be excluded from SSL redirect for Fly.io health checks
+    paths: ["/health"],
     hosts: ["localhost", "127.0.0.1"]
   ]
 

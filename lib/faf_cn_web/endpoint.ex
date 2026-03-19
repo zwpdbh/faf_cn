@@ -1,6 +1,9 @@
 defmodule FafCnWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :faf_cn
 
+  # Health check plug - must be first to avoid SSL redirect and logging
+  plug FafCnWeb.HealthCheck
+
   # The session will be stored in the cookie and signed,
   # this means its contents can be read but not tampered with.
   # Set :encryption_salt if you would also like to encrypt it.
