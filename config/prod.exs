@@ -11,11 +11,13 @@ config :faf_cn, FafCnWeb.Endpoint, cache_static_manifest: "priv/static/cache_man
 # known as HSTS. If you have a health check endpoint, you may want to exclude it below.
 # Note `:force_ssl` is required to be set at compile-time.
 config :faf_cn, FafCnWeb.Endpoint,
-  force_ssl: [rewrite_on: [:x_forwarded_proto]],
-  exclude: [
-    # Health check must be excluded from SSL redirect for Fly.io health checks
-    paths: ["/health"],
-    hosts: ["localhost", "127.0.0.1"]
+  force_ssl: [
+    rewrite_on: [:x_forwarded_proto],
+    exclude: [
+      # Health check must be excluded from SSL redirect for Fly.io health checks
+      paths: ["/health"],
+      hosts: ["localhost", "127.0.0.1"]
+    ]
   ]
 
 # Configure Swoosh API Client

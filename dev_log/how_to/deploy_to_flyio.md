@@ -80,6 +80,9 @@ primary_region = 'sin'
 
 [build]
 
+[deploy]
+  release_command = '/app/bin/migrate_and_seed'
+
 [env]
   PHX_HOST = '<your-app-name>.fly.dev'
   PORT = '8080'
@@ -87,9 +90,9 @@ primary_region = 'sin'
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = 'stop'
+  auto_stop_machines = true
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
   processes = ['app']
 
   [http_service.concurrency]
@@ -97,10 +100,20 @@ primary_region = 'sin'
     hard_limit = 1000
     soft_limit = 1000
 
+  # Health check configuration - must return HTTP 200 on /health
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "30s"
+    method = "GET"
+    path = "/health"
+
 [[vm]]
   size = 'shared-cpu-1x'
   memory = '1gb'
 ```
+
+**Important:** The health check endpoint (`/health`) must be excluded from SSL redirection in your `config/prod.exs`. See the [Troubleshooting section](#issue-health-check-failing-with-connection-refused--ssl-redirect-loop) for details.
 
 ### Step 5: Set Environment Secrets
 
@@ -329,6 +342,67 @@ Increase the pool size:
 ```bash
 fly secrets set POOL_SIZE=20 --app <your-app-name>
 ```
+
+### Issue: Health Check Failing with "connection refused" / SSL Redirect Loop
+
+**Symptoms:**
+- `fly status` shows: `1 total, 1 critical`
+- Health check output: `connect: connection refused`
+- Logs show repeated: `Plug.SSL is redirecting GET /health to https://... with status 301`
+- Application appears to be running but Fly.io reports it as unhealthy
+
+**Root Cause:**
+The `exclude` option for `force_ssl` was incorrectly placed **outside** the `force_ssl` configuration in `config/prod.exs`. This caused the health check endpoint (`/health`) to be redirected to HTTPS, which fails because Fly.io's internal health checks use HTTP on port 8080.
+
+**Incorrect Configuration (Broken):**
+```elixir
+# config/prod.exs - WRONG!
+config :faf_cn, FafCnWeb.Endpoint,
+  force_ssl: [rewrite_on: [:x_forwarded_proto]],
+  exclude: [
+    # This exclude is at the wrong level!
+    paths: ["/health"],
+    hosts: ["localhost", "127.0.0.1"]
+  ]
+```
+
+**Correct Configuration (Fixed):**
+```elixir
+# config/prod.exs - CORRECT!
+config :faf_cn, FafCnWeb.Endpoint,
+  force_ssl: [
+    rewrite_on: [:x_forwarded_proto],
+    exclude: [
+      # Health check must be excluded from SSL redirect for Fly.io health checks
+      paths: ["/health"],
+      hosts: ["localhost", "127.0.0.1"]
+    ]
+  ]
+```
+
+**Why This Matters:**
+1. Fly.io's internal health checks connect via HTTP on port 8080 (inside the private network)
+2. If `Plug.SSL` redirects these requests to HTTPS, the health check gets a 301 instead of 200
+3. The health check must be excluded from SSL redirection to respond properly
+4. The `exclude` option must be **nested inside** `force_ssl`, not a sibling key
+
+**Solution Steps:**
+1. Fix the configuration in `config/prod.exs` as shown above
+2. Ensure the `HealthCheck` plug is placed **first** in the endpoint (before any SSL handling)
+3. Deploy the fix:
+   ```bash
+   fly deploy --app <your-app-name>
+   ```
+4. Verify the health check passes:
+   ```bash
+   fly status --app <your-app-name>
+   # Should show: 1 total, 1 passing
+   ```
+
+**Prevention:**
+- Always place `exclude` inside `force_ssl` configuration
+- Keep the `HealthCheck` plug at the top of your endpoint pipeline
+- Test health check behavior after any SSL-related configuration changes
 
 ---
 
