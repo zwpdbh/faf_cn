@@ -1,0 +1,75 @@
+{
+  "files.associations": {
+    "*.ex": "elixir",
+    "*.exs": "elixir",
+    "*.heex": "phoenix-heex"
+  },
+
+  "[elixir]": {
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2,
+    "editor.semanticHighlighting.enabled": true,
+    "editor.defaultFormatter": "JakeBecker.elixir-ls"
+  },
+
+  "[phoenix-heex]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "JakeBecker.elixir-ls",
+    "editor.autoClosingBrackets": "always",
+    "editor.autoClosingQuotes": "always"
+  },
+
+  "[heex]": {
+    "editor.linkedEditing": true,
+    "editor.suggest.showWords": false,
+    "editor.suggestSelection": "recentlyUsedByPrefix"
+  },
+
+  "elixirLS.projectDir": ".",
+  "elixirLS.fetchDeps": true,
+  "elixirLS.suggestSpecs": false,
+  "elixirLS.dialyzerEnabled": true,
+  "elixirLS.dialyzerFormat": "dialyzer",
+  "elixirLS.signatureAfterComplete": true,
+  "elixirLS.enableExperimentalFeatures": true,
+  "elixirLS.envVariables": {
+    "PHX_VIEW_STRUCT_DEBUG": "1"
+  },
+  "elixirLS.trace.server": "off",
+  "elixirLS.dialyzerWarnOpts": [
+    "no_opaque",
+    "no_return",
+    "error_handling",
+    "underspecs"
+  ],
+
+  "tailwindCSS.includeLanguages": {
+    "elixir": "html",
+    "heex": "html",
+    "phoenix-heex": "html"
+  },
+  "tailwindCSS.experimental.classRegex": [
+    "class=\\\"([^\\\"]*)\\\"",
+    "class=\\\"{[^\\\"]*}\\\"",
+    "class: {[^}]*}",
+    "class: \"([^\"]*)\""
+  ],
+
+  "emmet.includeLanguages": {
+    "elixir": "html",
+    "heex": "html",
+    "phoenix-heex": "html"
+  },
+  "emmet.showAbbreviationSuggestions": true,
+  "emmet.showSuggestionsAsSnippets": true,
+  "emmet.triggerExpansionOnTab": true,
+
+  "indentRainbow.includedLanguages": [
+    "elixir",
+    "html",
+    "phoenix-heex"
+  ],
+  "indentRainbow.ignoreErrorLanguages": [
+    "elixir"
+  ]
+}
